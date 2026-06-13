@@ -1,0 +1,35 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "useDefineForClassFields": true,
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "lib": ["DOM", "DOM.Iterable", "ES2022"],
+        "types": ["node"],
+        "paths": {
+            "@/*": ["./src/*"],
+            "@dict/*": ["./src/dictionary/*"],
+            "@comp/*": ["./src/component/*"]
+        },
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true,
+        "importHelpers": true,
+        "isolatedModules": true,
+        "jsx": "preserve",
+        "noEmit": true,
+        "skipLibCheck": true,
+        "strict": true,
+        "noImplicitAny": true
+    },
+    "include": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "src/**/*.vue",
+        "shims.d.ts",
+        "vite.config.ts",
+        "vitest.config.ts",
+        "oxlint.config.mts",
+        "oxfmt.config.mts",
+        "tests/**/*.ts"
+    ]
+}
