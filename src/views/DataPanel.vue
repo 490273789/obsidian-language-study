@@ -204,7 +204,7 @@ let collumns = reactive<DataTableColumns<Row>>([
 <style lang="scss">
 #langr-data {
     overflow: hidden;
-    background: var(--background-secondary);
+    background: var(--langr-page);
 
     .data-provider {
         height: 100%;
@@ -250,9 +250,9 @@ let collumns = reactive<DataTableColumns<Row>>([
     .tag-mode {
         height: 26px;
         color: var(--text-normal);
-        border: 1px solid var(--langr-border);
+        border: 1px solid var(--langr-border-strong);
         border-radius: var(--langr-radius-sm);
-        background: var(--langr-surface);
+        background: var(--langr-surface-inset);
     }
 
     .tag-list {
@@ -268,6 +268,8 @@ let collumns = reactive<DataTableColumns<Row>>([
         min-height: 0;
         overflow: hidden;
         padding: var(--langr-space-2);
+        border-color: var(--langr-border-strong);
+        box-shadow: var(--langr-shadow-strong);
     }
 
     .n-data-table-filter {
@@ -283,7 +285,7 @@ let collumns = reactive<DataTableColumns<Row>>([
     }
 
     .n-data-table {
-        --n-merged-border-color: var(--langr-border);
+        --n-merged-border-color: var(--langr-border-strong);
     }
 
     .n-data-table .n-data-table-tr {
@@ -306,18 +308,18 @@ let collumns = reactive<DataTableColumns<Row>>([
                 white-space: pre-line;
                 margin: 0.5em 0;
                 padding: var(--langr-space-2);
-                border: 1px solid var(--langr-border);
+                border: 1px solid var(--langr-border-strong);
                 border-radius: var(--langr-radius-sm);
-                background: var(--langr-surface-muted);
+                background: var(--langr-surface-inset);
             }
         }
 
         .data-sens {
             .data-sen {
                 margin-bottom: var(--langr-space-2);
-                border: 1px solid var(--langr-border);
+                border: 1px solid var(--langr-border-strong);
                 border-radius: var(--langr-radius-sm);
-                background: var(--langr-surface-muted);
+                background: var(--langr-surface-inset);
 
                 p {
                     &:first-child {

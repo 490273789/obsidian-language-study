@@ -64,7 +64,7 @@ let styleC = computed(() => {
 /*计数条*/
 .count-bar {
     overflow: hidden;
-    border: 1px solid var(--langr-border);
+    border: 1px solid var(--langr-border-strong);
     height: 18px;
     width: 100%;
     min-width: 160px;
@@ -76,18 +76,21 @@ let styleC = computed(() => {
     cursor: pointer;
     line-height: 18px;
     border-radius: 999px;
-    background: var(--background-modifier-hover);
+    background: var(--langr-surface-inset);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--background-primary) 72%, transparent);
 
     .b1 {
         min-width: fit-content;
         padding: 0 6px;
         background-color: var(--langr-status-new-bg);
+        box-shadow: inset -1px 0 0 color-mix(in srgb, var(--langr-border-strong) 70%, transparent);
     }
 
     .b2 {
         min-width: fit-content;
         padding: 0 6px;
         background-color: var(--langr-status-learning-bg);
+        box-shadow: inset -1px 0 0 color-mix(in srgb, var(--langr-border-strong) 70%, transparent);
     }
 
     .b3 {

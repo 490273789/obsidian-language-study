@@ -203,7 +203,7 @@ useEvent(window, "obsidian-langr-search", onSearch);
     user-select: text;
     display: flex;
     flex-direction: column;
-    background: var(--background-secondary);
+    background: var(--langr-page);
 
     .search-provider {
         height: 100%;
@@ -222,6 +222,9 @@ useEvent(window, "obsidian-langr-search", onSearch);
         gap: var(--langr-space-2);
         margin: var(--langr-space-3);
         padding: var(--langr-space-2);
+        border-color: var(--langr-border-strong);
+        background: var(--langr-surface-raised);
+        box-shadow: var(--langr-shadow-strong);
 
         .search-input {
             flex: 1;
@@ -247,10 +250,10 @@ useEvent(window, "obsidian-langr-search", onSearch);
         max-width: 140px;
         height: 28px;
         padding: 3px 9px;
-        border: 1px solid var(--langr-border);
+        border: 1px solid var(--langr-border-strong);
         border-radius: var(--langr-radius-sm);
         color: var(--text-muted);
-        background: var(--langr-surface);
+        background: var(--langr-surface-raised);
         box-shadow: none;
         cursor: pointer;
         transition:
@@ -260,6 +263,7 @@ useEvent(window, "obsidian-langr-search", onSearch);
 
         &:hover {
             color: var(--text-normal);
+            border-color: var(--langr-border-hover);
             background: var(--background-modifier-hover);
             box-shadow: none;
         }
@@ -267,8 +271,10 @@ useEvent(window, "obsidian-langr-search", onSearch);
         &.active {
             color: var(--text-normal);
             border-color: var(--interactive-accent);
-            background: var(--langr-surface);
-            box-shadow: inset 0 -2px 0 var(--interactive-accent);
+            background: color-mix(in srgb, var(--langr-accent) 9%, var(--langr-surface-raised));
+            box-shadow:
+                inset 0 -2px 0 var(--interactive-accent),
+                0 0 0 1px color-mix(in srgb, var(--langr-accent) 26%, transparent);
         }
 
         &.loading .dict-name::after {
@@ -303,6 +309,9 @@ useEvent(window, "obsidian-langr-search", onSearch);
     .dict-panel {
         padding: var(--langr-space-3);
         min-height: 100%;
+        border-color: var(--langr-border-strong);
+        background: var(--langr-surface-raised);
+        box-shadow: var(--langr-shadow);
     }
 
     .dict-state {

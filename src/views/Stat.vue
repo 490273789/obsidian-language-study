@@ -152,7 +152,7 @@ onUnmounted(() => {
 #langr-stat {
     overflow: auto;
     padding: var(--langr-space-3);
-    background: var(--background-secondary);
+    background: var(--langr-page);
 
     .stat-card {
         overflow: hidden;
@@ -161,7 +161,7 @@ onUnmounted(() => {
 
     .stat-header {
         padding: var(--langr-space-3) var(--langr-space-4);
-        border-bottom: 1px solid var(--langr-border);
+        border-bottom: 1px solid var(--langr-border-strong);
     }
 
     .stat-title {

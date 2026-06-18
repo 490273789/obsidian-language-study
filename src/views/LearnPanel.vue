@@ -497,7 +497,7 @@ useEvent(window, "obsidian-langr-search", async (evt: CustomEvent) => {
 <style lang="scss">
 #langr-learn-panel {
     overflow: hidden;
-    background: var(--background-secondary);
+    background: var(--langr-page);
     padding-bottom: 18px;
 
     .learn-provider {
@@ -519,6 +519,9 @@ useEvent(window, "obsidian-langr-search", async (evt: CustomEvent) => {
 
     .learn-section {
         padding: var(--langr-space-3);
+        border-color: var(--langr-border-strong);
+        background: var(--langr-surface-raised);
+        box-shadow: var(--langr-shadow);
     }
 
     .learn-section-header {
@@ -527,6 +530,8 @@ useEvent(window, "obsidian-langr-search", async (evt: CustomEvent) => {
         justify-content: space-between;
         gap: var(--langr-space-2);
         margin-bottom: var(--langr-space-2);
+        padding-bottom: var(--langr-space-2);
+        border-bottom: 1px solid var(--langr-border-subtle);
     }
 
     .learn-section-title {
@@ -564,6 +569,11 @@ useEvent(window, "obsidian-langr-search", async (evt: CustomEvent) => {
         font-weight: 650;
     }
 
+    .n-radio-group .n-radio-button {
+        border-color: var(--langr-border-strong);
+        background: var(--langr-surface-inset);
+    }
+
     .sentence-input {
         width: 100%;
     }
@@ -575,9 +585,10 @@ useEvent(window, "obsidian-langr-search", async (evt: CustomEvent) => {
         gap: var(--langr-space-2);
         min-width: 0;
         padding: var(--langr-space-2);
-        border: 1px solid var(--langr-border);
+        border: 1px solid var(--langr-border-strong);
         border-radius: var(--langr-radius-sm);
-        background: var(--langr-surface-muted);
+        background: var(--langr-surface-inset);
+        box-shadow: inset 0 1px 0 color-mix(in srgb, var(--background-primary) 72%, transparent);
     }
 
     .n-dynamic-input .n-button-group {
@@ -609,7 +620,10 @@ useEvent(window, "obsidian-langr-search", async (evt: CustomEvent) => {
         z-index: 1;
         margin-top: var(--langr-space-3);
         padding: var(--langr-space-2);
-        background: var(--langr-surface);
+        border: 1px solid var(--langr-border-strong);
+        border-radius: var(--langr-radius-md);
+        background: var(--langr-surface-raised);
+        box-shadow: var(--langr-shadow-strong);
     }
 
     .submit-button {

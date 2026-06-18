@@ -74,10 +74,10 @@ defineExpose({
     position: fixed;
     z-index: 1000;
     overflow: hidden;
-    border-color: var(--langr-border);
-    background-color: var(--langr-surface);
+    border-color: var(--langr-border-strong);
+    background-color: var(--langr-surface-raised);
     touch-action: none;
-    box-shadow: var(--shadow-s);
+    box-shadow: var(--langr-shadow-strong);
 
     .pop-handle {
         display: flex;
@@ -85,8 +85,8 @@ defineExpose({
         height: 32px;
         padding: 0 var(--langr-space-2) 0 var(--langr-space-3);
         color: var(--text-muted);
-        border-bottom: 1px solid var(--langr-border);
-        background-color: var(--langr-surface-muted);
+        border-bottom: 1px solid var(--langr-border-strong);
+        background-color: var(--langr-surface-inset);
         cursor: move;
 
         &:active {
@@ -125,7 +125,7 @@ defineExpose({
 
             &:hover {
                 color: var(--text-normal);
-                border-color: var(--langr-border);
+                border-color: var(--langr-border-strong);
                 background-color: var(--background-modifier-hover);
                 box-shadow: none;
             }
@@ -142,7 +142,7 @@ defineExpose({
 
     .pop-body {
         width: 450px;
-        background: var(--background-secondary);
+        background: var(--langr-page);
 
         #langr-search {
             max-height: 500px;

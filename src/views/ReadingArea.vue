@@ -339,7 +339,7 @@ if (plugin.constants.platform === "mobile") {
 
 <style lang="scss">
 #langr-reading {
-    background: var(--background-secondary);
+    background: var(--langr-page);
     user-select: none;
 
     .reading-provider {
@@ -360,6 +360,7 @@ if (plugin.constants.platform === "mobile") {
         min-width: 0;
         min-height: 0;
         overflow: hidden;
+        box-shadow: var(--langr-shadow-strong);
     }
 
     .reading-header {
@@ -369,8 +370,8 @@ if (plugin.constants.platform === "mobile") {
         gap: var(--langr-space-3);
         min-height: 48px;
         padding: var(--langr-space-3) var(--langr-space-4);
-        border-bottom: 1px solid var(--langr-border);
-        background: var(--langr-surface);
+        border-bottom: 1px solid var(--langr-border-strong);
+        background: var(--langr-surface-raised);
     }
 
     .reading-heading {
@@ -399,7 +400,7 @@ if (plugin.constants.platform === "mobile") {
         min-height: 28px;
         padding: 0 10px;
         color: var(--text-normal);
-        border: 1px solid var(--langr-border);
+        border: 1px solid var(--langr-border-strong);
         border-radius: var(--langr-radius-sm);
         background: var(--langr-surface-muted);
         box-shadow: none;
@@ -430,6 +431,8 @@ if (plugin.constants.platform === "mobile") {
         align-items: center;
         margin: var(--langr-space-3) var(--langr-space-4) 0;
         padding: var(--langr-space-2) var(--langr-space-3);
+        border-color: var(--langr-border-strong);
+        background: var(--langr-surface-inset);
     }
 
     .reading-progress-labels {
@@ -446,9 +449,12 @@ if (plugin.constants.platform === "mobile") {
         padding: clamp(18px, 3vw, 36px);
         overflow: auto;
         color: var(--text-normal);
-        border: 1px solid var(--langr-border);
+        border: 1px solid var(--langr-border-strong);
         border-radius: var(--langr-radius-md);
-        background: var(--background-primary);
+        background: var(--langr-surface);
+        box-shadow:
+            inset 0 0 0 1px color-mix(in srgb, var(--background-primary) 72%, transparent),
+            0 1px 2px rgba(0, 0, 0, 0.035);
         font-family: var(--langr-font-reading);
         touch-action: none;
 
@@ -491,22 +497,32 @@ if (plugin.constants.platform === "mobile") {
         span {
             .new {
                 background-color: var(--langr-status-new-bg);
+                box-shadow: 0 0 0 1px
+                    color-mix(in srgb, var(--langr-status-new-fg) 16%, transparent);
             }
 
             .learning {
                 background-color: var(--langr-status-learning-bg);
+                box-shadow: 0 0 0 1px
+                    color-mix(in srgb, var(--langr-status-learning-fg) 16%, transparent);
             }
 
             .familiar {
                 background-color: var(--langr-status-familiar-bg);
+                box-shadow: 0 0 0 1px
+                    color-mix(in srgb, var(--langr-status-familiar-fg) 16%, transparent);
             }
 
             .known {
                 background-color: var(--langr-status-known-bg);
+                box-shadow: 0 0 0 1px
+                    color-mix(in srgb, var(--langr-status-known-fg) 16%, transparent);
             }
 
             .learned {
                 background-color: var(--langr-status-learned-bg);
+                box-shadow: 0 0 0 1px
+                    color-mix(in srgb, var(--langr-status-learned-fg) 16%, transparent);
             }
         }
 
@@ -533,8 +549,8 @@ if (plugin.constants.platform === "mobile") {
         flex: 0 0 auto;
         justify-content: center;
         padding: var(--langr-space-3) var(--langr-space-4);
-        border-top: 1px solid var(--langr-border);
-        background: var(--langr-surface);
+        border-top: 1px solid var(--langr-border-strong);
+        background: var(--langr-surface-raised);
     }
 
     .note-area {
@@ -548,12 +564,12 @@ if (plugin.constants.platform === "mobile") {
         }
 
         .note-rendered {
-            border: 1px solid var(--langr-border);
+            border: 1px solid var(--langr-border-strong);
             border-radius: var(--langr-radius-sm);
             flex: 1;
             padding: var(--langr-space-2);
             overflow: auto;
-            background: var(--langr-surface-muted);
+            background: var(--langr-surface-inset);
         }
     }
 }

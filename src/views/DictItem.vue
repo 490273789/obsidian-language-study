@@ -120,9 +120,10 @@ watch(
 .dict-item {
     overflow: hidden;
     margin-bottom: var(--langr-space-3);
-    border: 1px solid var(--langr-border);
+    border: 1px solid var(--langr-border-strong);
     border-radius: var(--langr-radius-md);
-    background: var(--langr-surface);
+    background: var(--langr-surface-raised);
+    box-shadow: var(--langr-shadow);
 
     header.dict-item-header {
         display: flex;
@@ -132,7 +133,7 @@ watch(
         align-items: center;
         gap: var(--langr-space-2);
         padding: var(--langr-space-2);
-        border-bottom: 1px solid var(--langr-border);
+        border-bottom: 1px solid var(--langr-border-strong);
         background-color: v-bind(bgRGBA3);
         min-height: 34px;
         cursor: pointer;
@@ -173,7 +174,7 @@ watch(
 
             &:hover {
                 color: var(--text-normal);
-                border-color: var(--langr-border);
+                border-color: var(--langr-border-strong);
                 background: var(--background-modifier-hover);
                 box-shadow: none;
             }
