@@ -23,12 +23,29 @@
                 }}</NButton>
             </div>
         </NConfigProvider>
-        <div class="dict-area" style="overflow: auto">
-            <DictItem
+        <div class="dict-tabs" v-if="components.length > 0">
+            <button
                 v-for="(cp, i) in components"
-                :loading="loadings[i]"
-                :name="cp.name"
-                :id="cp.id"
+                :key="cp.id"
+                type="button"
+                class="dict-tab"
+                :class="{
+                    active: activeDictId === cp.id,
+                    loading: loadings[i],
+                    empty: word && !loadings[i] && !shows[i],
+                }"
+                @click="activeDictId = cp.id"
+            >
+                <span :class="['dict-icon', cp.id]"></span>
+                <span class="dict-name">{{ cp.name }}</span>
+            </button>
+        </div>
+        <div class="dict-area">
+            <section
+                v-for="(cp, i) in components"
+                :key="cp.id"
+                class="dict-panel"
+                v-show="activeDictId === cp.id"
             >
                 <KeepAlive>
                     <Component
@@ -38,7 +55,9 @@
                         v-show="shows[i]"
                     ></Component>
                 </KeepAlive>
-            </DictItem>
+                <div class="dict-state" v-if="loadings[i]">searching...</div>
+                <div class="dict-state" v-else-if="word && !shows[i]">No result</div>
+            </section>
         </div>
     </div>
 </template>
@@ -55,7 +74,6 @@ import {
     GlobalThemeOverrides,
 } from "naive-ui";
 
-import DictItem from "./DictItem.vue";
 import { t } from "@/lang/helper";
 import { dicts } from "@dict/list";
 import { playAudio } from "@/utils/helpers";
@@ -74,7 +92,8 @@ type DictComponent = {
 type DictionaryId = keyof typeof dicts;
 
 let components = shallowRef<DictComponent[]>([]);
-let map: { [K in string]: number } = {};
+let activeDictId = ref<DictionaryId | null>(null);
+let map: Partial<Record<DictionaryId, number>> = {};
 let loadings = ref<boolean[]>([]);
 let shows = ref<boolean[]>([]);
 watch(
@@ -98,11 +117,15 @@ watch(
                 type: dicts[dict.id].Cp,
             };
         });
+        map = {};
         collection.forEach((v, i) => {
             map[v.id] = i;
         });
         loadings.value = Array(collection.length).fill(false);
         shows.value = Array(collection.length).fill(false);
+        if (!activeDictId.value || !(activeDictId.value in map)) {
+            activeDictId.value = components.value[0]?.id ?? null;
+        }
     },
     {
         immediate: true,
@@ -110,8 +133,11 @@ watch(
 );
 
 function loading({ id, loading, result }: { id: string; loading: boolean; result: boolean }) {
-    loadings.value[map[id]] = loading;
-    shows.value[map[id]] = result;
+    const index = map[id as DictionaryId];
+    if (index === undefined) return;
+
+    loadings.value[index] = loading;
+    shows.value[index] = result;
 }
 
 // 切换明亮/黑暗模式
@@ -190,8 +216,80 @@ useEvent(window, "obsidian-langr-search", onSearch);
         }
     }
 
+    .dict-tabs {
+        display: flex;
+        gap: 4px;
+        align-items: stretch;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 0 0 6px;
+        border-bottom: 1px solid var(--background-modifier-border);
+        flex: 0 0 auto;
+    }
+
+    .dict-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        min-width: max-content;
+        max-width: 140px;
+        height: 28px;
+        padding: 3px 8px;
+        border: 1px solid var(--background-modifier-border);
+        border-radius: 6px 6px 0 0;
+        color: var(--text-muted);
+        background: var(--background-secondary);
+        box-shadow: none;
+        cursor: pointer;
+
+        &:hover {
+            color: var(--text-normal);
+            background: var(--background-modifier-hover);
+            box-shadow: none;
+        }
+
+        &.active {
+            color: var(--text-normal);
+            border-color: var(--interactive-accent);
+            background: var(--background-primary);
+        }
+
+        &.loading .dict-name::after {
+            content: "...";
+        }
+
+        &.empty:not(.active) {
+            opacity: 0.65;
+        }
+
+        .dict-icon {
+            flex: 0 0 auto;
+            width: 18px;
+            height: 18px;
+            background-size: cover;
+        }
+
+        .dict-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            line-height: 18px;
+        }
+    }
+
     .dict-area {
         flex: 1;
+        overflow: auto;
+        padding: 8px 10px 12px;
+    }
+
+    .dict-panel {
+        min-height: 100%;
+    }
+
+    .dict-state {
+        color: var(--text-muted);
+        padding: 10px 0;
     }
 }
 
