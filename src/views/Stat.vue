@@ -52,6 +52,88 @@ let charDom: HTMLElement;
 let sevenDays: echarts.EChartsType;
 let option: EChartsOption;
 
+function readCssVar(name: string, fallback: string): string {
+    if (typeof window === "undefined") {
+        return fallback;
+    }
+
+    return window.getComputedStyle(document.body).getPropertyValue(name).trim() || fallback;
+}
+
+function makeChartTheme(): EChartsOption {
+    const accent = readCssVar("--langr-accent", "#00a8d7");
+    const hot = readCssVar("--langr-accent-hot", "#e64bbd");
+    const warm = readCssVar("--langr-accent-warm", "#c78618");
+    const text = readCssVar("--text-normal", "#172126");
+    const muted = readCssVar("--text-muted", "#5d6870");
+    const grid = readCssVar("--langr-border-strong", "#7ccfe2");
+    const surface = readCssVar("--langr-surface-raised", "#f8feff");
+
+    return {
+        color: [muted, accent, hot],
+        title: {
+            textStyle: {
+                color: accent,
+                fontWeight: 700,
+            },
+        },
+        tooltip: {
+            backgroundColor: surface,
+            borderColor: accent,
+            textStyle: {
+                color: text,
+            },
+        },
+        xAxis: {
+            axisLine: {
+                lineStyle: {
+                    color: grid,
+                },
+            },
+            axisLabel: {
+                color: muted,
+            },
+        },
+        yAxis: {
+            splitLine: {
+                lineStyle: {
+                    color: grid,
+                    opacity: 0.28,
+                },
+            },
+            axisLabel: {
+                color: muted,
+            },
+        },
+        series: [
+            {
+                lineStyle: {
+                    color: muted,
+                },
+                areaStyle: {
+                    color: "rgba(128, 128, 128, 0.12)",
+                },
+            },
+            {
+                lineStyle: {
+                    color: accent,
+                },
+                areaStyle: {
+                    color: "rgba(0, 168, 215, 0.14)",
+                },
+            },
+            {
+                lineStyle: {
+                    color: hot,
+                },
+                itemStyle: {
+                    color: warm,
+                },
+            },
+        ],
+    };
+}
+
 onMounted(async () => {
     const chartElement = container.querySelector<HTMLElement>("#chart");
     if (!chartElement) {
@@ -63,6 +145,7 @@ onMounted(async () => {
         width: Math.max(360, charDom.clientWidth || 400),
         height: 350,
     });
+    sevenDays.setOption(makeChartTheme());
     if (option) {
         sevenDays.setOption(option);
     }
@@ -152,21 +235,32 @@ onUnmounted(() => {
 #langr-stat {
     overflow: auto;
     padding: var(--langr-space-3);
-    background: var(--langr-page);
+    background: transparent;
 
     .stat-card {
         overflow: hidden;
         min-height: 420px;
+        border-color: var(--langr-border-neon);
+        box-shadow: var(--langr-shadow-strong);
     }
 
     .stat-header {
         padding: var(--langr-space-3) var(--langr-space-4);
         border-bottom: 1px solid var(--langr-border-strong);
+        background:
+            linear-gradient(
+                90deg,
+                color-mix(in srgb, var(--langr-accent) 12%, transparent),
+                transparent 42%
+            ),
+            var(--langr-surface-glass);
     }
 
     .stat-title {
         font-size: 14px;
         font-weight: 700;
+        color: var(--langr-accent);
+        text-transform: uppercase;
     }
 
     #chart {

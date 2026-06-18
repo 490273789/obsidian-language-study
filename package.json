@@ -11,6 +11,7 @@
         "dev": "vite build --watch --mode development",
         "typecheck": "vue-tsc --noEmit --skipLibCheck",
         "test": "vitest run",
+        "deploy": "npm run build && node scripts/deploy-icloud.mjs",
         "lint": "oxlint --config oxlint.config.mts --tsconfig tsconfig.json .",
         "format": "oxfmt --config oxfmt.config.mts --write --no-error-on-unmatched-pattern \"src/**/*.{ts,vue,css}\" \"tests/**/*.ts\" \"*.{ts,mjs,mts,json,jsonc}\"",
         "format:check": "oxfmt --config oxfmt.config.mts --check --no-error-on-unmatched-pattern \"src/**/*.{ts,vue,css}\" \"tests/**/*.ts\" \"*.{ts,mjs,mts,json,jsonc}\"",

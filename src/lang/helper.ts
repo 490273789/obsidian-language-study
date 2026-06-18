@@ -8,7 +8,19 @@ const localeMap: { [k: string]: Partial<typeof en> } = {
     "zh-TW": zh_TW,
 };
 
-const lang = window.localStorage.getItem("language");
+function getSavedLanguage(): string {
+    if (typeof window === "undefined") {
+        return "en";
+    }
+
+    try {
+        return window.localStorage?.getItem("language") || "en";
+    } catch {
+        return "en";
+    }
+}
+
+const lang = getSavedLanguage();
 const locale = localeMap[lang || "en"];
 
 export function t(text: keyof typeof en): string {

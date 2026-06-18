@@ -64,7 +64,7 @@ let styleC = computed(() => {
 /*计数条*/
 .count-bar {
     overflow: hidden;
-    border: 1px solid var(--langr-border-strong);
+    border: 1px solid var(--langr-border-neon);
     height: 18px;
     width: 100%;
     min-width: 160px;
@@ -76,26 +76,42 @@ let styleC = computed(() => {
     cursor: pointer;
     line-height: 18px;
     border-radius: 999px;
-    background: var(--langr-surface-inset);
-    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--background-primary) 72%, transparent);
+    background: var(--langr-scanline), var(--langr-surface-inset);
+    background-size:
+        100% 4px,
+        auto;
+    box-shadow:
+        inset 0 1px 0 color-mix(in srgb, var(--background-primary) 72%, transparent),
+        var(--langr-glow-cyan);
 
     .b1 {
         min-width: fit-content;
         padding: 0 6px;
-        background-color: var(--langr-status-new-bg);
+        color: var(--langr-status-new-fg);
+        background: linear-gradient(
+            90deg,
+            var(--langr-status-new-bg),
+            color-mix(in srgb, var(--langr-status-new-fg) 14%, transparent)
+        );
         box-shadow: inset -1px 0 0 color-mix(in srgb, var(--langr-border-strong) 70%, transparent);
     }
 
     .b2 {
         min-width: fit-content;
         padding: 0 6px;
-        background-color: var(--langr-status-learning-bg);
+        color: var(--langr-status-learning-fg);
+        background: linear-gradient(
+            90deg,
+            var(--langr-status-learning-bg),
+            color-mix(in srgb, var(--langr-status-learning-fg) 13%, transparent)
+        );
         box-shadow: inset -1px 0 0 color-mix(in srgb, var(--langr-border-strong) 70%, transparent);
     }
 
     .b3 {
         min-width: fit-content;
         padding: 0 6px;
+        color: var(--langr-status-ignore-fg);
         background-color: var(--langr-status-ignore-bg);
     }
 }

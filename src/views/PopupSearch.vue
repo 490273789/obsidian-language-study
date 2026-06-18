@@ -74,7 +74,7 @@ defineExpose({
     position: fixed;
     z-index: 1000;
     overflow: hidden;
-    border-color: var(--langr-border-strong);
+    border-color: var(--langr-border-neon);
     background-color: var(--langr-surface-raised);
     touch-action: none;
     box-shadow: var(--langr-shadow-strong);
@@ -84,9 +84,15 @@ defineExpose({
         align-items: center;
         height: 32px;
         padding: 0 var(--langr-space-2) 0 var(--langr-space-3);
-        color: var(--text-muted);
+        color: var(--langr-accent);
         border-bottom: 1px solid var(--langr-border-strong);
-        background-color: var(--langr-surface-inset);
+        background:
+            linear-gradient(
+                90deg,
+                color-mix(in srgb, var(--langr-accent-hot) 14%, transparent),
+                transparent 48%
+            ),
+            var(--langr-surface-inset);
         cursor: move;
 
         &:active {
@@ -100,6 +106,7 @@ defineExpose({
             font-weight: 700;
             text-overflow: ellipsis;
             white-space: nowrap;
+            text-transform: uppercase;
         }
 
         .pin-button {
@@ -110,7 +117,7 @@ defineExpose({
             width: 24px;
             height: 24px;
             padding: 0;
-            color: var(--text-muted);
+            color: var(--langr-accent);
             border: 1px solid transparent;
             border-radius: var(--langr-radius-sm);
             background: transparent;
@@ -124,14 +131,14 @@ defineExpose({
             }
 
             &:hover {
-                color: var(--text-normal);
-                border-color: var(--langr-border-strong);
-                background-color: var(--background-modifier-hover);
-                box-shadow: none;
+                color: var(--langr-accent-hot);
+                border-color: var(--langr-border-hover);
+                background-color: color-mix(in srgb, var(--langr-accent-hot) 10%, transparent);
+                box-shadow: var(--langr-glow-hot);
             }
 
             &.pinned {
-                color: var(--langr-accent);
+                color: var(--langr-accent-hot);
 
                 svg {
                     transform: rotate(45deg);

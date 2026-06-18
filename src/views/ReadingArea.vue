@@ -339,7 +339,7 @@ if (plugin.constants.platform === "mobile") {
 
 <style lang="scss">
 #langr-reading {
-    background: var(--langr-page);
+    background: transparent;
     user-select: none;
 
     .reading-provider {
@@ -360,6 +360,7 @@ if (plugin.constants.platform === "mobile") {
         min-width: 0;
         min-height: 0;
         overflow: hidden;
+        border-color: var(--langr-border-neon);
         box-shadow: var(--langr-shadow-strong);
     }
 
@@ -371,7 +372,13 @@ if (plugin.constants.platform === "mobile") {
         min-height: 48px;
         padding: var(--langr-space-3) var(--langr-space-4);
         border-bottom: 1px solid var(--langr-border-strong);
-        background: var(--langr-surface-raised);
+        background:
+            linear-gradient(
+                90deg,
+                color-mix(in srgb, var(--langr-accent) 12%, transparent),
+                transparent 36%
+            ),
+            var(--langr-surface-glass);
     }
 
     .reading-heading {
@@ -381,7 +388,9 @@ if (plugin.constants.platform === "mobile") {
     .reading-title {
         font-size: 14px;
         font-weight: 700;
+        color: var(--langr-accent);
         line-height: 1.25;
+        text-transform: uppercase;
     }
 
     .reading-audio {
@@ -402,26 +411,34 @@ if (plugin.constants.platform === "mobile") {
         color: var(--text-normal);
         border: 1px solid var(--langr-border-strong);
         border-radius: var(--langr-radius-sm);
-        background: var(--langr-surface-muted);
-        box-shadow: none;
+        background: var(--langr-surface-glass);
+        box-shadow: var(--langr-glow-cyan);
         cursor: pointer;
+        transition:
+            transform 120ms ease,
+            border-color 120ms ease,
+            background-color 120ms ease,
+            color 120ms ease,
+            box-shadow 120ms ease;
     }
 
     .reading-action:hover {
         border-color: var(--langr-border-hover);
-        background: var(--background-modifier-hover);
-        box-shadow: none;
+        color: var(--langr-accent-hot);
+        background: color-mix(in srgb, var(--langr-accent-hot) 10%, var(--langr-surface));
+        box-shadow: var(--langr-glow-hot);
+        transform: translateY(-1px);
     }
 
     .finish-reading {
-        color: var(--text-on-accent);
+        color: var(--background-primary);
         border-color: var(--langr-accent);
-        background: var(--langr-accent);
+        background: linear-gradient(90deg, var(--langr-accent), var(--langr-accent-hot));
     }
 
     .finish-reading:hover {
-        color: var(--text-on-accent);
-        background: var(--langr-accent-hover);
+        color: var(--background-primary);
+        background: linear-gradient(90deg, var(--langr-accent-hover), var(--langr-accent-hot));
     }
 
     .reading-progress {
@@ -432,7 +449,10 @@ if (plugin.constants.platform === "mobile") {
         margin: var(--langr-space-3) var(--langr-space-4) 0;
         padding: var(--langr-space-2) var(--langr-space-3);
         border-color: var(--langr-border-strong);
-        background: var(--langr-surface-inset);
+        background: var(--langr-scanline), var(--langr-surface-inset);
+        background-size:
+            100% 4px,
+            auto;
     }
 
     .reading-progress-labels {
@@ -451,9 +471,16 @@ if (plugin.constants.platform === "mobile") {
         color: var(--text-normal);
         border: 1px solid var(--langr-border-strong);
         border-radius: var(--langr-radius-md);
-        background: var(--langr-surface);
+        background:
+            linear-gradient(
+                180deg,
+                color-mix(in srgb, var(--langr-accent) 5%, transparent),
+                transparent 120px
+            ),
+            var(--langr-surface);
         box-shadow:
-            inset 0 0 0 1px color-mix(in srgb, var(--background-primary) 72%, transparent),
+            inset 0 0 0 1px color-mix(in srgb, var(--langr-accent) 11%, transparent),
+            inset 0 0 38px color-mix(in srgb, var(--langr-accent) 4%, transparent),
             0 1px 2px rgba(0, 0, 0, 0.035);
         font-family: var(--langr-font-reading);
         touch-action: none;
@@ -469,7 +496,8 @@ if (plugin.constants.platform === "mobile") {
 
             &:hover {
                 border-color: var(--langr-accent);
-                background: var(--background-modifier-hover);
+                background: color-mix(in srgb, var(--langr-accent) 12%, transparent);
+                box-shadow: 0 0 0 1px color-mix(in srgb, var(--langr-accent) 20%, transparent);
             }
         }
 
@@ -486,7 +514,8 @@ if (plugin.constants.platform === "mobile") {
 
             &:hover {
                 border-color: var(--langr-accent);
-                background: var(--background-modifier-hover);
+                background: color-mix(in srgb, var(--langr-accent-hot) 10%, transparent);
+                box-shadow: 0 0 0 1px color-mix(in srgb, var(--langr-accent-hot) 18%, transparent);
             }
         }
 
@@ -550,7 +579,7 @@ if (plugin.constants.platform === "mobile") {
         justify-content: center;
         padding: var(--langr-space-3) var(--langr-space-4);
         border-top: 1px solid var(--langr-border-strong);
-        background: var(--langr-surface-raised);
+        background: var(--langr-surface-glass);
     }
 
     .note-area {
@@ -570,6 +599,7 @@ if (plugin.constants.platform === "mobile") {
             padding: var(--langr-space-2);
             overflow: auto;
             background: var(--langr-surface-inset);
+            box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--langr-accent) 8%, transparent);
         }
     }
 }

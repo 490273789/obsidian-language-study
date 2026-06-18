@@ -8,8 +8,9 @@ import {
 } from "vue";
 import { darkTheme, type GlobalTheme, type GlobalThemeOverrides } from "naive-ui";
 
-const DEFAULT_PRIMARY_COLOR = "#7c6fdd";
-const DEFAULT_PRIMARY_COLOR_HOVER = "#6f63c7";
+const DEFAULT_PRIMARY_COLOR = "#00a8d7";
+const DEFAULT_PRIMARY_COLOR_HOVER = "#007fa8";
+const DEFAULT_PRIMARY_COLOR_PRESSED = "#e64bbd";
 
 function useLangrNaiveTheme(isDark: () => boolean): ComputedRef<GlobalTheme | null> {
     return computed(() => (isDark() ? darkTheme : null));
@@ -31,6 +32,7 @@ const baseThemeOverrides = {
         heightSmall: "28px",
         paddingTiny: "0 8px",
         paddingSmall: "0 10px",
+        fontWeight: "700",
     },
     DataTable: {
         borderRadius: "6px",
@@ -146,11 +148,20 @@ function resolveCssColorVar(name: string, fallback: string): string {
 }
 
 function createLangrThemeOverrides(): GlobalThemeOverrides {
-    const primaryColor = resolveCssColorVar("--interactive-accent", DEFAULT_PRIMARY_COLOR);
+    const primaryColor = resolveCssColorVar("--langr-accent", DEFAULT_PRIMARY_COLOR);
     const primaryColorHover = resolveCssColorVar(
-        "--interactive-accent-hover",
+        "--langr-accent-hover",
         DEFAULT_PRIMARY_COLOR_HOVER
     );
+    const primaryColorPressed = resolveCssColorVar(
+        "--langr-accent-hot",
+        DEFAULT_PRIMARY_COLOR_PRESSED
+    );
+    const surface = resolveCssColorVar("--langr-surface-inset", "#f0fbff");
+    const surfaceRaised = resolveCssColorVar("--langr-surface-raised", "#f8feff");
+    const border = resolveCssColorVar("--langr-border-strong", "#7ccfe2");
+    const text = resolveCssColorVar("--text-normal", "#172126");
+    const muted = resolveCssColorVar("--text-muted", "#5d6870");
 
     return {
         ...baseThemeOverrides,
@@ -158,8 +169,67 @@ function createLangrThemeOverrides(): GlobalThemeOverrides {
             ...baseThemeOverrides.common,
             primaryColor,
             primaryColorHover,
-            primaryColorPressed: primaryColor,
+            primaryColorPressed,
             primaryColorSuppl: primaryColorHover,
+            borderColor: border,
+            textColorBase: text,
+            textColor1: text,
+            textColor2: muted,
+        },
+        Button: {
+            ...baseThemeOverrides.Button,
+            color: surface,
+            colorHover: surfaceRaised,
+            colorFocus: surfaceRaised,
+            colorPressed: surface,
+            border: `1px solid ${border}`,
+            borderHover: `1px solid ${primaryColorHover}`,
+            borderFocus: `1px solid ${primaryColor}`,
+            borderPressed: `1px solid ${primaryColorPressed}`,
+            textColorHover: primaryColorHover,
+            textColorFocus: primaryColor,
+        },
+        DataTable: {
+            ...baseThemeOverrides.DataTable,
+            thColor: surface,
+            tdColor: surfaceRaised,
+            tdColorHover: surface,
+            borderColor: border,
+            thTextColor: muted,
+            tdTextColor: text,
+        },
+        Input: {
+            ...baseThemeOverrides.Input,
+            color: surface,
+            colorFocus: surfaceRaised,
+            border: `1px solid ${border}`,
+            borderHover: `1px solid ${primaryColorHover}`,
+            borderFocus: `1px solid ${primaryColor}`,
+            textColor: text,
+            placeholderColor: muted,
+        },
+        Select: {
+            ...baseThemeOverrides.Select,
+            peers: {
+                InternalSelection: {
+                    ...baseThemeOverrides.Select.peers.InternalSelection,
+                    color: surface,
+                    colorActive: surfaceRaised,
+                    border: `1px solid ${border}`,
+                    borderHover: `1px solid ${primaryColorHover}`,
+                    borderActive: `1px solid ${primaryColor}`,
+                    textColor: text,
+                },
+            },
+        },
+        Tag: {
+            ...baseThemeOverrides.Tag,
+            colorInfo: surface,
+            borderInfo: `1px solid ${primaryColor}`,
+            textColorInfo: primaryColor,
+            checkableBorderColorChecked: primaryColor,
+            checkableColorChecked: surfaceRaised,
+            checkableTextColorChecked: primaryColorPressed,
         },
     };
 }

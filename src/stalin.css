@@ -1,9 +1,8 @@
-/* Input your styles */
-
 :root {
     --langr-radius-xs: 4px;
     --langr-radius-sm: 6px;
     --langr-radius-md: 8px;
+    --langr-radius-lg: 10px;
     --langr-space-1: 4px;
     --langr-space-2: 8px;
     --langr-space-3: 12px;
@@ -11,96 +10,163 @@
     --langr-space-5: 20px;
     --langr-font-ui: var(--font-interface);
     --langr-font-reading: var(--font-text);
-    --langr-page: color-mix(in srgb, var(--background-secondary) 90%, var(--background-primary));
-    --langr-surface: var(--background-primary);
-    --langr-surface-muted: color-mix(
-        in srgb,
-        var(--background-secondary) 82%,
-        var(--background-primary)
-    );
-    --langr-surface-raised: color-mix(
-        in srgb,
-        var(--background-primary) 96%,
-        var(--background-secondary)
-    );
-    --langr-surface-inset: color-mix(
-        in srgb,
-        var(--background-primary) 94%,
-        var(--background-secondary)
-    );
+    --langr-accent: #00a8d7;
+    --langr-accent-hover: #007fa8;
+    --langr-accent-hot: #e64bbd;
+    --langr-accent-hot-muted: color-mix(in srgb, var(--langr-accent-hot) 16%, transparent);
+    --langr-accent-warm: #c78618;
+    --langr-accent-cool: #129b7e;
+    --langr-page: color-mix(in srgb, var(--background-primary) 76%, #dff9ff);
+    --langr-surface: color-mix(in srgb, var(--background-primary) 88%, #f7fdff);
+    --langr-surface-muted: color-mix(in srgb, var(--background-secondary) 70%, #e7fbff);
+    --langr-surface-raised: color-mix(in srgb, var(--background-primary) 82%, #f6feff);
+    --langr-surface-inset: color-mix(in srgb, var(--background-secondary) 76%, #eefbff);
+    --langr-surface-glass: color-mix(in srgb, var(--langr-surface-raised) 78%, transparent);
     --langr-border-subtle: var(--background-modifier-border);
     --langr-border: color-mix(in srgb, var(--background-modifier-border) 58%, var(--text-muted));
     --langr-border-strong: color-mix(
         in srgb,
-        var(--background-modifier-border) 34%,
-        var(--text-muted)
+        var(--langr-accent) 36%,
+        var(--background-modifier-border)
     );
-    --langr-border-hover: color-mix(
-        in srgb,
-        var(--background-modifier-border-hover) 45%,
-        var(--text-muted)
-    );
+    --langr-border-hover: color-mix(in srgb, var(--langr-accent-hot) 42%, var(--langr-accent));
+    --langr-border-neon: color-mix(in srgb, var(--langr-accent) 74%, var(--langr-accent-hot));
     --langr-muted: var(--text-muted);
     --langr-faint: var(--text-faint);
-    --langr-accent: var(--interactive-accent);
-    --langr-accent-hover: var(--interactive-accent-hover);
-    --langr-shadow: 0 1px 2px rgba(0, 0, 0, 0.07), 0 8px 20px rgba(0, 0, 0, 0.035);
-    --langr-shadow-strong: 0 1px 3px rgba(0, 0, 0, 0.1), 0 12px 28px rgba(0, 0, 0, 0.055);
-    --langr-status-new-bg: color-mix(in srgb, #5fb3c8 18%, transparent);
-    --langr-status-new-fg: #23758b;
-    --langr-status-learning-bg: color-mix(in srgb, #e09a3e 20%, transparent);
-    --langr-status-learning-fg: #97600d;
-    --langr-status-familiar-bg: color-mix(in srgb, #d7bd3f 20%, transparent);
-    --langr-status-familiar-fg: #7a6815;
-    --langr-status-known-bg: color-mix(in srgb, #82ba53 20%, transparent);
-    --langr-status-known-fg: #4b7a27;
-    --langr-status-learned-bg: color-mix(in srgb, #4ca365 22%, transparent);
-    --langr-status-learned-fg: #287540;
-    --langr-status-ignore-bg: var(--background-modifier-hover);
+    --langr-glow-cyan:
+        0 0 0 1px color-mix(in srgb, var(--langr-accent) 22%, transparent),
+        0 0 18px color-mix(in srgb, var(--langr-accent) 18%, transparent);
+    --langr-glow-hot:
+        0 0 0 1px color-mix(in srgb, var(--langr-accent-hot) 18%, transparent),
+        0 0 20px color-mix(in srgb, var(--langr-accent-hot) 14%, transparent);
+    --langr-shadow: 0 1px 2px rgba(3, 23, 31, 0.08), 0 10px 28px rgba(0, 168, 215, 0.08);
+    --langr-shadow-strong: 0 1px 4px rgba(3, 23, 31, 0.14), 0 18px 42px rgba(0, 168, 215, 0.13);
+    --langr-scanline: linear-gradient(rgba(255, 255, 255, 0.07) 50%, rgba(0, 168, 215, 0.035) 50%);
+    --langr-grid:
+        linear-gradient(
+            color-mix(in srgb, var(--langr-accent) 12%, transparent) 1px,
+            transparent 1px
+        ),
+        linear-gradient(
+            90deg,
+            color-mix(in srgb, var(--langr-accent-hot) 10%, transparent) 1px,
+            transparent 1px
+        );
+    --langr-status-new-bg: color-mix(in srgb, #00b8dc 20%, transparent);
+    --langr-status-new-fg: #006d82;
+    --langr-status-learning-bg: color-mix(in srgb, #ffb73f 22%, transparent);
+    --langr-status-learning-fg: #805000;
+    --langr-status-familiar-bg: color-mix(in srgb, #dce447 22%, transparent);
+    --langr-status-familiar-fg: #686f00;
+    --langr-status-known-bg: color-mix(in srgb, #2ddf91 20%, transparent);
+    --langr-status-known-fg: #007a4d;
+    --langr-status-learned-bg: color-mix(in srgb, #00d4ff 18%, transparent);
+    --langr-status-learned-fg: #006f89;
+    --langr-status-ignore-bg: color-mix(in srgb, var(--text-muted) 10%, transparent);
     --langr-status-ignore-fg: var(--text-muted);
 }
 
 .theme-dark {
-    --langr-page: color-mix(in srgb, var(--background-secondary) 88%, var(--background-primary));
-    --langr-surface-raised: color-mix(
+    --langr-accent: #18e7ff;
+    --langr-accent-hover: #76f3ff;
+    --langr-accent-hot: #ff4bd8;
+    --langr-accent-hot-muted: color-mix(in srgb, var(--langr-accent-hot) 18%, transparent);
+    --langr-accent-warm: #ffb23f;
+    --langr-accent-cool: #34f5b7;
+    --langr-page: color-mix(in srgb, var(--background-primary) 72%, #021923);
+    --langr-surface: color-mix(in srgb, var(--background-primary) 76%, #031e29);
+    --langr-surface-muted: color-mix(in srgb, var(--background-secondary) 66%, #061f2d);
+    --langr-surface-raised: color-mix(in srgb, var(--background-primary) 78%, #072735);
+    --langr-surface-inset: color-mix(in srgb, var(--background-primary) 72%, #001721);
+    --langr-surface-glass: color-mix(in srgb, var(--langr-surface-raised) 78%, transparent);
+    --langr-border-strong: color-mix(
         in srgb,
-        var(--background-primary) 92%,
-        var(--background-secondary)
+        var(--langr-accent) 36%,
+        var(--background-modifier-border)
     );
-    --langr-surface-inset: color-mix(
-        in srgb,
-        var(--background-primary) 88%,
-        var(--background-secondary)
-    );
-    --langr-shadow: 0 1px 2px rgba(0, 0, 0, 0.28), 0 10px 24px rgba(0, 0, 0, 0.2);
-    --langr-shadow-strong: 0 1px 3px rgba(0, 0, 0, 0.34), 0 14px 32px rgba(0, 0, 0, 0.28);
-    --langr-status-new-fg: #8ed5e5;
-    --langr-status-learning-fg: #efbd78;
-    --langr-status-familiar-fg: #e8d978;
-    --langr-status-known-fg: #add985;
-    --langr-status-learned-fg: #8bd59e;
+    --langr-border-hover: color-mix(in srgb, var(--langr-accent-hot) 46%, var(--langr-accent));
+    --langr-border-neon: color-mix(in srgb, var(--langr-accent) 72%, var(--langr-accent-hot));
+    --langr-glow-cyan:
+        0 0 0 1px color-mix(in srgb, var(--langr-accent) 30%, transparent),
+        0 0 22px color-mix(in srgb, var(--langr-accent) 24%, transparent);
+    --langr-glow-hot:
+        0 0 0 1px color-mix(in srgb, var(--langr-accent-hot) 28%, transparent),
+        0 0 24px color-mix(in srgb, var(--langr-accent-hot) 22%, transparent);
+    --langr-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 28px rgba(0, 231, 255, 0.12);
+    --langr-shadow-strong: 0 1px 4px rgba(0, 0, 0, 0.42), 0 18px 42px rgba(255, 75, 216, 0.12);
+    --langr-scanline: linear-gradient(rgba(255, 255, 255, 0.035) 50%, rgba(0, 0, 0, 0.04) 50%);
+    --langr-status-new-fg: #8ff5ff;
+    --langr-status-learning-fg: #ffd382;
+    --langr-status-familiar-fg: #eef46d;
+    --langr-status-known-fg: #79ffc8;
+    --langr-status-learned-fg: #7feaff;
 }
 
 .langr-shell {
+    position: relative;
     height: 100%;
     width: 100%;
     min-height: 0;
     color: var(--text-normal);
     font-family: var(--langr-font-ui);
+    background:
+        radial-gradient(
+            circle at 12% 0,
+            color-mix(in srgb, var(--langr-accent-hot) 12%, transparent),
+            transparent 28%
+        ),
+        radial-gradient(
+            circle at 92% 18%,
+            color-mix(in srgb, var(--langr-accent) 13%, transparent),
+            transparent 32%
+        ),
+        var(--langr-grid), var(--langr-page);
+    background-size:
+        auto,
+        auto,
+        28px 28px,
+        auto;
+    isolation: isolate;
 }
 
 .langr-card {
+    position: relative;
+    overflow: hidden;
     border: 1px solid var(--langr-border-strong);
     border-radius: var(--langr-radius-md);
     background: var(--langr-surface-raised);
     box-shadow: var(--langr-shadow);
 }
 
+.langr-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background:
+        linear-gradient(
+            135deg,
+            color-mix(in srgb, var(--langr-accent) 18%, transparent),
+            transparent 30%
+        ),
+        linear-gradient(180deg, color-mix(in srgb, white 8%, transparent), transparent 30%);
+}
+
+.langr-card > * {
+    position: relative;
+    z-index: 1;
+}
+
 .langr-card-muted {
+    position: relative;
+    overflow: hidden;
     border: 1px solid var(--langr-border);
     border-radius: var(--langr-radius-md);
     background: var(--langr-surface-muted);
-    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--background-primary) 80%, transparent);
+    box-shadow:
+        inset 0 1px 0 color-mix(in srgb, var(--background-primary) 70%, transparent),
+        var(--langr-glow-cyan);
 }
 
 .langr-toolbar {
@@ -113,7 +179,9 @@
 .langr-toolbar-title {
     font-size: 13px;
     font-weight: 700;
-    color: var(--text-normal);
+    color: var(--langr-accent);
+    letter-spacing: 0;
+    text-transform: uppercase;
 }
 
 .langr-subtle {
@@ -128,19 +196,25 @@
     width: 28px;
     height: 28px;
     padding: 0;
-    color: var(--text-muted);
+    color: var(--langr-accent);
     border: 1px solid var(--langr-border-strong);
     border-radius: var(--langr-radius-sm);
-    background: var(--langr-surface);
-    box-shadow: none;
+    background: var(--langr-surface-glass);
+    box-shadow: var(--langr-glow-cyan);
     cursor: pointer;
+    transition:
+        transform 120ms ease,
+        border-color 120ms ease,
+        color 120ms ease,
+        box-shadow 120ms ease;
 }
 
 .langr-icon-button:hover:not(:disabled) {
-    color: var(--text-normal);
+    color: var(--langr-accent-hot);
     border-color: var(--langr-border-hover);
-    background: var(--background-modifier-hover);
-    box-shadow: none;
+    background: color-mix(in srgb, var(--langr-accent-hot) 12%, var(--langr-surface));
+    box-shadow: var(--langr-glow-hot);
+    transform: translateY(-1px);
 }
 
 .langr-icon-button:disabled {
@@ -154,12 +228,18 @@
     justify-content: center;
     min-height: 88px;
     padding: var(--langr-space-4);
-    color: var(--langr-muted);
+    color: var(--langr-accent);
     font-size: 13px;
     text-align: center;
     border: 1px dashed var(--langr-border-strong);
     border-radius: var(--langr-radius-md);
-    background: var(--langr-surface-muted);
+    background:
+        var(--langr-scanline),
+        color-mix(in srgb, var(--langr-surface-muted) 88%, var(--langr-accent) 5%);
+    background-size:
+        100% 4px,
+        auto;
+    box-shadow: inset 0 0 28px color-mix(in srgb, var(--langr-accent) 7%, transparent);
 }
 
 .langr-status-chip {
@@ -171,6 +251,8 @@
     font-size: 12px;
     line-height: 1.2;
     border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+    box-shadow: 0 0 14px color-mix(in srgb, currentColor 9%, transparent);
+    white-space: nowrap;
 }
 
 .langr-status-chip.is-ignore {
@@ -217,7 +299,8 @@
     padding: 12px;
     border: 1px solid var(--langr-border-strong);
     border-radius: var(--langr-radius-md);
-    background: var(--langr-surface);
+    background: var(--langr-surface-raised);
+    box-shadow: var(--langr-shadow);
 }
 
 .langr-shell .n-input,
@@ -227,13 +310,17 @@
     --n-border-focus: 1px solid var(--langr-accent) !important;
     --n-color: var(--langr-surface-inset) !important;
     --n-color-focus: var(--langr-surface) !important;
-    --n-box-shadow-focus: 0 0 0 2px color-mix(in srgb, var(--langr-accent) 22%, transparent) !important;
+    --n-text-color: var(--text-normal) !important;
+    --n-placeholder-color: var(--langr-faint) !important;
+    --n-box-shadow-focus: var(--langr-glow-cyan) !important;
 }
 
 .langr-shell .n-button {
     --n-border: 1px solid var(--langr-border-strong) !important;
     --n-border-hover: 1px solid var(--langr-border-hover) !important;
-    --n-box-shadow-focus: 0 0 0 2px color-mix(in srgb, var(--langr-accent) 20%, transparent) !important;
+    --n-border-focus: 1px solid var(--langr-border-neon) !important;
+    --n-box-shadow-focus: var(--langr-glow-cyan) !important;
+    --n-ripple-color: var(--langr-accent) !important;
 }
 
 .langr-settings .setting-item-heading {
@@ -253,7 +340,7 @@
     cursor: pointer;
 }
 .sr-modal-content h4:hover {
-    color: deeppink;
+    color: var(--langr-accent-hot);
     transition: color 0.3s ease;
 }
 
@@ -263,7 +350,8 @@
     display: inline-block;
     vertical-align: middle;
     margin: 0 3px;
-    background-color: #d54b21;
+    background-color: var(--langr-accent-hot);
+    filter: drop-shadow(0 0 5px color-mix(in srgb, var(--langr-accent-hot) 44%, transparent));
     clip-path: polygon(0 30%, 30% 30%, 89% 0, 89% 100%, 31% 69%, 0 69%);
 }
 

@@ -203,7 +203,7 @@ useEvent(window, "obsidian-langr-search", onSearch);
     user-select: text;
     display: flex;
     flex-direction: column;
-    background: var(--langr-page);
+    background: transparent;
 
     .search-provider {
         height: 100%;
@@ -221,9 +221,15 @@ useEvent(window, "obsidian-langr-search", onSearch);
         align-items: center;
         gap: var(--langr-space-2);
         margin: var(--langr-space-3);
-        padding: var(--langr-space-2);
-        border-color: var(--langr-border-strong);
-        background: var(--langr-surface-raised);
+        padding: var(--langr-space-2) var(--langr-space-3);
+        border-color: var(--langr-border-neon);
+        background:
+            linear-gradient(
+                90deg,
+                color-mix(in srgb, var(--langr-accent) 14%, transparent),
+                transparent 38%
+            ),
+            var(--langr-surface-glass);
         box-shadow: var(--langr-shadow-strong);
 
         .search-input {
@@ -253,28 +259,35 @@ useEvent(window, "obsidian-langr-search", onSearch);
         border: 1px solid var(--langr-border-strong);
         border-radius: var(--langr-radius-sm);
         color: var(--text-muted);
-        background: var(--langr-surface-raised);
-        box-shadow: none;
+        background: var(--langr-surface-glass);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--langr-accent) 8%, transparent);
         cursor: pointer;
         transition:
             border-color 120ms ease,
             background-color 120ms ease,
-            color 120ms ease;
+            color 120ms ease,
+            transform 120ms ease,
+            box-shadow 120ms ease;
 
         &:hover {
-            color: var(--text-normal);
+            color: var(--langr-accent);
             border-color: var(--langr-border-hover);
-            background: var(--background-modifier-hover);
-            box-shadow: none;
+            background: color-mix(in srgb, var(--langr-accent) 10%, var(--langr-surface-raised));
+            box-shadow: var(--langr-glow-cyan);
+            transform: translateY(-1px);
         }
 
         &.active {
-            color: var(--text-normal);
-            border-color: var(--interactive-accent);
-            background: color-mix(in srgb, var(--langr-accent) 9%, var(--langr-surface-raised));
+            color: var(--langr-accent-hot);
+            border-color: var(--langr-border-neon);
+            background: linear-gradient(
+                90deg,
+                color-mix(in srgb, var(--langr-accent-hot) 16%, transparent),
+                color-mix(in srgb, var(--langr-accent) 10%, var(--langr-surface-raised))
+            );
             box-shadow:
-                inset 0 -2px 0 var(--interactive-accent),
-                0 0 0 1px color-mix(in srgb, var(--langr-accent) 26%, transparent);
+                inset 0 -2px 0 var(--langr-accent-hot),
+                var(--langr-glow-hot);
         }
 
         &.loading .dict-name::after {
@@ -309,9 +322,12 @@ useEvent(window, "obsidian-langr-search", onSearch);
     .dict-panel {
         padding: var(--langr-space-3);
         min-height: 100%;
-        border-color: var(--langr-border-strong);
-        background: var(--langr-surface-raised);
-        box-shadow: var(--langr-shadow);
+        border-color: var(--langr-border-neon);
+        background: var(--langr-scanline), var(--langr-surface-raised);
+        background-size:
+            100% 4px,
+            auto;
+        box-shadow: var(--langr-shadow-strong);
     }
 
     .dict-state {

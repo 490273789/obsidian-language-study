@@ -34,6 +34,9 @@ let notes = expressionInfo?.notes ?? [];
 .word-more {
     h2 {
         margin: 0.5em 0;
+        color: var(--langr-accent);
+        font-size: 13px;
+        text-transform: uppercase;
     }
 
     .word-notes {
@@ -45,7 +48,14 @@ let notes = expressionInfo?.notes ?? [];
             padding: var(--langr-space-2);
             border: 1px solid var(--langr-border-strong);
             border-radius: var(--langr-radius-sm);
-            background: var(--langr-surface-inset);
+            background:
+                linear-gradient(
+                    90deg,
+                    color-mix(in srgb, var(--langr-accent) 8%, transparent),
+                    transparent
+                ),
+                var(--langr-surface-inset);
+            box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--langr-accent) 7%, transparent);
         }
     }
 
@@ -56,7 +66,14 @@ let notes = expressionInfo?.notes ?? [];
             margin-bottom: var(--langr-space-2);
             border: 1px solid var(--langr-border-strong);
             border-radius: var(--langr-radius-sm);
-            background: var(--langr-surface-inset);
+            background:
+                linear-gradient(
+                    90deg,
+                    color-mix(in srgb, var(--langr-accent-hot) 8%, transparent),
+                    transparent
+                ),
+                var(--langr-surface-inset);
+            box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--langr-accent-hot) 6%, transparent);
 
             p {
                 &:first-child {
@@ -64,7 +81,7 @@ let notes = expressionInfo?.notes ?? [];
 
                     em {
                         font-weight: bold;
-                        color: var(--interactive-accent);
+                        color: var(--langr-accent-hot);
                     }
                 }
 

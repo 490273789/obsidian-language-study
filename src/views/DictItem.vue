@@ -120,10 +120,10 @@ watch(
 .dict-item {
     overflow: hidden;
     margin-bottom: var(--langr-space-3);
-    border: 1px solid var(--langr-border-strong);
+    border: 1px solid var(--langr-border-neon);
     border-radius: var(--langr-radius-md);
     background: var(--langr-surface-raised);
-    box-shadow: var(--langr-shadow);
+    box-shadow: var(--langr-shadow-strong);
 
     header.dict-item-header {
         display: flex;
@@ -134,7 +134,13 @@ watch(
         gap: var(--langr-space-2);
         padding: var(--langr-space-2);
         border-bottom: 1px solid var(--langr-border-strong);
-        background-color: v-bind(bgRGBA3);
+        background:
+            linear-gradient(
+                90deg,
+                color-mix(in srgb, var(--langr-accent) 12%, transparent),
+                transparent 48%
+            ),
+            v-bind(bgRGBA3);
         min-height: 34px;
         cursor: pointer;
 
@@ -150,6 +156,8 @@ watch(
             font-size: 13px;
             font-weight: 700;
             line-height: 1.2;
+            color: var(--langr-accent);
+            text-transform: uppercase;
         }
 
         .empty-area {
@@ -157,12 +165,12 @@ watch(
         }
 
         .dict-loading {
-            color: var(--langr-muted);
+            color: var(--langr-accent-hot);
             font-size: 12px;
         }
 
         button {
-            color: var(--text-muted);
+            color: var(--langr-accent);
             width: 24px;
             height: 24px;
             background: transparent;
@@ -173,10 +181,10 @@ watch(
             box-shadow: none;
 
             &:hover {
-                color: var(--text-normal);
-                border-color: var(--langr-border-strong);
-                background: var(--background-modifier-hover);
-                box-shadow: none;
+                color: var(--langr-accent-hot);
+                border-color: var(--langr-border-hover);
+                background: color-mix(in srgb, var(--langr-accent-hot) 11%, transparent);
+                box-shadow: var(--langr-glow-hot);
             }
 
             .fold-arrow {
@@ -194,6 +202,10 @@ watch(
         transition: max-height 1s cubic-bezier(0, 1, 0, 1);
         padding-left: var(--langr-space-3);
         padding-right: var(--langr-space-3);
+        background: var(--langr-scanline), var(--langr-surface-raised);
+        background-size:
+            100% 4px,
+            auto;
 
         .fold-mask {
             position: absolute;
@@ -215,7 +227,10 @@ watch(
                 position: absolute;
                 z-index: 10;
                 bottom: 0;
-                fill: var(--text-muted);
+                fill: var(--langr-accent);
+                filter: drop-shadow(
+                    0 0 6px color-mix(in srgb, var(--langr-accent) 48%, transparent)
+                );
                 margin: 0 auto;
             }
         }
