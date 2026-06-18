@@ -3,26 +3,49 @@
         <NConfigProvider class="search-provider" :theme="theme" :theme-overrides="themeOverrides">
             <div class="search-layout">
                 <div class="search-bar langr-card">
-                    <NButtonGroup size="tiny">
-                        <NButton :disabled="historyIndex <= 0" @click="switchHistory('prev')"
-                            >{{ `<` }}
-                        </NButton>
-                        <NButton
+                    <div class="history-controls" :aria-label="t('Search')">
+                        <button
+                            class="history-button"
+                            type="button"
+                            :disabled="historyIndex <= 0"
+                            title="Previous"
+                            aria-label="Previous"
+                            @click="switchHistory('prev')"
+                        >
+                            <svg viewBox="0 0 16 16" aria-hidden="true">
+                                <path
+                                    d="M10.7 3.3a1 1 0 0 1 0 1.4L7.41 8l3.3 3.3a1 1 0 0 1-1.42 1.4l-4-4a1 1 0 0 1 0-1.4l4-4a1 1 0 0 1 1.42 0z"
+                                    fill="currentColor"
+                                />
+                            </svg>
+                        </button>
+                        <button
+                            class="history-button"
+                            type="button"
                             :disabled="historyIndex >= lastHistory"
+                            title="Next"
+                            aria-label="Next"
                             @click="switchHistory('next')"
-                            >{{ ">" }}
-                        </NButton>
-                    </NButtonGroup>
-                    <NInput
-                        size="tiny"
-                        type="text"
-                        placeholder="输入单词"
-                        v-model:value="inputWord"
-                        class="search-input"
-                        @keydown.enter="handleSearch"
-                    />
-                    <NButton size="tiny" type="primary" @click="handleSearch">
-                        {{ t("Search") }}
+                        >
+                            <svg viewBox="0 0 16 16" aria-hidden="true">
+                                <path
+                                    d="M5.3 12.7a1 1 0 0 1 0-1.4L8.59 8l-3.3-3.3A1 1 0 1 1 6.7 3.3l4 4a1 1 0 0 1 0 1.4l-4 4a1 1 0 0 1-1.42 0z"
+                                    fill="currentColor"
+                                />
+                            </svg>
+                        </button>
+                    </div>
+                    <label class="search-field">
+                        <input
+                            type="text"
+                            placeholder="输入单词"
+                            v-model="inputWord"
+                            class="search-input"
+                            @keydown.enter="handleSearch"
+                        />
+                    </label>
+                    <NButton class="search-submit" size="tiny" type="primary" @click="handleSearch">
+                        <span>{{ t("Search") }}</span>
                     </NButton>
                 </div>
                 <div class="dict-tabs" v-if="components.length > 0">
@@ -71,7 +94,7 @@
 <script setup lang="ts">
 import { ref, shallowRef, watch } from "vue";
 import type { Component } from "vue";
-import { NConfigProvider, NButton, NButtonGroup, NInput } from "naive-ui";
+import { NConfigProvider, NButton } from "naive-ui";
 
 import { t } from "@/lang/helper";
 import { dicts } from "@dict/list";
@@ -219,22 +242,139 @@ useEvent(window, "obsidian-langr-search", onSearch);
     .search-bar {
         display: flex;
         align-items: center;
-        gap: var(--langr-space-2);
+        gap: 10px;
         margin: var(--langr-space-3);
-        padding: var(--langr-space-2) var(--langr-space-3);
+        min-height: 46px;
+        padding: var(--langr-space-2);
         border-color: var(--langr-border-neon);
+        border-radius: var(--langr-radius-md);
         background:
             linear-gradient(
                 90deg,
-                color-mix(in srgb, var(--langr-accent) 14%, transparent),
-                transparent 38%
+                color-mix(in srgb, var(--langr-accent) 8%, transparent),
+                transparent 46%
             ),
-            var(--langr-surface-glass);
-        box-shadow: var(--langr-shadow-strong);
+            var(--langr-surface-raised);
+        box-shadow:
+            inset 0 0 0 1px color-mix(in srgb, var(--langr-accent) 7%, transparent),
+            var(--langr-shadow);
+        transition:
+            border-color 150ms ease,
+            box-shadow 150ms ease;
+
+        &:focus-within {
+            border-color: var(--langr-border-neon);
+            box-shadow:
+                inset 0 0 0 1px color-mix(in srgb, var(--langr-accent) 16%, transparent),
+                var(--langr-glow-cyan),
+                var(--langr-shadow);
+        }
+
+        .history-controls {
+            display: inline-flex;
+            flex: 0 0 auto;
+            align-items: center;
+            gap: 2px;
+            height: 32px;
+            padding: 3px;
+            border: 1px solid var(--langr-border-strong);
+            border-radius: var(--langr-radius-sm);
+            background: var(--langr-surface-inset);
+        }
+
+        .history-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 24px;
+            padding: 0;
+            color: var(--text-muted);
+            border: 0;
+            border-radius: 5px;
+            background: transparent;
+            cursor: pointer;
+            transition:
+                background-color 120ms ease,
+                color 120ms ease,
+                transform 120ms ease;
+
+            svg {
+                width: 16px;
+                height: 16px;
+            }
+
+            &:hover:not(:disabled),
+            &:focus-visible:not(:disabled) {
+                color: var(--langr-accent);
+                background: color-mix(in srgb, var(--langr-accent) 9%, transparent);
+                transform: translateY(-1px);
+            }
+
+            &:focus-visible {
+                outline: 1px solid var(--langr-accent);
+                outline-offset: 1px;
+            }
+
+            &:disabled {
+                cursor: default;
+                opacity: 0.34;
+            }
+        }
+
+        .search-field {
+            display: flex;
+            flex: 1 1 auto;
+            min-width: 92px;
+            height: 32px;
+            align-items: center;
+            padding: 0 12px;
+            border: 1px solid var(--langr-border-strong);
+            border-radius: var(--langr-radius-sm);
+            background: var(--langr-surface-inset);
+            box-shadow: none;
+            transition:
+                border-color 150ms ease,
+                background-color 150ms ease,
+                box-shadow 150ms ease;
+
+            &:focus-within {
+                border-color: var(--langr-accent);
+                background: color-mix(in srgb, var(--langr-accent) 6%, var(--langr-surface-inset));
+                box-shadow: 0 0 0 1px color-mix(in srgb, var(--langr-accent) 12%, transparent);
+            }
+        }
 
         .search-input {
             flex: 1;
             min-width: 0;
+            width: 100%;
+            height: 30px;
+            padding: 0;
+            color: var(--text-normal);
+            border: 0;
+            outline: 0;
+            background: transparent;
+            box-shadow: none;
+            font: inherit;
+            font-weight: 650;
+            line-height: 30px;
+
+            &::placeholder {
+                color: var(--text-muted);
+                opacity: 0.82;
+            }
+        }
+
+        .search-submit {
+            flex: 0 0 auto;
+            min-width: 72px;
+            height: 32px;
+            padding: 0 14px;
+            border-radius: var(--langr-radius-sm);
+            box-shadow:
+                inset 0 1px 0 color-mix(in srgb, white 9%, transparent),
+                0 0 0 1px color-mix(in srgb, var(--langr-accent) 10%, transparent);
         }
     }
 
@@ -339,6 +479,21 @@ useEvent(window, "obsidian-langr-search", onSearch);
     .search-bar {
         flex-wrap: wrap;
         margin: var(--langr-space-2);
+        gap: var(--langr-space-2);
+
+        .search-field {
+            order: 1;
+            flex-basis: calc(100% - 112px);
+        }
+
+        .history-controls {
+            order: 0;
+        }
+
+        .search-submit {
+            order: 2;
+            flex: 1 0 86px;
+        }
     }
 
     button:not(.fold-mask) {
