@@ -1,9 +1,19 @@
 <template>
-    <div id="chart"></div>
+    <div id="langr-stat" class="langr-shell">
+        <section class="stat-card langr-card">
+            <header class="stat-header">
+                <div>
+                    <div class="stat-title">{{ t("Statistics") }}</div>
+                    <div class="langr-subtle">7 days</div>
+                </div>
+            </header>
+            <div id="chart"></div>
+        </section>
+    </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from "vue";
+import { onMounted, onUnmounted } from "vue";
 import { t } from "@/lang/helper";
 import { moment } from "@/utils/moment";
 import { usePlugin, useView } from "@/ui/context";
@@ -50,7 +60,7 @@ onMounted(async () => {
     charDom = chartElement;
     // setTimeout(() => {
     sevenDays = echarts.init(charDom, null, {
-        width: 400,
+        width: Math.max(360, charDom.clientWidth || 400),
         height: 350,
     });
     if (option) {
@@ -137,3 +147,32 @@ onUnmounted(() => {
     removeEventListener("obsidian-langr-refresh-stat", updateChart);
 });
 </script>
+
+<style lang="scss">
+#langr-stat {
+    overflow: auto;
+    padding: var(--langr-space-3);
+    background: var(--background-secondary);
+
+    .stat-card {
+        overflow: hidden;
+        min-height: 420px;
+    }
+
+    .stat-header {
+        padding: var(--langr-space-3) var(--langr-space-4);
+        border-bottom: 1px solid var(--langr-border);
+    }
+
+    .stat-title {
+        font-size: 14px;
+        font-weight: 700;
+    }
+
+    #chart {
+        width: 100%;
+        min-height: 350px;
+        padding: var(--langr-space-3);
+    }
+}
+</style>

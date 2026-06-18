@@ -3,7 +3,7 @@
         <header class="dict-item-header" @click="onOpen">
             <div :class="['dict-icon', props.id]"></div>
             <span class="dict-name">{{ props.name }}</span>
-            <div class="dict-loading" style="padding-left: 20px">searching...</div>
+            <div class="dict-loading">searching...</div>
             <div class="empty-area"></div>
             <button>
                 <svg
@@ -118,48 +118,70 @@ watch(
 
 <style lang="scss">
 .dict-item {
+    overflow: hidden;
+    margin-bottom: var(--langr-space-3);
+    border: 1px solid var(--langr-border);
+    border-radius: var(--langr-radius-md);
+    background: var(--langr-surface);
+
     header.dict-item-header {
         display: flex;
         position: sticky;
         top: 0;
         z-index: 100;
-        border-top: 2px dashed gray;
+        align-items: center;
+        gap: var(--langr-space-2);
+        padding: var(--langr-space-2);
+        border-bottom: 1px solid var(--langr-border);
         background-color: v-bind(bgRGBA3);
-        height: 22px;
+        min-height: 34px;
+        cursor: pointer;
 
         .dict-icon {
-            height: 20px;
-            width: 20px;
+            height: 22px;
+            width: 22px;
+            flex: 0 0 auto;
+            border-radius: var(--langr-radius-xs);
             background-size: cover;
         }
 
         .dict-name {
-            padding-left: 3px;
-            line-height: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.2;
         }
 
         .empty-area {
             flex: 1;
         }
 
+        .dict-loading {
+            color: var(--langr-muted);
+            font-size: 12px;
+        }
+
         button {
-            color: rgb(236, 239, 244);
-            width: 19px;
-            height: 19px;
-            background: 0 0;
-            border: none;
+            color: var(--text-muted);
+            width: 24px;
+            height: 24px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: var(--langr-radius-sm);
             padding: 0;
             cursor: pointer;
             box-shadow: none;
 
             &:hover {
+                color: var(--text-normal);
+                border-color: var(--langr-border);
+                background: var(--background-modifier-hover);
                 box-shadow: none;
             }
 
             .fold-arrow {
                 transition: transform 0.4s;
                 padding: 3px;
-                fill: gray;
+                fill: currentColor;
             }
         }
     }
@@ -167,10 +189,10 @@ watch(
     .dict-item-body {
         position: relative;
         overflow: hidden;
-        padding-top: 10px;
+        padding-top: var(--langr-space-3);
         transition: max-height 1s cubic-bezier(0, 1, 0, 1);
-        padding-left: 10px;
-        padding-right: 10px;
+        padding-left: var(--langr-space-3);
+        padding-right: var(--langr-space-3);
 
         .fold-mask {
             position: absolute;
@@ -192,7 +214,7 @@ watch(
                 position: absolute;
                 z-index: 10;
                 bottom: 0;
-                fill: gray;
+                fill: var(--text-muted);
                 margin: 0 auto;
             }
         }

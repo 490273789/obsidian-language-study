@@ -63,29 +63,37 @@ let styleC = computed(() => {
 <style lang="scss">
 /*计数条*/
 .count-bar {
-    border: 2px solid black;
-    height: 20px;
-    width: 80%;
+    overflow: hidden;
+    border: 1px solid var(--langr-border);
+    height: 18px;
+    width: 100%;
+    min-width: 160px;
     display: flex;
-    /* font-size: 0.3em; */
     text-align: center;
-    color: black;
-    /* font-weight: bold; */
+    color: var(--text-normal);
+    font-size: 11px;
+    font-weight: 600;
     cursor: pointer;
-    line-height: 1em;
-    border-radius: 10px;
+    line-height: 18px;
+    border-radius: 999px;
+    background: var(--background-modifier-hover);
+
     .b1 {
-        background-color: rgba(173, 216, 230, 0.734);
-        border-top-left-radius: 10px;
-        border-bottom-left-radius: 10px;
+        min-width: fit-content;
+        padding: 0 6px;
+        background-color: var(--langr-status-new-bg);
     }
+
     .b2 {
-        background-color: rgba(255, 166, 0, 0.705);
+        min-width: fit-content;
+        padding: 0 6px;
+        background-color: var(--langr-status-learning-bg);
     }
+
     .b3 {
-        background-color: rgba(211, 211, 211, 0.747);
-        border-top-right-radius: 10px;
-        border-bottom-right-radius: 10px;
+        min-width: fit-content;
+        padding: 0 6px;
+        background-color: var(--langr-status-ignore-bg);
     }
 }
 </style>

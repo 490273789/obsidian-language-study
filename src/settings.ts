@@ -194,6 +194,7 @@ export class SettingTab extends PluginSettingTab {
         const { containerEl } = this;
 
         containerEl.empty();
+        containerEl.addClass("langr-settings");
         containerEl.createEl("h1", { text: "Settings for Language Learner" });
 
         this.backendSettings(containerEl);

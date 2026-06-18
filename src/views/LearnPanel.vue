@@ -1,210 +1,219 @@
 <template>
-    <div id="langr-learn-panel">
-        <NConfigProvider :theme="theme" :theme-overrides="themeOverrides">
-            <!-- <NThemeEditor> -->
-            <NForm
-                :model="model"
-                label-placement="top"
-                label-width="auto"
-                :rules="rules"
-                require-mark-placement="right-hanging"
-            >
-                <!-- 一个单词或短语字符串 -->
-                <NFormItem :label="t('Expression')" :label-style="labelStyle" path="expression">
-                    <NInput
-                        size="small"
-                        v-model:value="model.expression"
-                        :placeholder="t('A word or a phrase')"
-                    />
-                </NFormItem>
-                <!-- 单词或短语的含义(精简) -->
-                <NFormItem :label="t('Meaning')" :label-style="labelStyle" path="meaning">
-                    <NInput
-                        size="small"
-                        v-model:value="model.meaning"
-                        :placeholder="t('A short definition')"
-                        type="textarea"
-                        autosize
-                    />
-                </NFormItem>
-                <!-- 类别，可以是Word或Phrase -->
-                <NFormItem :label="t('Type')" :label-style="labelStyle" path="t">
-                    <NRadioGroup v-model:value="model.t">
-                        <NRadio value="WORD">{{ t("Word") }}</NRadio>
-                        <NRadio value="PHRASE">{{ t("Phrase") }}</NRadio>
-                    </NRadioGroup>
-                </NFormItem>
-                <!-- 当前单词的学习状态 -->
-                <NFormItem :label="t('Status')" :label-style="labelStyle" path="status">
-                    <NRadioGroup v-model:value="model.status" size="small">
-                        <NRadioButton v-for="(s, i) in status" :value="i">
-                            {{ s.text }}
-                        </NRadioButton>
-                    </NRadioGroup>
-                </NFormItem>
-                <!-- 加一些tag, 可以用来搜索 -->
-                <NFormItem :label="t('Tags')" :label-style="labelStyle" path="tags">
-                    <NSelect
-                        size="small"
-                        v-model:value="model.tags"
-                        filterable
-                        multiple
-                        tag
-                        :placeholder="t('Input or select some tags')"
-                        :loading="tagLoading"
-                        :options="tagOptions"
-                        @search="tagSearch"
-                    ></NSelect>
-                </NFormItem>
-                <!-- 可选,可以记多条笔记 -->
-                <NFormItem :label="t('Notes')" :label-style="labelStyle" path="tags">
-                    <NDynamicInput
-                        v-model:value="model.notes"
-                        :create-button-props="{ size: 'small' }"
-                    >
-                        <template #create-button-default>
-                            {{ t("Create") }}
-                        </template>
-                        <template #="{ index, value }">
+    <div id="langr-learn-panel" class="langr-shell">
+        <NConfigProvider class="learn-provider" :theme="theme" :theme-overrides="themeOverrides">
+            <div class="learn-panel-scroll">
+                <NForm
+                    class="learn-form"
+                    :model="model"
+                    label-placement="top"
+                    label-width="auto"
+                    :rules="rules"
+                    require-mark-placement="right-hanging"
+                >
+                    <section class="learn-section langr-card">
+                        <header class="learn-section-header">
+                            <div>
+                                <div class="learn-section-title">{{ t("Expression") }}</div>
+                                <div class="langr-subtle">{{ t("A word or a phrase") }}</div>
+                            </div>
+                        </header>
+                        <NFormItem :label="t('Expression')" path="expression">
                             <NInput
                                 size="small"
-                                type="textarea"
-                                :placeholder="t('Write a new note')"
-                                v-model:value="model.notes[index]"
+                                v-model:value="model.expression"
+                                :placeholder="t('A word or a phrase')"
                             />
-                        </template>
-                    </NDynamicInput>
-                </NFormItem>
-                <!-- 可选,例句也可以记多条 -->
-                <div style="margin-bottom: 8px">
-                    <label for="Sentences" :style="[labelStyle]">{{ t("Sentences") }}</label>
-                </div>
-                <NDynamicInput
-                    v-model:value="model.sentences"
-                    :create-button-props="{ size: 'small' }"
-                    :on-create="onCreateSentence"
-                >
-                    <template #create-button-default>
-                        {{ t("Create") }}
-                    </template>
-                    <template #="{ index, value }">
-                        <div
-                            style="
-                                display: flex;
-                                flex-direction: column;
-                                flex: 1;
-                                border: 2px solid gray;
-                                border-radius: 3px;
-                                padding: 3px;
-                            "
-                        >
-                            <NFormItem
-                                :show-label="false"
-                                :path="`sentences[${index}].text`"
-                                :rule="sourceRule"
-                            >
-                                <NInput
-                                    size="small"
-                                    type="textarea"
-                                    v-model:value="model.sentences[index].text"
-                                    :placeholder="t('Origin sentence')"
-                                    :autosize="{ minRows: 1, maxRows: 3 }"
-                                />
+                        </NFormItem>
+                        <NFormItem :label="t('Meaning')" path="meaning">
+                            <NInput
+                                size="small"
+                                v-model:value="model.meaning"
+                                :placeholder="t('A short definition')"
+                                type="textarea"
+                                autosize
+                            />
+                        </NFormItem>
+                        <div class="learn-choice-stack">
+                            <NFormItem :label="t('Type')" path="t">
+                                <NRadioGroup v-model:value="model.t">
+                                    <NRadio value="WORD">{{ t("Word") }}</NRadio>
+                                    <NRadio value="PHRASE">{{ t("Phrase") }}</NRadio>
+                                </NRadioGroup>
                             </NFormItem>
-                            <NFormItem
-                                :show-feedback="false"
-                                :show-label="false"
-                                :path="`sentences[${index}].trans`"
-                            >
-                                <NInput
+                            <NFormItem :label="t('Status')" path="status">
+                                <NRadioGroup
+                                    class="learn-status-group"
+                                    v-model:value="model.status"
                                     size="small"
-                                    type="textarea"
-                                    v-model:value="model.sentences[index].trans"
-                                    :placeholder="t('Translation (Optional)')"
-                                    :autosize="{ minRows: 1, maxRows: 3 }"
-                                />
-                            </NFormItem>
-                            <NFormItem
-                                :show-feedback="false"
-                                :show-label="false"
-                                :path="`sentences[${index}].origin`"
-                            >
-                                <NInput
-                                    size="small"
-                                    type="textarea"
-                                    v-model:value="model.sentences[index].origin"
-                                    :placeholder="t('Origin (Optional)')"
-                                    :autosize="{ minRows: 1, maxRows: 3 }"
-                                />
+                                >
+                                    <NRadioButton v-for="(s, i) in status" :key="i" :value="i">
+                                        {{ s.text }}
+                                    </NRadioButton>
+                                </NRadioGroup>
                             </NFormItem>
                         </div>
-                    </template>
-                </NDynamicInput>
-            </NForm>
-            <!-- 提交按钮 -->
-            <div style="margin-top: 10px">
-                <NButton
-                    size="small"
-                    style="--n-width: 100%"
-                    attr-type="submit"
-                    @click="submit"
-                    :loading="submitLoading"
-                >
-                    <NIconWrapper
-                        v-if="successing"
-                        :size="18"
-                        :border-radius="6"
-                        style="margin-right: 6px"
-                    >
-                        <NIcon :size="16">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                xmlns:xlink="http://www.w3.org/1999/xlink"
-                                viewBox="0 0 16 16"
-                            >
-                                <g fill="none">
-                                    <path
-                                        d="M14.046 3.486a.75.75 0 0 1-.032 1.06l-7.93 7.474a.85.85 0 0 1-1.188-.022l-2.68-2.72a.75.75 0 1 1 1.068-1.053l2.234 2.267l7.468-7.038a.75.75 0 0 1 1.06.032z"
-                                        fill="currentColor"
-                                    ></path>
-                                </g>
-                            </svg>
-                        </NIcon>
-                    </NIconWrapper>
-                    <NIconWrapper
-                        v-if="failing"
-                        :size="18"
-                        :border-radius="6"
-                        style="margin-right: 6px"
-                        color="#DE5959"
-                    >
-                        <NIcon :size="16">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                xmlns:xlink="http://www.w3.org/1999/xlink"
-                                viewBox="0 0 16 16"
-                            >
-                                <g fill="none">
-                                    <path
-                                        d="M2.397 2.554l.073-.084a.75.75 0 0 1 .976-.073l.084.073L8 6.939l4.47-4.47a.75.75 0 1 1 1.06 1.061L9.061 8l4.47 4.47a.75.75 0 0 1 .072.976l-.073.084a.75.75 0 0 1-.976.073l-.084-.073L8 9.061l-4.47 4.47a.75.75 0 0 1-1.06-1.061L6.939 8l-4.47-4.47a.75.75 0 0 1-.072-.976l.073-.084l-.073.084z"
-                                        fill="currentColor"
-                                    ></path>
-                                </g>
-                            </svg>
-                        </NIcon>
-                    </NIconWrapper>
+                        <NFormItem :label="t('Tags')" path="tags">
+                            <NSelect
+                                size="small"
+                                v-model:value="model.tags"
+                                filterable
+                                multiple
+                                tag
+                                :placeholder="t('Input or select some tags')"
+                                :loading="tagLoading"
+                                :options="tagOptions"
+                                @search="tagSearch"
+                            ></NSelect>
+                        </NFormItem>
+                    </section>
 
-                    {{ t("Submit") }}
-                </NButton>
+                    <section class="learn-section langr-card">
+                        <header class="learn-section-header">
+                            <div class="learn-section-title">{{ t("Notes") }}</div>
+                        </header>
+                        <NFormItem :show-label="false" path="notes">
+                            <NDynamicInput
+                                v-model:value="model.notes"
+                                :create-button-props="{ size: 'small' }"
+                            >
+                                <template #create-button-default>
+                                    {{ t("Create") }}
+                                </template>
+                                <template #="{ index }">
+                                    <NInput
+                                        size="small"
+                                        type="textarea"
+                                        :placeholder="t('Write a new note')"
+                                        v-model:value="model.notes[index]"
+                                    />
+                                </template>
+                            </NDynamicInput>
+                        </NFormItem>
+                    </section>
+
+                    <section class="learn-section langr-card">
+                        <header class="learn-section-header">
+                            <div class="learn-section-title">{{ t("Sentences") }}</div>
+                        </header>
+                        <NDynamicInput
+                            class="sentence-input"
+                            v-model:value="model.sentences"
+                            :create-button-props="{ size: 'small' }"
+                            :on-create="onCreateSentence"
+                        >
+                            <template #create-button-default>
+                                {{ t("Create") }}
+                            </template>
+                            <template #="{ index }">
+                                <div class="sentence-card">
+                                    <NFormItem
+                                        :show-label="false"
+                                        :path="`sentences[${index}].text`"
+                                        :rule="sourceRule"
+                                    >
+                                        <NInput
+                                            size="small"
+                                            type="textarea"
+                                            v-model:value="model.sentences[index].text"
+                                            :placeholder="t('Origin sentence')"
+                                            :autosize="{ minRows: 1, maxRows: 3 }"
+                                        />
+                                    </NFormItem>
+                                    <NFormItem
+                                        :show-feedback="false"
+                                        :show-label="false"
+                                        :path="`sentences[${index}].trans`"
+                                    >
+                                        <NInput
+                                            size="small"
+                                            type="textarea"
+                                            v-model:value="model.sentences[index].trans"
+                                            :placeholder="t('Translation (Optional)')"
+                                            :autosize="{ minRows: 1, maxRows: 3 }"
+                                        />
+                                    </NFormItem>
+                                    <NFormItem
+                                        :show-feedback="false"
+                                        :show-label="false"
+                                        :path="`sentences[${index}].origin`"
+                                    >
+                                        <NInput
+                                            size="small"
+                                            type="textarea"
+                                            v-model:value="model.sentences[index].origin"
+                                            :placeholder="t('Origin (Optional)')"
+                                            :autosize="{ minRows: 1, maxRows: 3 }"
+                                        />
+                                    </NFormItem>
+                                </div>
+                            </template>
+                        </NDynamicInput>
+                    </section>
+                </NForm>
+
+                <section class="learn-submit langr-card">
+                    <NButton
+                        class="submit-button"
+                        size="small"
+                        type="primary"
+                        attr-type="submit"
+                        @click="submit"
+                        :loading="submitLoading"
+                    >
+                        <NIconWrapper
+                            v-if="successing"
+                            class="submit-state-icon"
+                            :size="18"
+                            :border-radius="6"
+                        >
+                            <NIcon :size="16">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    xmlns:xlink="http://www.w3.org/1999/xlink"
+                                    viewBox="0 0 16 16"
+                                >
+                                    <g fill="none">
+                                        <path
+                                            d="M14.046 3.486a.75.75 0 0 1-.032 1.06l-7.93 7.474a.85.85 0 0 1-1.188-.022l-2.68-2.72a.75.75 0 1 1 1.068-1.053l2.234 2.267l7.468-7.038a.75.75 0 0 1 1.06.032z"
+                                            fill="currentColor"
+                                        ></path>
+                                    </g>
+                                </svg>
+                            </NIcon>
+                        </NIconWrapper>
+                        <NIconWrapper
+                            v-if="failing"
+                            class="submit-state-icon failing"
+                            :size="18"
+                            :border-radius="6"
+                        >
+                            <NIcon :size="16">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    xmlns:xlink="http://www.w3.org/1999/xlink"
+                                    viewBox="0 0 16 16"
+                                >
+                                    <g fill="none">
+                                        <path
+                                            d="M2.397 2.554l.073-.084a.75.75 0 0 1 .976-.073l.084.073L8 6.939l4.47-4.47a.75.75 0 1 1 1.06 1.061L9.061 8l4.47 4.47a.75.75 0 0 1 .072.976l-.073.084a.75.75 0 0 1-.976.073l-.084-.073L8 9.061l-4.47 4.47a.75.75 0 0 1-1.06-1.061L6.939 8l-4.47-4.47a.75.75 0 0 1-.072-.976l.073-.084l-.073.084z"
+                                            fill="currentColor"
+                                        ></path>
+                                    </g>
+                                </svg>
+                            </NIcon>
+                        </NIconWrapper>
+
+                        {{ t("Submit") }}
+                    </NButton>
+                </section>
             </div>
-            <!-- </NThemeEditor> -->
         </NConfigProvider>
     </div>
 </template>
 
 <script setup lang="ts">
 import { Notice } from "obsidian";
-import { ref, computed, CSSProperties } from "vue";
+import { ref } from "vue";
 import {
     NIcon,
     NIconWrapper,
@@ -219,9 +228,6 @@ import {
     NSelect,
     SelectOption,
     NConfigProvider,
-    // NThemeEditor,
-    darkTheme,
-    GlobalThemeOverrides,
 } from "naive-ui";
 
 import { ExpressionInfo, ExpressionType, Sentence } from "@/db/interface";
@@ -233,38 +239,13 @@ import { search } from "@dict/youdao/engine";
 import store from "@/store";
 import { usePlugin, useView } from "@/ui/context";
 import { emitLangrRefresh, emitLangrRefreshStat } from "@/events";
+import { useLangrNaiveTheme, useLangrNaiveThemeOverrides } from "@/ui/theme";
 
 const view = useView<LearnPanelView>();
 const plugin = usePlugin();
 
-// 切换明亮/黑暗模式
-const theme = computed(() => {
-    return store.dark ? darkTheme : null;
-});
-
-// 样式设置
-const themeOverrides: GlobalThemeOverrides = {
-    common: {},
-    Form: {
-        labelFontSizeTopMedium: "15px",
-        feedbackFontSizeMedium: "13px",
-        blankHeightMedium: "5px",
-        feedbackHeightMedium: "22px",
-    },
-    Radio: {
-        buttonBorderRadius: "5px",
-        fontSizeMedium: "13px",
-        fontSizeSmall: "13px",
-        buttonHeightSmall: "22px",
-    },
-    Input: {
-        fontSizeSmall: "12px",
-        paddingSmall: "0 5px",
-    },
-    DynamicInput: {
-        actionMargin: "0 0 0 5px",
-    },
-};
+const theme = useLangrNaiveTheme(() => store.dark);
+const themeOverrides = useLangrNaiveThemeOverrides();
 
 //表单数据
 let model = ref<ExpressionInfo>({
@@ -305,12 +286,6 @@ let sourceRule = {
     message: "At least input a source sentence",
 };
 
-let labelStyle: CSSProperties = {
-    // fontSize: "16px",
-    fontWeight: "bold",
-    // padding: "0 0 8px 2px",
-};
-
 function onCreateSentence() {
     return {
         text: "",
@@ -321,11 +296,11 @@ function onCreateSentence() {
 
 // 单词状态样式
 const status = [
-    { text: t("Ignore"), style: "" },
-    { text: t("Learning"), style: "background-Color: #ff980055" },
-    { text: t("Familiar"), style: "background-Color: #ffeb3c55" },
-    { text: t("Known"), style: "background-Color: #9eda5855" },
-    { text: t("Learned"), style: "background-Color: #4cb05155" },
+    { text: t("Ignore") },
+    { text: t("Learning") },
+    { text: t("Familiar") },
+    { text: t("Known") },
+    { text: t("Learned") },
 ];
 
 // 异步获取数据库中所有tag
@@ -521,10 +496,88 @@ useEvent(window, "obsidian-langr-search", async (evt: CustomEvent) => {
 
 <style lang="scss">
 #langr-learn-panel {
+    overflow: hidden;
+    background: var(--background-secondary);
     padding-bottom: 18px;
+
+    .learn-provider {
+        height: 100%;
+    }
+
+    .learn-panel-scroll {
+        height: 100%;
+        min-height: 0;
+        overflow: auto;
+        padding: var(--langr-space-3);
+    }
+
+    .learn-form {
+        display: flex;
+        flex-direction: column;
+        gap: var(--langr-space-3);
+    }
+
+    .learn-section {
+        padding: var(--langr-space-3);
+    }
+
+    .learn-section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--langr-space-2);
+        margin-bottom: var(--langr-space-2);
+    }
+
+    .learn-section-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-normal);
+    }
+
+    .learn-choice-stack {
+        display: flex;
+        flex-direction: column;
+        gap: var(--langr-space-2);
+    }
+
+    .learn-status-group {
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+
+        .n-radio-button {
+            min-width: 56px;
+            text-align: center;
+        }
+    }
 
     .n-input {
         margin: 1px 0;
+    }
+
+    .n-form-item {
+        margin-bottom: 4px;
+    }
+
+    .n-form-item-label {
+        font-weight: 650;
+    }
+
+    .sentence-input {
+        width: 100%;
+    }
+
+    .sentence-card {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        gap: var(--langr-space-2);
+        min-width: 0;
+        padding: var(--langr-space-2);
+        border: 1px solid var(--langr-border);
+        border-radius: var(--langr-radius-sm);
+        background: var(--langr-surface-muted);
     }
 
     .n-dynamic-input .n-button-group {
@@ -548,6 +601,33 @@ useEvent(window, "obsidian-langr-search", async (evt: CustomEvent) => {
                 border-bottom-right-radius: 34px !important;
             }
         }
+    }
+
+    .learn-submit {
+        position: sticky;
+        bottom: 0;
+        z-index: 1;
+        margin-top: var(--langr-space-3);
+        padding: var(--langr-space-2);
+        background: var(--langr-surface);
+    }
+
+    .submit-button {
+        width: 100%;
+    }
+
+    .submit-state-icon {
+        margin-right: var(--langr-space-2);
+    }
+
+    .submit-state-icon.failing {
+        color: var(--text-error);
+    }
+}
+
+.is-mobile #langr-learn-panel {
+    .learn-panel-scroll {
+        padding: var(--langr-space-2);
     }
 }
 </style>

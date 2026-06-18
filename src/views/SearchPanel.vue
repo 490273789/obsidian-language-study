@@ -1,88 +1,86 @@
 <template>
-    <div id="langr-search" @click="handleClick">
-        <NConfigProvider :theme="theme" :theme-overrides="themeConfig">
-            <div class="search-bar" style="display: flex">
-                <NButtonGroup size="tiny">
-                    <NButton :disabled="historyIndex <= 0" @click="switchHistory('prev')"
-                        >{{ `<` }}
+    <div id="langr-search" class="langr-shell" @click="handleClick">
+        <NConfigProvider class="search-provider" :theme="theme" :theme-overrides="themeOverrides">
+            <div class="search-layout">
+                <div class="search-bar langr-card">
+                    <NButtonGroup size="tiny">
+                        <NButton :disabled="historyIndex <= 0" @click="switchHistory('prev')"
+                            >{{ `<` }}
+                        </NButton>
+                        <NButton
+                            :disabled="historyIndex >= lastHistory"
+                            @click="switchHistory('next')"
+                            >{{ ">" }}
+                        </NButton>
+                    </NButtonGroup>
+                    <NInput
+                        size="tiny"
+                        type="text"
+                        placeholder="输入单词"
+                        v-model:value="inputWord"
+                        class="search-input"
+                        @keydown.enter="handleSearch"
+                    />
+                    <NButton size="tiny" type="primary" @click="handleSearch">
+                        {{ t("Search") }}
                     </NButton>
-                    <NButton :disabled="historyIndex >= lastHistory" @click="switchHistory('next')"
-                        >{{ ">" }}
-                    </NButton>
-                </NButtonGroup>
-                <NInput
-                    size="tiny"
-                    type="text"
-                    placeholder="输入单词"
-                    v-model:value="inputWord"
-                    style="flex: 1"
-                    @keydown.enter="handleSearch"
-                />
-                <NButton size="tiny" @click="handleSearch" style="margin-left: 5px">{{
-                    t("Search")
-                }}</NButton>
+                </div>
+                <div class="dict-tabs" v-if="components.length > 0">
+                    <button
+                        v-for="(cp, i) in components"
+                        :key="cp.id"
+                        type="button"
+                        class="dict-tab"
+                        :class="{
+                            active: activeDictId === cp.id,
+                            loading: loadings[i],
+                            empty: word && !loadings[i] && !shows[i],
+                        }"
+                        @click="activeDictId = cp.id"
+                    >
+                        <span :class="['dict-icon', cp.id]"></span>
+                        <span class="dict-name">{{ cp.name }}</span>
+                    </button>
+                </div>
+                <div class="dict-area">
+                    <section
+                        v-for="(cp, i) in components"
+                        :key="cp.id"
+                        class="dict-panel langr-card"
+                        v-show="activeDictId === cp.id"
+                    >
+                        <KeepAlive>
+                            <Component
+                                @loading="loading"
+                                :is="cp.type"
+                                :word="word"
+                                v-show="shows[i]"
+                            ></Component>
+                        </KeepAlive>
+                        <div class="dict-state langr-state" v-if="loadings[i]">searching...</div>
+                        <div class="dict-state langr-state" v-else-if="word && !shows[i]">
+                            No result
+                        </div>
+                    </section>
+                </div>
             </div>
         </NConfigProvider>
-        <div class="dict-tabs" v-if="components.length > 0">
-            <button
-                v-for="(cp, i) in components"
-                :key="cp.id"
-                type="button"
-                class="dict-tab"
-                :class="{
-                    active: activeDictId === cp.id,
-                    loading: loadings[i],
-                    empty: word && !loadings[i] && !shows[i],
-                }"
-                @click="activeDictId = cp.id"
-            >
-                <span :class="['dict-icon', cp.id]"></span>
-                <span class="dict-name">{{ cp.name }}</span>
-            </button>
-        </div>
-        <div class="dict-area">
-            <section
-                v-for="(cp, i) in components"
-                :key="cp.id"
-                class="dict-panel"
-                v-show="activeDictId === cp.id"
-            >
-                <KeepAlive>
-                    <Component
-                        @loading="loading"
-                        :is="cp.type"
-                        :word="word"
-                        v-show="shows[i]"
-                    ></Component>
-                </KeepAlive>
-                <div class="dict-state" v-if="loadings[i]">searching...</div>
-                <div class="dict-state" v-else-if="word && !shows[i]">No result</div>
-            </section>
-        </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef, computed, watch } from "vue";
+import { ref, shallowRef, watch } from "vue";
 import type { Component } from "vue";
-import {
-    NConfigProvider,
-    NButton,
-    NButtonGroup,
-    NInput,
-    darkTheme,
-    GlobalThemeOverrides,
-} from "naive-ui";
+import { NConfigProvider, NButton, NButtonGroup, NInput } from "naive-ui";
 
 import { t } from "@/lang/helper";
 import { dicts } from "@dict/list";
 import { playAudio } from "@/utils/helpers";
 import { usePlugin } from "@/ui/context";
 import { useEvent } from "@/utils/use";
+import { useLangrNaiveTheme, useLangrNaiveThemeOverrides } from "@/ui/theme";
 
 const plugin = usePlugin();
-
-const themeConfig: GlobalThemeOverrides = {};
 
 type DictComponent = {
     id: keyof typeof dicts;
@@ -140,10 +138,8 @@ function loading({ id, loading, result }: { id: string; loading: boolean; result
     shows.value[index] = result;
 }
 
-// 切换明亮/黑暗模式
-const theme = computed(() => {
-    return plugin.store.dark ? darkTheme : null;
-});
+const theme = useLangrNaiveTheme(() => plugin.store.dark);
+const themeOverrides = useLangrNaiveThemeOverrides();
 
 // 提供一个前进后退查询记录的功能
 let history: string[] = [];
@@ -207,40 +203,60 @@ useEvent(window, "obsidian-langr-search", onSearch);
     user-select: text;
     display: flex;
     flex-direction: column;
+    background: var(--background-secondary);
+
+    .search-provider {
+        height: 100%;
+    }
+
+    .search-layout {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+    }
 
     .search-bar {
-        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        gap: var(--langr-space-2);
+        margin: var(--langr-space-3);
+        padding: var(--langr-space-2);
 
-        button {
-            margin-right: 5px;
+        .search-input {
+            flex: 1;
+            min-width: 0;
         }
     }
 
     .dict-tabs {
         display: flex;
-        gap: 4px;
+        gap: var(--langr-space-2);
         align-items: stretch;
         overflow-x: auto;
         overflow-y: hidden;
-        padding: 0 0 6px;
-        border-bottom: 1px solid var(--background-modifier-border);
+        padding: 0 var(--langr-space-3) var(--langr-space-2);
         flex: 0 0 auto;
     }
 
     .dict-tab {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
+        gap: var(--langr-space-2);
         min-width: max-content;
         max-width: 140px;
         height: 28px;
-        padding: 3px 8px;
-        border: 1px solid var(--background-modifier-border);
-        border-radius: 6px 6px 0 0;
+        padding: 3px 9px;
+        border: 1px solid var(--langr-border);
+        border-radius: var(--langr-radius-sm);
         color: var(--text-muted);
-        background: var(--background-secondary);
+        background: var(--langr-surface);
         box-shadow: none;
         cursor: pointer;
+        transition:
+            border-color 120ms ease,
+            background-color 120ms ease,
+            color 120ms ease;
 
         &:hover {
             color: var(--text-normal);
@@ -251,7 +267,8 @@ useEvent(window, "obsidian-langr-search", onSearch);
         &.active {
             color: var(--text-normal);
             border-color: var(--interactive-accent);
-            background: var(--background-primary);
+            background: var(--langr-surface);
+            box-shadow: inset 0 -2px 0 var(--interactive-accent);
         }
 
         &.loading .dict-name::after {
@@ -280,26 +297,35 @@ useEvent(window, "obsidian-langr-search", onSearch);
     .dict-area {
         flex: 1;
         overflow: auto;
-        padding: 8px 10px 12px;
+        padding: 0 var(--langr-space-3) var(--langr-space-3);
     }
 
     .dict-panel {
+        padding: var(--langr-space-3);
         min-height: 100%;
     }
 
     .dict-state {
-        color: var(--text-muted);
-        padding: 10px 0;
+        margin: var(--langr-space-3) 0;
     }
 }
 
 .is-mobile #langr-search {
+    .search-bar {
+        flex-wrap: wrap;
+        margin: var(--langr-space-2);
+    }
+
     button:not(.fold-mask) {
         width: auto;
     }
 
     input[type="text"] {
         padding: 0;
+    }
+
+    .dict-area {
+        padding: 0 var(--langr-space-2) var(--langr-space-2);
     }
 }
 </style>

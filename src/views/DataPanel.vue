@@ -1,81 +1,55 @@
 <template>
-    <div id="langr-data">
-        <NConfigProvider :theme="theme" :theme-overrides="themeConfig">
-            <div style="display: flex; align-items: center">
-                <span
-                    style="
-                        display: inline-block;
-                        width: 70px;
-                        font-size: 1.2em;
-                        font-weight: bold;
-                        margin-right: 15px;
-                    "
-                    >Search:</span
-                >
-                <NInput size="small" v-model:value="searchText" />
+    <div id="langr-data" class="langr-shell">
+        <NConfigProvider class="data-provider" :theme="theme" :theme-overrides="themeOverrides">
+            <div class="data-panel-layout">
+                <section class="data-toolbar langr-card">
+                    <div class="data-filter-row">
+                        <span class="data-filter-label">Search</span>
+                        <NInput size="small" v-model:value="searchText" />
+                    </div>
+                    <div class="data-filter-row tag-row">
+                        <span class="data-filter-label">Tags</span>
+                        <select class="tag-mode" v-model="mode">
+                            <option value="and">And</option>
+                            <option value="or">Or</option>
+                        </select>
+                        <div class="tag-list">
+                            <NTag
+                                v-for="(tag, i) in tags"
+                                :key="tag"
+                                size="small"
+                                checkable
+                                v-model:checked="checkedTags[i]"
+                            >
+                                {{ "#" + tag }}
+                            </NTag>
+                        </div>
+                    </div>
+                </section>
+                <section class="data-table-card langr-card">
+                    <NDataTable
+                        ref="table"
+                        size="small"
+                        :loading="loading"
+                        :data="data"
+                        :columns="collumns"
+                        :row-key="makeRowKey"
+                        @update:checked-row-keys="handleCheck"
+                        :pagination="{ pageSize: 10 }"
+                    />
+                </section>
             </div>
-            <NSpace style="margin: 10px 0" align="center">
-                <span
-                    style="
-                        display: inline-block;
-                        width: 70px;
-                        font-size: 1.2em;
-                        font-weight: bold;
-                        margin-right: 5px;
-                    "
-                >
-                    Tags:
-                </span>
-                <select v-model="mode">
-                    <option value="and">And</option>
-                    <option value="or">Or</option>
-                </select>
-                <NTag
-                    v-for="(tag, i) in tags"
-                    size="small"
-                    checkable
-                    v-model:checked="checkedTags[i]"
-                >
-                    {{ "#" + tag }}
-                </NTag>
-            </NSpace>
-            <NDataTable
-                ref="table"
-                size="small"
-                :loading="loading"
-                :data="data"
-                :columns="collumns"
-                :row-key="makeRowKey"
-                @update:checked-row-keys="handleCheck"
-                :pagination="{ pageSize: 10 }"
-            />
         </NConfigProvider>
     </div>
 </template>
 
 <script setup lang="ts">
-import {
-    h,
-    ref,
-    reactive,
-    computed,
-    watch,
-    watchEffect,
-    Suspense,
-    defineAsyncComponent,
-} from "vue";
-import {
-    NConfigProvider,
-    NDataTable,
-    NTag,
-    GlobalThemeOverrides,
-    darkTheme,
-    NSpace,
-    NInput,
-} from "naive-ui";
+import { h, ref, reactive, watch, watchEffect, Suspense, defineAsyncComponent } from "vue";
+import { NConfigProvider, NDataTable, NTag, NInput } from "naive-ui";
 import { t } from "@/lang/helper";
 import { moment } from "@/utils/moment";
 import { usePlugin } from "@/ui/context";
+import { useLangrNaiveTheme, useLangrNaiveThemeOverrides } from "@/ui/theme";
 
 import type { DataTableColumns, DataTableRowKey } from "naive-ui";
 
@@ -83,17 +57,8 @@ const WordMore = defineAsyncComponent(() => import("@comp/WordMore.vue"));
 
 const plugin = usePlugin();
 
-const themeConfig: GlobalThemeOverrides = {
-    DataTable: {
-        fontSizeSmall: plugin.constants.platform === "mobile" ? "10px" : "14px",
-        tdPaddingSmall: "8px",
-    },
-};
-
-// 切换明亮/黑暗模式
-const theme = computed(() => {
-    return plugin.store.dark ? darkTheme : null;
-});
+const theme = useLangrNaiveTheme(() => plugin.store.dark);
+const themeOverrides = useLangrNaiveThemeOverrides();
 
 interface Row {
     expr: string;
@@ -238,8 +203,71 @@ let collumns = reactive<DataTableColumns<Row>>([
 
 <style lang="scss">
 #langr-data {
-    #data-tags {
+    overflow: hidden;
+    background: var(--background-secondary);
+
+    .data-provider {
+        height: 100%;
+    }
+
+    .data-panel-layout {
         display: flex;
+        flex-direction: column;
+        gap: var(--langr-space-3);
+        height: 100%;
+        min-height: 0;
+        padding: var(--langr-space-3);
+    }
+
+    .data-toolbar {
+        display: flex;
+        flex: 0 0 auto;
+        flex-direction: column;
+        gap: var(--langr-space-2);
+        padding: var(--langr-space-3);
+    }
+
+    .data-filter-row {
+        display: flex;
+        align-items: center;
+        gap: var(--langr-space-2);
+        min-width: 0;
+    }
+
+    .data-filter-label {
+        width: 58px;
+        flex: 0 0 auto;
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .tag-row {
+        align-items: flex-start;
+    }
+
+    .tag-mode {
+        height: 26px;
+        color: var(--text-normal);
+        border: 1px solid var(--langr-border);
+        border-radius: var(--langr-radius-sm);
+        background: var(--langr-surface);
+    }
+
+    .tag-list {
+        display: flex;
+        flex: 1;
+        flex-wrap: wrap;
+        gap: var(--langr-space-1);
+        min-width: 0;
+    }
+
+    .data-table-card {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+        padding: var(--langr-space-2);
     }
 
     .n-data-table-filter {
@@ -254,7 +282,21 @@ let collumns = reactive<DataTableColumns<Row>>([
         justify-content: center;
     }
 
+    .n-data-table {
+        --n-merged-border-color: var(--langr-border);
+    }
+
+    .n-data-table .n-data-table-tr {
+        background: var(--langr-surface);
+    }
+
+    .n-data-table .n-data-table-tr:hover {
+        background: var(--background-modifier-hover);
+    }
+
     .data-more {
+        padding: var(--langr-space-2);
+
         h2 {
             margin: 0.5em 0;
         }
@@ -262,25 +304,45 @@ let collumns = reactive<DataTableColumns<Row>>([
         .data-notes {
             p {
                 white-space: pre-line;
-                margin: 0.5em 5px;
+                margin: 0.5em 0;
+                padding: var(--langr-space-2);
+                border: 1px solid var(--langr-border);
+                border-radius: var(--langr-radius-sm);
+                background: var(--langr-surface-muted);
             }
         }
 
         .data-sens {
             .data-sen {
-                margin-bottom: 5px;
-                border: 1px solid gray;
-                border-radius: 5px;
+                margin-bottom: var(--langr-space-2);
+                border: 1px solid var(--langr-border);
+                border-radius: var(--langr-radius-sm);
+                background: var(--langr-surface-muted);
 
                 p {
                     &:first-child {
                         font-style: italic;
                     }
 
-                    margin: 0.5em 5px;
+                    margin: 0.5em var(--langr-space-2);
                 }
             }
         }
+    }
+}
+
+.is-mobile #langr-data {
+    .data-panel-layout {
+        padding: var(--langr-space-2);
+    }
+
+    .data-filter-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .data-filter-label {
+        width: auto;
     }
 }
 </style>

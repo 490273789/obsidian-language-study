@@ -1,65 +1,72 @@
 <template>
-    <div id="langr-reading" ref="reading" style="height: 100%">
-        <NConfigProvider
-            :theme="theme"
-            :theme-overrides="themeConfig"
-            style="height: 100%; display: flex; flex-direction: column"
-        >
-            <!-- 功能区 -->
-            <div class="function-area">
-                <audio controls v-if="audioSource" :src="audioSource" />
-                <div style="display: flex">
-                    <button @click="activeNotes = true">做笔记</button>
-                    <div
-                        style="flex: 1; display: flex; justify-content: center; align-items: center"
-                    >
-                        <CountBar
-                            v-if="plugin.settings.word_count"
-                            :unknown="unknown"
-                            :learn="learn"
-                            :ignore="ignore"
+    <div id="langr-reading" ref="reading" class="langr-shell">
+        <NConfigProvider class="reading-provider" :theme="theme" :theme-overrides="themeOverrides">
+            <div class="reading-desk">
+                <section class="reading-card langr-card">
+                    <header class="reading-header">
+                        <div class="reading-heading">
+                            <div class="reading-title">{{ t("Reading Mode") }}</div>
+                            <div class="langr-subtle">{{ pageSummary }}</div>
+                        </div>
+                        <audio
+                            class="reading-audio"
+                            controls
+                            v-if="audioSource"
+                            :src="audioSource"
                         />
-                    </div>
-                    <button
-                        v-if="page * pageSize < totalLines"
-                        class="finish-reading"
-                        @click="addIgnores"
+                        <div class="reading-actions">
+                            <button class="reading-action" @click="activeNotes = true">
+                                {{ t("Notes") }}
+                            </button>
+                            <button
+                                v-if="page * pageSize < totalLines"
+                                class="reading-action finish-reading"
+                                @click="addIgnores"
+                            >
+                                {{ t("Finish Reading") }}
+                            </button>
+                            <button
+                                v-else
+                                class="reading-action finish-reading"
+                                @click="addIgnores"
+                            >
+                                {{ t("Finish Reading") }}
+                            </button>
+                        </div>
+                    </header>
+                    <div
+                        class="reading-progress langr-card-muted"
+                        v-if="plugin.settings.word_count"
                     >
-                        结束阅读并转入下一页
-                    </button>
-                    <button v-else class="finish-reading" @click="addIgnores">结束阅读</button>
-                </div>
-            </div>
-            <!-- 阅读区 -->
-            <div
-                class="text-area"
-                style="flex: 1; overflow: auto; padding-left: 5%; padding-right: 5%"
-                :style="{
-                    fontSize: store.fontSize,
-                    fontFamily: store.fontFamily,
-                    lineHeight: store.lineHeight,
-                }"
-                v-html="renderedText"
-            />
-            <!-- 底栏 -->
-            <div
-                class="pagination"
-                style="
-                    padding: 10px 0;
-                    border-top: 2px solid gray;
-                    display: flex;
-                    flex-direction: column;
-                "
-            >
-                <NPagination
-                    style="justify-content: center"
-                    v-model:page="page"
-                    v-model:page-size="pageSize"
-                    :item-count="totalLines"
-                    show-size-picker
-                    :page-sizes="pageSizes"
-                    :page-slot="pageSlot"
-                />
+                        <CountBar :unknown="unknown" :learn="learn" :ignore="ignore" />
+                        <div class="reading-progress-labels">
+                            <span class="langr-status-chip is-new">{{ t("New") }}</span>
+                            <span class="langr-status-chip is-learning">{{ t("Learning") }}</span>
+                            <span class="langr-status-chip is-ignore">{{ t("Ignore") }}</span>
+                        </div>
+                    </div>
+
+                    <div
+                        class="text-area reading-text"
+                        :style="{
+                            fontSize: store.fontSize,
+                            fontFamily: store.fontFamily,
+                            lineHeight: store.lineHeight,
+                        }"
+                        v-html="renderedText"
+                    />
+
+                    <footer class="pagination reading-pagination">
+                        <NPagination
+                            v-model:page="page"
+                            v-model:page-size="pageSize"
+                            :item-count="totalLines"
+                            show-size-picker
+                            :page-sizes="pageSizes"
+                            :page-slot="pageSlot"
+                        />
+                    </footer>
+                </section>
             </div>
             <NDrawer
                 v-model:show="activeNotes"
@@ -72,7 +79,7 @@
                 :default-height="250"
                 resizable
             >
-                <NDrawerContent title="Notes">
+                <NDrawerContent :title="t('Notes')">
                     <div class="note-area">
                         <NInput
                             class="note-input"
@@ -94,15 +101,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, watchEffect } from "vue";
-import {
-    NPagination,
-    NConfigProvider,
-    darkTheme,
-    NDrawer,
-    NDrawerContent,
-    NInput,
-    GlobalThemeOverrides,
-} from "naive-ui";
+import { NPagination, NConfigProvider, NDrawer, NDrawerContent, NInput } from "naive-ui";
 import { MarkdownRenderer, Platform } from "obsidian";
 import PluginType from "@/plugin";
 import { t } from "@/lang/helper";
@@ -113,6 +112,7 @@ import CountBar from "./CountBar.vue";
 import { useView } from "@/ui/context";
 import { emitLangrRefreshStat } from "@/events";
 import { resolveLocalResourcePath } from "@/utils/platform";
+import { useLangrNaiveTheme, useLangrNaiveThemeOverrides } from "@/ui/theme";
 
 let view = useView<ReadingView>();
 let plugin = view.plugin as PluginType;
@@ -122,18 +122,8 @@ if (!view.file) {
 }
 const currentFile = view.file;
 
-// 切换明亮/黑暗模式
-const theme = computed(() => {
-    return store.dark ? darkTheme : null;
-});
-
-const themeConfig: GlobalThemeOverrides = {
-    Drawer: {
-        bodyPadding: "8px 12px",
-        headerPadding: "4px 6px",
-        titleFontWeight: "700",
-    },
-};
+const theme = useLangrNaiveTheme(() => store.dark);
+const themeOverrides = useLangrNaiveThemeOverrides();
 
 let frontMatter = plugin.app.metadataCache.getFileCache(currentFile)?.frontmatter ?? {};
 let audioSource = (frontMatter["langr-audio"] || "") as string;
@@ -223,6 +213,14 @@ const pageSlot = Platform.isMobileApp ? 5 : undefined;
 let dp = plugin.settings.default_paragraphs;
 let pageSize = dp === "all" ? ref(Number.MAX_VALUE) : ref(parseInt(dp));
 let page = view.lastPos ? ref(Math.ceil(view.lastPos / pageSize.value)) : ref(1);
+const pageSummary = computed(() => {
+    if (totalLines === 0) {
+        return `0 ${t("paragraph")}`;
+    }
+    const start = (page.value - 1) * pageSize.value + 1;
+    const end = Math.min(page.value * pageSize.value, totalLines);
+    return `${start}-${end} / ${totalLines} ${t("paragraph")}`;
+});
 
 let renderedText = ref("");
 let psChange = ref(true); // 标志pageSize的改变
@@ -341,28 +339,131 @@ if (plugin.constants.platform === "mobile") {
 
 <style lang="scss">
 #langr-reading {
+    background: var(--background-secondary);
     user-select: none;
 
-    .function-area {
-        padding-bottom: 10px;
-        border-bottom: 2px solid gray;
+    .reading-provider {
+        height: 100%;
+    }
 
-        button {
-            width: auto;
-        }
+    .reading-desk {
+        display: flex;
+        height: 100%;
+        min-height: 0;
+        padding: var(--langr-space-3);
+    }
+
+    .reading-card {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .reading-header {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        gap: var(--langr-space-3);
+        min-height: 48px;
+        padding: var(--langr-space-3) var(--langr-space-4);
+        border-bottom: 1px solid var(--langr-border);
+        background: var(--langr-surface);
+    }
+
+    .reading-heading {
+        min-width: 130px;
+    }
+
+    .reading-title {
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.25;
+    }
+
+    .reading-audio {
+        width: min(360px, 38vw);
+        height: 30px;
+    }
+
+    .reading-actions {
+        display: flex;
+        gap: var(--langr-space-2);
+        margin-left: auto;
+    }
+
+    .reading-action {
+        width: auto;
+        min-height: 28px;
+        padding: 0 10px;
+        color: var(--text-normal);
+        border: 1px solid var(--langr-border);
+        border-radius: var(--langr-radius-sm);
+        background: var(--langr-surface-muted);
+        box-shadow: none;
+        cursor: pointer;
+    }
+
+    .reading-action:hover {
+        border-color: var(--langr-border-hover);
+        background: var(--background-modifier-hover);
+        box-shadow: none;
+    }
+
+    .finish-reading {
+        color: var(--text-on-accent);
+        border-color: var(--langr-accent);
+        background: var(--langr-accent);
+    }
+
+    .finish-reading:hover {
+        color: var(--text-on-accent);
+        background: var(--langr-accent-hover);
+    }
+
+    .reading-progress {
+        display: grid;
+        grid-template-columns: minmax(160px, 1fr) auto;
+        gap: var(--langr-space-3);
+        align-items: center;
+        margin: var(--langr-space-3) var(--langr-space-4) 0;
+        padding: var(--langr-space-2) var(--langr-space-3);
+    }
+
+    .reading-progress-labels {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--langr-space-1);
+        justify-content: flex-end;
     }
 
     .text-area {
+        flex: 1;
+        min-height: 0;
+        margin: var(--langr-space-3) var(--langr-space-4) 0;
+        padding: clamp(18px, 3vw, 36px);
+        overflow: auto;
+        color: var(--text-normal);
+        border: 1px solid var(--langr-border);
+        border-radius: var(--langr-radius-md);
+        background: var(--background-primary);
+        font-family: var(--langr-font-reading);
         touch-action: none;
 
         span.word {
             user-select: contain;
             border: 1px solid transparent;
             cursor: pointer;
-            border-radius: 4px;
+            border-radius: var(--langr-radius-xs);
+            transition:
+                background-color 120ms ease,
+                border-color 120ms ease;
 
             &:hover {
-                border-color: deepskyblue;
+                border-color: var(--langr-accent);
+                background: var(--background-modifier-hover);
             }
         }
 
@@ -372,10 +473,14 @@ if (plugin.constants.platform === "mobile") {
             padding-bottom: 3px;
             cursor: pointer;
             border: 1px solid transparent;
-            border-radius: 4px;
+            border-radius: var(--langr-radius-xs);
+            transition:
+                background-color 120ms ease,
+                border-color 120ms ease;
 
             &:hover {
-                border-color: deepskyblue;
+                border-color: var(--langr-accent);
+                background: var(--background-modifier-hover);
             }
         }
 
@@ -385,23 +490,23 @@ if (plugin.constants.platform === "mobile") {
 
         span {
             .new {
-                background-color: #add8e644;
+                background-color: var(--langr-status-new-bg);
             }
 
             .learning {
-                background-color: #ff980055;
+                background-color: var(--langr-status-learning-bg);
             }
 
             .familiar {
-                background-color: #ffeb3c55;
+                background-color: var(--langr-status-familiar-bg);
             }
 
             .known {
-                background-color: #9eda5855;
+                background-color: var(--langr-status-known-bg);
             }
 
             .learned {
-                background-color: #4cb05155;
+                background-color: var(--langr-status-learned-bg);
             }
         }
 
@@ -410,21 +515,31 @@ if (plugin.constants.platform === "mobile") {
         }
 
         .select {
-            background-color: #90ee9060;
+            background-color: var(--langr-status-learned-bg);
             padding-top: 3px;
             padding-bottom: 3px;
             cursor: pointer;
             border: 1px solid transparent;
-            border-radius: 4px;
+            border-radius: var(--langr-radius-xs);
 
             &:hover {
-                border: 1px solid green;
+                border-color: var(--langr-status-learned-fg);
             }
         }
     }
 
+    .reading-pagination {
+        display: flex;
+        flex: 0 0 auto;
+        justify-content: center;
+        padding: var(--langr-space-3) var(--langr-space-4);
+        border-top: 1px solid var(--langr-border);
+        background: var(--langr-surface);
+    }
+
     .note-area {
         display: flex;
+        gap: var(--langr-space-2);
         height: 100%;
         width: 100%;
 
@@ -433,19 +548,54 @@ if (plugin.constants.platform === "mobile") {
         }
 
         .note-rendered {
-            border: 1px solid gray;
-            border-radius: 3px;
+            border: 1px solid var(--langr-border);
+            border-radius: var(--langr-radius-sm);
             flex: 1;
-            padding: 5px;
-            margin-left: 2px;
+            padding: var(--langr-space-2);
             overflow: auto;
+            background: var(--langr-surface-muted);
         }
     }
 }
 
 .is-mobile #langr-reading {
+    .reading-desk {
+        padding: var(--langr-space-2);
+    }
+
+    .reading-header {
+        align-items: stretch;
+        flex-direction: column;
+        gap: var(--langr-space-2);
+    }
+
+    .reading-audio {
+        width: 100%;
+    }
+
+    .reading-actions {
+        margin-left: 0;
+    }
+
+    .reading-progress {
+        grid-template-columns: 1fr;
+    }
+
+    .reading-progress-labels {
+        justify-content: flex-start;
+    }
+
+    .text-area {
+        margin: var(--langr-space-2);
+        padding: var(--langr-space-4);
+    }
+
     .pagination {
         padding-bottom: 48px;
+    }
+
+    .note-area {
+        flex-direction: column;
     }
 }
 </style>

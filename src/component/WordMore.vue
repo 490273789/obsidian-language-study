@@ -41,7 +41,11 @@ let notes = expressionInfo?.notes ?? [];
 
         p {
             white-space: pre-line;
-            margin: 0.5em 5px;
+            margin: 0.5em 0;
+            padding: var(--langr-space-2);
+            border: 1px solid var(--langr-border);
+            border-radius: var(--langr-radius-sm);
+            background: var(--langr-surface-muted);
         }
     }
 
@@ -49,9 +53,10 @@ let notes = expressionInfo?.notes ?? [];
         user-select: text;
 
         .word-sen {
-            margin-bottom: 5px;
-            border: 1px solid gray;
-            border-radius: 5px;
+            margin-bottom: var(--langr-space-2);
+            border: 1px solid var(--langr-border);
+            border-radius: var(--langr-radius-sm);
+            background: var(--langr-surface-muted);
 
             p {
                 &:first-child {
@@ -63,7 +68,7 @@ let notes = expressionInfo?.notes ?? [];
                     }
                 }
 
-                margin: 0.5em 5px;
+                margin: 0.5em var(--langr-space-2);
             }
         }
     }

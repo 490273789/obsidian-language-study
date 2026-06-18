@@ -40,6 +40,7 @@ export default {
     Word: "单词",
     Phrase: "短语",
     Status: "学习状态",
+    New: "新词",
     Ignore: "无视",
     Learning: "新学",
     Familiar: "眼熟",

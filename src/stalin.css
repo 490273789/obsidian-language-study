@@ -1,5 +1,199 @@
 /* Input your styles */
 
+:root {
+    --langr-radius-xs: 4px;
+    --langr-radius-sm: 6px;
+    --langr-radius-md: 8px;
+    --langr-space-1: 4px;
+    --langr-space-2: 8px;
+    --langr-space-3: 12px;
+    --langr-space-4: 16px;
+    --langr-space-5: 20px;
+    --langr-font-ui: var(--font-interface);
+    --langr-font-reading: var(--font-text);
+    --langr-surface: var(--background-primary);
+    --langr-surface-muted: var(--background-secondary);
+    --langr-surface-raised: var(--background-primary);
+    --langr-border: var(--background-modifier-border);
+    --langr-border-hover: var(--background-modifier-border-hover);
+    --langr-muted: var(--text-muted);
+    --langr-faint: var(--text-faint);
+    --langr-accent: var(--interactive-accent);
+    --langr-accent-hover: var(--interactive-accent-hover);
+    --langr-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --langr-status-new-bg: color-mix(in srgb, #5fb3c8 18%, transparent);
+    --langr-status-new-fg: #23758b;
+    --langr-status-learning-bg: color-mix(in srgb, #e09a3e 20%, transparent);
+    --langr-status-learning-fg: #97600d;
+    --langr-status-familiar-bg: color-mix(in srgb, #d7bd3f 20%, transparent);
+    --langr-status-familiar-fg: #7a6815;
+    --langr-status-known-bg: color-mix(in srgb, #82ba53 20%, transparent);
+    --langr-status-known-fg: #4b7a27;
+    --langr-status-learned-bg: color-mix(in srgb, #4ca365 22%, transparent);
+    --langr-status-learned-fg: #287540;
+    --langr-status-ignore-bg: var(--background-modifier-hover);
+    --langr-status-ignore-fg: var(--text-muted);
+}
+
+.theme-dark {
+    --langr-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
+    --langr-status-new-fg: #8ed5e5;
+    --langr-status-learning-fg: #efbd78;
+    --langr-status-familiar-fg: #e8d978;
+    --langr-status-known-fg: #add985;
+    --langr-status-learned-fg: #8bd59e;
+}
+
+.langr-shell {
+    height: 100%;
+    width: 100%;
+    min-height: 0;
+    color: var(--text-normal);
+    font-family: var(--langr-font-ui);
+}
+
+.langr-card {
+    border: 1px solid var(--langr-border);
+    border-radius: var(--langr-radius-md);
+    background: var(--langr-surface);
+    box-shadow: var(--langr-shadow);
+}
+
+.langr-card-muted {
+    border: 1px solid var(--langr-border);
+    border-radius: var(--langr-radius-md);
+    background: var(--langr-surface-muted);
+}
+
+.langr-toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--langr-space-2);
+    min-height: 36px;
+}
+
+.langr-toolbar-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-normal);
+}
+
+.langr-subtle {
+    color: var(--langr-muted);
+    font-size: 12px;
+}
+
+.langr-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    color: var(--text-muted);
+    border: 1px solid var(--langr-border);
+    border-radius: var(--langr-radius-sm);
+    background: var(--langr-surface);
+    box-shadow: none;
+    cursor: pointer;
+}
+
+.langr-icon-button:hover:not(:disabled) {
+    color: var(--text-normal);
+    border-color: var(--langr-border-hover);
+    background: var(--background-modifier-hover);
+    box-shadow: none;
+}
+
+.langr-icon-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.langr-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 88px;
+    padding: var(--langr-space-4);
+    color: var(--langr-muted);
+    font-size: 13px;
+    text-align: center;
+    border: 1px dashed var(--langr-border);
+    border-radius: var(--langr-radius-md);
+    background: var(--langr-surface-muted);
+}
+
+.langr-status-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    line-height: 1.2;
+    border: 1px solid transparent;
+}
+
+.langr-status-chip.is-ignore {
+    color: var(--langr-status-ignore-fg);
+    background: var(--langr-status-ignore-bg);
+}
+
+.langr-status-chip.is-new {
+    color: var(--langr-status-new-fg);
+    background: var(--langr-status-new-bg);
+}
+
+.langr-status-chip.is-learning {
+    color: var(--langr-status-learning-fg);
+    background: var(--langr-status-learning-bg);
+}
+
+.langr-status-chip.is-familiar {
+    color: var(--langr-status-familiar-fg);
+    background: var(--langr-status-familiar-bg);
+}
+
+.langr-status-chip.is-known {
+    color: var(--langr-status-known-fg);
+    background: var(--langr-status-known-bg);
+}
+
+.langr-status-chip.is-learned {
+    color: var(--langr-status-learned-fg);
+    background: var(--langr-status-learned-bg);
+}
+
+.langr-settings {
+    max-width: 900px;
+}
+
+.langr-settings h1 {
+    margin-bottom: var(--langr-space-4);
+    font-size: 1.45em;
+}
+
+.langr-settings .setting-item {
+    margin: 8px 0;
+    padding: 12px;
+    border: 1px solid var(--langr-border);
+    border-radius: var(--langr-radius-md);
+    background: var(--langr-surface);
+}
+
+.langr-settings .setting-item-heading {
+    margin-top: 20px;
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+}
+
+.langr-settings .setting-item-heading .setting-item-name {
+    font-size: 15px;
+    font-weight: 700;
+}
+
 /* 复习卡片中的发音 */
 .sr-modal-content h4 {
     cursor: pointer;

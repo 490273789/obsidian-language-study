@@ -40,6 +40,7 @@ export default {
     Word: "Word",
     Phrase: "Phrase",
     Status: "Status",
+    New: "New",
     Ignore: "Ignore",
     Learning: "Learning",
     Familiar: "Familiar",
