@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { escapeHtml, highlightExpression, sanitizeToSafeHtml } from "@/utils/safeHtml";
+import {
+    EMPTY_SAFE_HTML,
+    escapeHtml,
+    highlightExpression,
+    safeHtmlToString,
+    sanitizeToSafeHtml,
+} from "@/utils/safeHtml";
 
 describe("safe html helpers", () => {
     it("escapes user text", () => {
@@ -23,5 +29,17 @@ describe("safe html helpers", () => {
         expect(html).toContain("&lt;b&gt;<em>Cat</em>&lt;/b&gt;");
         expect(html).toContain("catches <em>cat</em>");
         expect(html).not.toContain("<b>");
+    });
+
+    it("does not highlight empty expressions or partial word matches", () => {
+        expect(highlightExpression("cat catalog", "")).toBe("cat catalog");
+        expect(highlightExpression("concatenate cat catalog", "cat")).toBe(
+            "concatenate <em>cat</em> catalog"
+        );
+    });
+
+    it("escapes nullish values and keeps safe html convertible to strings", () => {
+        expect(escapeHtml(null)).toBe("");
+        expect(safeHtmlToString(EMPTY_SAFE_HTML)).toBe("");
     });
 });

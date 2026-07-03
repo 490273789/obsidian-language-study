@@ -43,4 +43,33 @@ describe("settings normalization", () => {
         expect(normalizePort(65536, 1)).toBe(1);
         expect(normalizePort("3000", 1, 1024)).toBe(3000);
     });
+
+    it("rejects non-integer and low self-server ports", () => {
+        expect(normalizePort(3000.5, 1)).toBe(1);
+        expect(normalizePort("3000.5", 1)).toBe(1);
+        expect(normalizePort(1023, 3002, 1024)).toBe(3002);
+    });
+
+    it("ignores invalid dictionary records and unknown dictionary ids", () => {
+        const settings = normalizeSettings({
+            dictionaries: {
+                youdao: { enable: "no", priority: 120 },
+                cambridge: null,
+                unknown: { enable: false, priority: 1 },
+            },
+        });
+
+        expect(settings.dictionaries.youdao).toEqual(DEFAULT_SETTINGS.dictionaries.youdao);
+        expect(settings.dictionaries.cambridge).toEqual(DEFAULT_SETTINGS.dictionaries.cambridge);
+        expect(settings.dictionaries).not.toHaveProperty("unknown");
+    });
+
+    it("returns a fresh defaults object each time", () => {
+        const first = normalizeSettings(null);
+        const second = normalizeSettings(null);
+
+        first.dictionaries.youdao.enable = false;
+
+        expect(second.dictionaries.youdao.enable).toBe(true);
+    });
 });

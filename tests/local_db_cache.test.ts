@@ -4,6 +4,8 @@ import { LocalDb } from "@/db/local_db";
 
 function createLocalDbHarness() {
     let phraseQueryCount = 0;
+    const expressionAdd = vi.fn(async () => 1);
+    const expressionUpdate = vi.fn(async () => 1);
     const phraseEntries = [
         {
             expression: "new york",
@@ -38,15 +40,32 @@ function createLocalDbHarness() {
                 },
             };
         },
+        add: expressionAdd,
+        update: expressionUpdate,
         async bulkPut() {},
     };
 
     const db = Object.create(LocalDb.prototype) as LocalDb;
     Object.assign(db, {
         idb: {
+            async open() {},
+            close() {},
             expressions,
             sentences: {
-                where: vi.fn(),
+                where() {
+                    return {
+                        equals() {
+                            return {
+                                async first() {
+                                    return undefined;
+                                },
+                            };
+                        },
+                    };
+                },
+                async add() {
+                    return 1;
+                },
             },
         },
     });
@@ -56,6 +75,8 @@ function createLocalDbHarness() {
         get phraseQueryCount() {
             return phraseQueryCount;
         },
+        expressionAdd,
+        expressionUpdate,
     };
 }
 
@@ -70,5 +91,30 @@ describe("LocalDb phrase cache", () => {
         await harness.db.postIgnoreWords(["ignored"]);
         await harness.db.getStoredWords({ article: "new york again", words: [] });
         expect(harness.phraseQueryCount).toBe(2);
+    });
+
+    it("invalidates cached phrases after expression writes and opening the database", async () => {
+        const harness = createLocalDbHarness();
+
+        await harness.db.getStoredWords({ article: "new york is large", words: [] });
+        expect(harness.phraseQueryCount).toBe(1);
+
+        await harness.db.postExpression({
+            expression: "alpha",
+            meaning: "a",
+            status: 1,
+            t: "WORD",
+            tags: [],
+            notes: [],
+            sentences: [],
+        });
+        await harness.db.getStoredWords({ article: "new york again", words: [] });
+        expect(harness.expressionAdd).toHaveBeenCalledTimes(1);
+        expect(harness.expressionUpdate).not.toHaveBeenCalled();
+        expect(harness.phraseQueryCount).toBe(2);
+
+        await harness.db.open();
+        await harness.db.getStoredWords({ article: "new york once more", words: [] });
+        expect(harness.phraseQueryCount).toBe(3);
     });
 });

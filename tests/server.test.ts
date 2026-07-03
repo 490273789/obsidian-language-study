@@ -11,16 +11,29 @@ describe("local server", () => {
     let server: Server;
     let baseUrl: string;
     const postExpression = vi.fn(async () => 200);
+    const getExpression = vi.fn(async (expression: string) => ({ expression }));
+    const getTags = vi.fn(async () => ["review"]);
+    const refreshTextDB = vi.fn();
+    let autoRefreshDb = false;
 
     beforeEach(async () => {
+        autoRefreshDb = false;
+        postExpression.mockClear();
+        getExpression.mockClear();
+        getTags.mockClear();
+        refreshTextDB.mockClear();
         const plugin = {
             db: {
-                getExpression: vi.fn(async (expression: string) => ({ expression })),
+                getExpression,
                 postExpression,
-                getTags: vi.fn(async () => ["review"]),
+                getTags,
             },
-            settings: { auto_refresh_db: false },
-            refreshTextDB: vi.fn(),
+            settings: {
+                get auto_refresh_db() {
+                    return autoRefreshDb;
+                },
+            },
+            refreshTextDB,
         };
         server = new Server(plugin as never, 0);
         await server.start();
@@ -30,7 +43,6 @@ describe("local server", () => {
 
     afterEach(async () => {
         await server.close();
-        postExpression.mockClear();
     });
 
     it("binds locally and answers echo with allowed localhost origin", async () => {
@@ -89,5 +101,51 @@ describe("local server", () => {
 
         expect(response.status).toBe(200);
         expect(postExpression).toHaveBeenCalledWith(payload);
+    });
+
+    it("loads expressions and returns tag lists as json", async () => {
+        const word = await fetch(`${baseUrl}/word?ignored=true`, {
+            method: "POST",
+            body: JSON.stringify("alpha"),
+        });
+        const tags = await fetch(`${baseUrl}/tags`);
+
+        expect(word.status).toBe(200);
+        expect(await word.json()).toEqual({ expression: "alpha" });
+        expect(getExpression).toHaveBeenCalledWith("alpha");
+        expect(tags.headers.get("content-type")).toBe("application/json");
+        expect(await tags.json()).toEqual(["review"]);
+    });
+
+    it("handles preflight, missing routes, and HEAD echo", async () => {
+        const options = await fetch(`${baseUrl}/word`, { method: "OPTIONS" });
+        const missing = await fetch(`${baseUrl}/missing`);
+        const head = await fetch(`${baseUrl}/echo`, { method: "HEAD" });
+
+        expect(options.status).toBe(204);
+        expect(missing.status).toBe(404);
+        expect(head.status).toBe(200);
+        expect(await head.text()).toBe("");
+    });
+
+    it("triggers text database refresh after writes when enabled", async () => {
+        autoRefreshDb = true;
+        const payload: ExpressionInfo = {
+            expression: "refresh",
+            meaning: "",
+            status: 1,
+            t: "WORD",
+            tags: [],
+            notes: [],
+            sentences: [],
+        };
+
+        const response = await fetch(`${baseUrl}/update`, {
+            method: "POST",
+            body: JSON.stringify(payload),
+        });
+
+        expect(response.status).toBe(200);
+        expect(refreshTextDB).toHaveBeenCalledTimes(1);
     });
 });
