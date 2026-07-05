@@ -113,6 +113,7 @@ import { useView } from "@/ui/context";
 import { emitLangrRefreshStat } from "@/events";
 import { resolveLocalResourcePath } from "@/utils/platform";
 import { useLangrNaiveTheme, useLangrNaiveThemeOverrides } from "@/ui/theme";
+import { normalizePageSize } from "@/reading/readingDocument";
 
 let view = useView<ReadingView>();
 let plugin = view.plugin as PluginType;
@@ -121,6 +122,10 @@ if (!view.file) {
     throw new Error("Reading view requires an active file");
 }
 const currentFile = view.file;
+if (!view.document) {
+    throw new Error("Reading view requires a reading document");
+}
+const readingDocument = view.document;
 
 const theme = useLangrNaiveTheme(() => store.dark);
 const themeOverrides = useLangrNaiveThemeOverrides();
@@ -133,10 +138,10 @@ audioSource = resolveLocalResourcePath(audioSource, plugin.constants.basePath);
 let activeNotes = ref(false);
 let notes = ref("");
 async function afterNoteEnter() {
-    notes.value = (await view.readContent("notes", true)) ?? "";
+    notes.value = (await readingDocument.readSection("notes", true)) ?? "";
 }
 async function afterNoteLeave() {
-    view.writeContent("notes", notes.value);
+    readingDocument.writeSection("notes", notes.value);
 }
 
 let renderedNote = ref<HTMLElement>();
@@ -162,11 +167,7 @@ function onMouseOver(e: MouseEvent) {
     }
 }
 
-// 拆分文本
-let lines = view.text.split("\n");
-let segments = view.divide(lines);
-
-let article = lines.slice(segments["article"].start, segments["article"].end);
+const article = readingDocument.getArticleLines(view.text);
 let totalLines = article.length;
 
 // 计数
@@ -210,16 +211,16 @@ const pageSizes = [
 
 const pageSlot = Platform.isMobileApp ? 5 : undefined;
 
-let dp = plugin.settings.default_paragraphs;
-let pageSize = dp === "all" ? ref(Number.MAX_VALUE) : ref(parseInt(dp));
-let page = view.lastPos ? ref(Math.ceil(view.lastPos / pageSize.value)) : ref(1);
+let pageSize = ref(normalizePageSize(plugin.settings.default_paragraphs));
+let page = ref(readingDocument.getInitialPage(pageSize.value, view.lastPos));
 const pageSummary = computed(() => {
-    if (totalLines === 0) {
+    const pageState = readingDocument.getPageState(article, page.value, pageSize.value);
+    if (pageState.totalLines === 0) {
         return `0 ${t("paragraph")}`;
     }
-    const start = (page.value - 1) * pageSize.value + 1;
-    const end = Math.min(page.value * pageSize.value, totalLines);
-    return `${start}-${end} / ${totalLines} ${t("paragraph")}`;
+    return `${pageState.pageRange.startLine + 1}-${pageState.pageRange.endLine} / ${
+        pageState.totalLines
+    } ${t("paragraph")}`;
 });
 
 let renderedText = ref("");
@@ -232,7 +233,7 @@ let renderRequestId = 0;
 // 因此引入psChange这个变量
 watch([pageSize], async ([ps], [prev_ps]) => {
     let oldPage = page.value;
-    page.value = Math.ceil(((page.value - 1) * prev_ps + 1) / ps);
+    page.value = readingDocument.getPageForResizedPageSize(page.value, prev_ps, ps);
     if (oldPage === page.value) {
         psChange.value = !psChange.value;
     }
@@ -242,21 +243,16 @@ watch(
     [page, psChange, refreshHandle],
     async ([p, pc], [prev_p, prev_pc]) => {
         const requestId = ++renderRequestId;
-        let start = (p - 1) * pageSize.value;
-        let end = start + pageSize.value > totalLines ? totalLines : start + pageSize.value;
+        const pageState = readingDocument.getPageState(article, p, pageSize.value);
 
-        const html = await plugin.parser.parse(article.slice(start, end).join("\n"));
+        const html = await plugin.parser.parse(pageState.pageText);
         if (requestId !== renderRequestId) {
             return;
         }
         renderedText.value = html;
 
         if (p !== prev_p || pc != prev_pc) {
-            await plugin.frontManager.setFrontMatter(
-                currentFile,
-                "langr-pos",
-                `${(p - 1) * pageSize.value + 1}`
-            );
+            await readingDocument.setPagePosition(p, pageSize.value);
         }
     },
     { immediate: true }

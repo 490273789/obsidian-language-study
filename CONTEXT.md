@@ -15,3 +15,7 @@ _Avoid_: Word export, autocomplete file
 **Review Database**:
 A Markdown-facing collection of expressions prepared for spaced repetition, including existing review metadata when present.
 _Avoid_: SR file, review export
+
+**Reading Document**:
+An Obsidian note structured for reading mode, with article, words, notes, and reading-progress material.
+_Avoid_: Reading state, reading view, reading service

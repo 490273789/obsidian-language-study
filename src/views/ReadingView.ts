@@ -6,6 +6,7 @@ import ReadingArea from "./ReadingArea.vue";
 import { t } from "@/lang/helper";
 import { providePlugin, provideView } from "@/ui/context";
 import type { EventMap } from "@/constant";
+import { ReadingDocument } from "@/reading/readingDocument";
 
 export const READING_VIEW_TYPE: string = "langr-reading";
 export const READING_ICON: string = "highlight-glyph";
@@ -17,6 +18,7 @@ export class ReadingView extends TextFileView {
     vueapp: VueApp | null = null;
     firstInit: boolean;
     lastPos = 0;
+    document: ReadingDocument | null = null;
 
     constructor(leaf: WorkspaceLeaf, plugin: LanguageLearner) {
         super(leaf);
@@ -36,10 +38,8 @@ export class ReadingView extends TextFileView {
         this.text = data;
 
         if (this.firstInit) {
-            let lastPos = this.file
-                ? await this.plugin.frontManager.getFrontMatter(this.file, "langr-pos")
-                : "";
-            this.lastPos = parseInt(lastPos) || 0;
+            this.document = this.createReadingDocument();
+            this.lastPos = this.document ? await this.document.getLastPosition() : 0;
 
             this.vueapp = createApp(ReadingArea);
             providePlugin(this.vueapp, this.plugin);
@@ -70,78 +70,25 @@ export class ReadingView extends TextFileView {
         this.plugin.setMarkdownView(this.leaf);
     }
 
-    async saveWords() {
-        if ((await this.readContent("words")) === null) {
-            return;
-        }
-
-        let data = await this.readContent("article");
-        if (data === null) {
-            return;
-        }
-        let exprs =
-            (await this.plugin.parser.getWordsPhrases(data))
-                .map((w) => `+ **${w.expression}** : ${w.meaning}`)
-                .join("\n") + "\n\n";
-
-        await this.writeContent("words", exprs);
-    }
-
-    divide(lines: string[]) {
-        let positions = [] as [string, number][];
-        positions.push(
-            ["article", lines.indexOf("^^^article")],
-            ["words", lines.indexOf("^^^words")],
-            ["notes", lines.indexOf("^^^notes")]
-        );
-        positions.sort((a, b) => a[1] - b[1]);
-        positions = positions.filter((v) => v[1] !== -1);
-        positions.push(["eof", lines.length]);
-
-        let segments = {} as { [K in string]: { start: number; end: number } };
-        for (let i = 0; i < positions.length - 1; i++) {
-            segments[`${positions[i][0]}`] = {
-                start: positions[i][1] + 1,
-                end: positions[i + 1][1],
-            };
-        }
-        return segments;
-    }
-
-    async readContent(type: string, create: boolean = false): Promise<string | null> {
+    createReadingDocument(): ReadingDocument | null {
         if (!this.file) {
             return null;
         }
-        let oldText = await this.plugin.app.vault.read(this.file);
-        let lines = oldText.split("\n");
-        let seg = this.divide(lines);
-        if (!seg[type]) {
-            if (create) {
-                await this.plugin.app.vault.modify(this.file, oldText + `\n^^^${type}\n\n`);
-                return "";
-            }
-            return null;
-        }
-        return lines.slice(seg[type].start, seg[type].end).join("\n");
-    }
-
-    async writeContent(type: string, content: string): Promise<void> {
-        if (!this.file) {
-            return;
-        }
-        let oldText = await this.plugin.app.vault.read(this.file);
-        let lines = oldText.split("\n");
-        let seg = this.divide(lines);
-        if (!seg[type]) {
-            return;
-        }
-        let newText =
-            lines.slice(0, seg[type].start).join("\n") +
-            "\n" +
-            content.trim() +
-            "\n\n" +
-            lines.slice(seg[type].end, lines.length).join("\n");
-        await this.plugin.app.vault.modify(this.file, newText);
+        const file = this.file;
+        return new ReadingDocument({
+            file: {
+                read: () => this.plugin.app.vault.read(file),
+                write: (text) => this.plugin.app.vault.modify(file, text),
+            },
+            progressStore: {
+                getPosition: () => this.plugin.frontManager.getFrontMatter(file, "langr-pos"),
+                setPosition: (position) =>
+                    this.plugin.frontManager.setFrontMatter(file, "langr-pos", position),
+            },
+            expressionLookup: {
+                getWordsPhrases: (text) => this.plugin.parser.getWordsPhrases(text),
+            },
+        });
     }
 
     clear(): void {}
@@ -286,6 +233,6 @@ export class ReadingView extends TextFileView {
         removeEventListener("obsidian-langr-refresh", this.refresh as EventListener);
         this.vueapp?.unmount();
         this.vueapp = null;
-        await this.saveWords();
+        await this.document?.publishWordsSection();
     }
 }
