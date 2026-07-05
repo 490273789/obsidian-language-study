@@ -25,6 +25,11 @@ import { LocalDb } from "./db/local_db";
 import { TextParser } from "./views/parser";
 import { FrontMatterManager } from "./utils/frontmatter";
 import type Server from "./api/server";
+import {
+    TextDatabasePublication,
+    type TextDatabasePublicationAllResult,
+    type TextDatabasePublicationResult,
+} from "./textDatabase/publication";
 
 import { MyPluginSettings, normalizeSettings, SettingTab } from "./settings";
 import store from "./store";
@@ -48,6 +53,7 @@ export default class LanguageLearner extends Plugin {
     declare db: DbProvider;
     server: Server | null = null;
     declare parser: TextParser;
+    declare textDatabasePublication: TextDatabasePublication<TFile>;
     markdownButtons: Record<string, HTMLElement | null> = {};
     declare frontManager: FrontMatterManager;
     store: typeof store = store;
@@ -73,6 +79,7 @@ export default class LanguageLearner extends Plugin {
         // 设置解析器
         this.parser = new TextParser(this);
         this.frontManager = new FrontMatterManager(this.app);
+        this.textDatabasePublication = this.createTextDatabasePublication();
 
         // 打开内置服务器
         if (this.settings.self_server) {
@@ -216,131 +223,64 @@ export default class LanguageLearner extends Plugin {
         } as ViewState);
     }
 
-    async refreshTextDB() {
-        await this.refreshWordDb();
-        await this.refreshReviewDb();
-        (this.app as any).commands.executeCommandById(
-            "various-complements:reload-custom-dictionaries"
+    createTextDatabasePublication(): TextDatabasePublication<TFile> {
+        return new TextDatabasePublication<TFile>({
+            getSettings: () => ({
+                wordDatabasePath: this.settings.word_database,
+                reviewDatabasePath: this.settings.review_database,
+                colDelimiter: this.settings.col_delimiter,
+                reviewDelimiter: this.settings.review_delimiter,
+            }),
+            expressionStore: {
+                getAllExpressionSimple: (ignores) => this.db.getAllExpressionSimple(ignores),
+                getExpressionAfter: (time) => this.db.getExpressionAfter(time),
+            },
+            vault: {
+                getFile: (path) => {
+                    const file = this.app.vault.getAbstractFileByPath(path);
+                    return file && !("children" in file) ? (file as TFile) : null;
+                },
+                read: (file) => this.app.vault.read(file),
+                write: (file, text) => this.app.vault.modify(file, text),
+            },
+            completionReloader: {
+                reloadCustomDictionaries: () => {
+                    (this.app as any).commands.executeCommandById(
+                        "various-complements:reload-custom-dictionaries"
+                    );
+                },
+            },
+        });
+    }
+
+    reportTextDatabasePublicationResult(result: TextDatabasePublicationResult): void {
+        if (result.status !== "invalidTarget") {
+            return;
+        }
+        new Notice(
+            result.target === "word"
+                ? "Invalid refresh database path"
+                : "Invalid word database path"
         );
     }
 
-    refreshWordDb = async () => {
-        if (!this.settings.word_database) {
-            return;
-        }
+    async refreshTextDB(): Promise<TextDatabasePublicationAllResult> {
+        const result = await this.textDatabasePublication.publishAll();
+        this.reportTextDatabasePublicationResult(result.word);
+        this.reportTextDatabasePublicationResult(result.review);
+        return result;
+    }
 
-        let dataBase = this.app.vault.getAbstractFileByPath(this.settings.word_database);
-        if (!dataBase || dataBase.hasOwnProperty("children")) {
-            new Notice("Invalid refresh database path");
-            return;
-        }
-        // 获取所有非无视单词的简略信息
-        let words = await this.db.getAllExpressionSimple(false);
-
-        let classified: number[][] = Array(5)
-            .fill(0)
-            .map((): number[] => []);
-        words.forEach((word, i) => {
-            classified[word.status].push(i);
-        });
-
-        const statusMap = [t("Ignore"), t("Learning"), t("Familiar"), t("Known"), t("Learned")];
-
-        let del = this.settings.col_delimiter;
-
-        // 正向查询
-        let classified_texts = classified.map((w, idx) => {
-            return (
-                `#### ${statusMap[idx]}\n` +
-                w.map((i) => `${words[i].expression}${del}    ${words[i].meaning}`).join("\n") +
-                "\n"
-            );
-        });
-        classified_texts.shift();
-        let word2Meaning = classified_texts.join("\n");
-
-        // 反向查询
-        let meaning2Word = classified
-            .flat()
-            .map((i) => `${words[i].meaning}  ${del}  ${words[i].expression}`)
-            .join("\n");
-
-        let text = word2Meaning + "\n\n" + "#### 反向查询\n" + meaning2Word;
-        let db = dataBase as TFile;
-        this.app.vault.modify(db, text);
+    refreshWordDb = async (): Promise<TextDatabasePublicationResult> => {
+        const result = await this.textDatabasePublication.publishWordDatabase();
+        this.reportTextDatabasePublicationResult(result);
+        return result;
     };
 
-    refreshReviewDb = async () => {
-        if (!this.settings.review_database) {
-            return;
-        }
-
-        let dataBase = this.app.vault.getAbstractFileByPath(this.settings.review_database);
-        if (!dataBase || "children" in dataBase) {
-            new Notice("Invalid word database path");
-            return;
-        }
-
-        let db = dataBase as TFile;
-        let text = await this.app.vault.read(db);
-        let oldRecord = {} as { [K in string]: string };
-        text.match(/#word(\n.+)+\n(<!--SR.*?-->)/g)
-            ?.map((v) => v.match(/#### (.+)[\s\S]+(<!--SR.*-->)/))
-            ?.forEach((v) => {
-                if (v?.[1] && v[2]) {
-                    oldRecord[v[1]] = v[2];
-                }
-            });
-
-        // let data = await this.db.getExpressionAfter(this.settings.last_sync)
-        let data = await this.db.getExpressionAfter("1970-01-01T00:00:00Z");
-        if (data.length === 0) {
-            // new Notice("Nothing new")
-            return;
-        }
-
-        data.sort((a, b) => a.expression.localeCompare(b.expression));
-
-        let newText =
-            data
-                .map((word) => {
-                    let notes =
-                        word.notes.length === 0
-                            ? ""
-                            : "**Notes**:\n" + word.notes.join("\n").trim() + "\n";
-                    let sentences =
-                        word.sentences.length === 0
-                            ? ""
-                            : "**Sentences**:\n" +
-                              word.sentences
-                                  .map((sen) => {
-                                      return (
-                                          `*${sen.text.trim()}*` +
-                                          "\n" +
-                                          (sen.trans ? sen.trans.trim() + "\n" : "") +
-                                          (sen.origin ? sen.origin.trim() : "")
-                                      );
-                                  })
-                                  .join("\n")
-                                  .trim() +
-                              "\n";
-
-                    return (
-                        `#word\n` +
-                        `#### ${word.expression}\n` +
-                        `${this.settings.review_delimiter}\n` +
-                        `${word.meaning}\n` +
-                        `${notes}` +
-                        `${sentences}` +
-                        (oldRecord[word.expression] ? oldRecord[word.expression] + "\n" : "")
-                    );
-                })
-                .join("\n") + "\n";
-
-        newText = "#flashcards\n\n" + newText;
-        await this.app.vault.modify(db, newText);
-
-        this.saveSettings();
+    refreshReviewDb = async (): Promise<TextDatabasePublicationResult> => {
+        const result = await this.textDatabasePublication.publishReviewDatabase();
+        this.reportTextDatabasePublicationResult(result);
+        return result;
     };
 
     // 在MardownView的扩展菜单加一个转为Reading模式的选项
