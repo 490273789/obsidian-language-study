@@ -58,6 +58,10 @@ export default {
     "It looks more like a PHRASE than a WORD": "It looks more like a PHRASE than a WORD",
     "Meaning is empty!": "Meaning is empty",
     "Expression is empty!": "Expression is empty",
+    "Learning Record is invalid": "Learning Record is invalid",
+    "Learning Record saved, but some updates failed":
+        "Learning Record saved, but some updates failed",
+    "Submit failed": "Submit failed",
     Submit: "Submit",
 
     // Stat.vue

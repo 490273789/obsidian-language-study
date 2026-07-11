@@ -57,7 +57,11 @@ export default {
     "Origin (Optional)": "出處(可選)",
     "Expression is empty!": "單字忘輸入了吧",
     "It looks more like a PHRASE than a WORD": "這看起來更像是個片語而不是單字",
+    "Meaning is empty!": "含義不應為空",
     "Meaning is empty": "含義不應為空",
+    "Learning Record is invalid": "學習記錄無效",
+    "Learning Record saved, but some updates failed": "學習記錄已保存，但部分更新失敗",
+    "Submit failed": "提交失敗",
     Submit: "提交",
 
     // Test.vue

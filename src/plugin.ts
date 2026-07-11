@@ -35,10 +35,12 @@ import { MyPluginSettings, normalizeSettings, SettingTab } from "./settings";
 import store from "./store";
 import { playAudio } from "./utils/helpers";
 import type { Position } from "./constant";
-import { emitLangrSearch } from "./events";
+import { emitLangrRefresh, emitLangrRefreshStat, emitLangrSearch } from "./events";
 import { getVaultBasePath } from "./utils/platform";
+import { moment } from "./utils/moment";
 import { activatePluginView, detachPluginViews, registerPluginViews } from "./plugin/views";
 import { registerPluginCommands } from "./plugin/commands";
+import { LearningRecordIntakeModule } from "./learningRecord/intake";
 
 import Global from "./views/Global.vue";
 import { providePlugin } from "./ui/context";
@@ -54,6 +56,7 @@ export default class LanguageLearner extends Plugin {
     server: Server | null = null;
     declare parser: TextParser;
     declare textDatabasePublication: TextDatabasePublication<TFile>;
+    declare learningRecordIntake: LearningRecordIntakeModule;
     markdownButtons: Record<string, HTMLElement | null> = {};
     declare frontManager: FrontMatterManager;
     store: typeof store = store;
@@ -80,6 +83,7 @@ export default class LanguageLearner extends Plugin {
         this.parser = new TextParser(this);
         this.frontManager = new FrontMatterManager(this.app);
         this.textDatabasePublication = this.createTextDatabasePublication();
+        this.learningRecordIntake = this.createLearningRecordIntake();
 
         // 打开内置服务器
         if (this.settings.self_server) {
@@ -250,6 +254,27 @@ export default class LanguageLearner extends Plugin {
                     );
                 },
             },
+        });
+    }
+
+    createLearningRecordIntake(): LearningRecordIntakeModule {
+        return new LearningRecordIntakeModule({
+            recordStore: {
+                commitWhole: (candidate, firstAcceptedAtIfNew) =>
+                    this.db.commitWhole(candidate, firstAcceptedAtIfNew),
+            },
+            updateReadingDocument: async (record) => {
+                emitLangrRefresh(record.expression, record.type, record.status);
+            },
+            updateStatistics: async () => {
+                emitLangrRefreshStat();
+            },
+            textDatabasePublication: {
+                publishWordDatabase: () => this.textDatabasePublication.publishWordDatabase(),
+                publishReviewDatabase: () => this.textDatabasePublication.publishReviewDatabase(),
+            },
+            isAutomaticPublicationEnabled: () => this.settings.auto_refresh_db,
+            now: () => moment().unix(),
         });
     }
 

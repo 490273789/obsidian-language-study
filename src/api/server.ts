@@ -42,6 +42,17 @@ function isAllowedOrigin(origin: string | undefined): boolean {
     }
 }
 
+function mapLearningRecordCandidate(input: unknown): unknown {
+    if (typeof input !== "object" || input === null || Array.isArray(input)) {
+        return input;
+    }
+    const record = input as Record<string, unknown>;
+    if (record.type !== undefined || record.t === undefined) {
+        return input;
+    }
+    return { ...record, type: record.t };
+}
+
 export default class Server {
     plugin: LanguageLearner;
     _server: http.Server | null = null;
@@ -129,11 +140,14 @@ export default class Server {
                     break;
                 }
                 case "STORE": {
-                    let data = await this.parseData<import("@/db/interface").ExpressionInfo>(req);
-                    await this.plugin.db.postExpression(data);
-                    this.sendText(res, 200, "");
-                    if (this.plugin.settings.auto_refresh_db) {
-                        void this.plugin.refreshTextDB();
+                    const data = mapLearningRecordCandidate(await this.parseData(req));
+                    const result = await this.plugin.learningRecordIntake.accept(data);
+                    if (result.status === "rejected") {
+                        this.sendJson(res, 422, result);
+                    } else if (result.status === "notCommitted") {
+                        this.sendJson(res, 503, result);
+                    } else {
+                        this.sendJson(res, 200, result);
                     }
                     break;
                 }

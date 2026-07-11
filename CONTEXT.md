@@ -19,3 +19,11 @@ _Avoid_: SR file, review export
 **Reading Document**:
 An Obsidian note structured for reading mode, with article, words, notes, and reading-progress material.
 _Avoid_: Reading state, reading view, reading service
+
+**Learning Record Intake**:
+The acceptance of a new or updated learning record as one complete domain operation, including the resulting publication and reader-visible updates.
+_Avoid_: Expression recording, submission, save
+
+**Learning Record**:
+The authoritative record for a studied word or phrase, including its meaning, learning status, tags, notes, and example sentences. Markdown databases, statistics, and reading markers are derived representations of Learning Records.
+_Avoid_: Expression info, word data, vocabulary entry

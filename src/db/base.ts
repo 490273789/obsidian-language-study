@@ -7,6 +7,7 @@ import {
     CountInfo,
     WordCount,
 } from "./interface";
+import type { LearningRecordCandidate, LearningRecordCommitReceipt } from "@/learningRecord/intake";
 
 abstract class DbProvider {
     abstract open(): Promise<void>;
@@ -21,8 +22,10 @@ abstract class DbProvider {
     abstract getExpressionAfter(time: string): Promise<ExpressionInfo[]>;
     // 获取全部单词的简略信息
     abstract getAllExpressionSimple(ignores?: boolean): Promise<ExpressionInfoSimple[]>;
-    // 发送单词信息到数据库保存
-    abstract postExpression(payload: ExpressionInfo): Promise<number>;
+    abstract commitWhole(
+        candidate: LearningRecordCandidate,
+        firstAcceptedAtIfNew: number
+    ): Promise<LearningRecordCommitReceipt>;
     // 获取所有tag
     abstract getTags(): Promise<string[]>;
     // 批量发送单词，全部标记为ignore

@@ -161,9 +161,6 @@ class TextDatabasePublication<FileRef> {
     async publishAll(): Promise<TextDatabasePublicationAllResult> {
         const word = await this.publishWordDatabase();
         const review = await this.publishReviewDatabase();
-        if (word.status === "published") {
-            this.completionReloader.reloadCustomDictionaries();
-        }
         return { word, review };
     }
 
@@ -180,6 +177,7 @@ class TextDatabasePublication<FileRef> {
 
         const words = await this.expressionStore.getAllExpressionSimple(false);
         await this.vault.write(target, renderWordDatabase(words, settings.colDelimiter));
+        this.completionReloader.reloadCustomDictionaries();
         return makeResult("word", "published");
     }
 

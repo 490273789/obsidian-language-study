@@ -50,6 +50,14 @@ function createLocalDbHarness() {
         idb: {
             async open() {},
             close() {},
+            async transaction(
+                _mode: string,
+                _expressions: unknown,
+                _sentences: unknown,
+                work: () => Promise<unknown>
+            ) {
+                return work();
+            },
             expressions,
             sentences: {
                 where() {
@@ -99,15 +107,18 @@ describe("LocalDb phrase cache", () => {
         await harness.db.getStoredWords({ article: "new york is large", words: [] });
         expect(harness.phraseQueryCount).toBe(1);
 
-        await harness.db.postExpression({
-            expression: "alpha",
-            meaning: "a",
-            status: 1,
-            t: "WORD",
-            tags: [],
-            notes: [],
-            sentences: [],
-        });
+        await harness.db.commitWhole(
+            {
+                expression: "alpha",
+                meaning: "a",
+                status: 1,
+                type: "WORD",
+                tags: [],
+                notes: [],
+                sentences: [],
+            },
+            1
+        );
         await harness.db.getStoredWords({ article: "new york again", words: [] });
         expect(harness.expressionAdd).toHaveBeenCalledTimes(1);
         expect(harness.expressionUpdate).not.toHaveBeenCalled();

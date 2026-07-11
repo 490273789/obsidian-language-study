@@ -10,30 +10,29 @@ import type { ExpressionInfo } from "@/db/interface";
 describe("local server", () => {
     let server: Server;
     let baseUrl: string;
-    const postExpression = vi.fn(async () => 200);
+    const acceptLearningRecord = vi.fn(async (candidate: Record<string, unknown>) => ({
+        status: "committed" as const,
+        operation: "created" as const,
+        record: { ...candidate, firstAcceptedAt: 1 },
+        readerUpdate: { status: "updated" as const },
+        statisticsUpdate: { status: "updated" as const },
+        publication: { status: "disabled" as const },
+    }));
     const getExpression = vi.fn(async (expression: string) => ({ expression }));
     const getTags = vi.fn(async () => ["review"]);
-    const refreshTextDB = vi.fn();
-    let autoRefreshDb = false;
 
     beforeEach(async () => {
-        autoRefreshDb = false;
-        postExpression.mockClear();
+        acceptLearningRecord.mockClear();
         getExpression.mockClear();
         getTags.mockClear();
-        refreshTextDB.mockClear();
         const plugin = {
             db: {
                 getExpression,
-                postExpression,
                 getTags,
             },
-            settings: {
-                get auto_refresh_db() {
-                    return autoRefreshDb;
-                },
+            learningRecordIntake: {
+                accept: acceptLearningRecord,
             },
-            refreshTextDB,
         };
         server = new Server(plugin as never, 0);
         await server.start();
@@ -100,7 +99,11 @@ describe("local server", () => {
         });
 
         expect(response.status).toBe(200);
-        expect(postExpression).toHaveBeenCalledWith(payload);
+        expect(acceptLearningRecord).toHaveBeenCalledWith({
+            ...payload,
+            type: "WORD",
+        });
+        await expect(response.json()).resolves.toMatchObject({ status: "committed" });
     });
 
     it("loads expressions and returns tag lists as json", async () => {
@@ -128,8 +131,11 @@ describe("local server", () => {
         expect(await head.text()).toBe("");
     });
 
-    it("triggers text database refresh after writes when enabled", async () => {
-        autoRefreshDb = true;
+    it("maps Learning Record rejection to 422 without hiding validation issues", async () => {
+        acceptLearningRecord.mockResolvedValueOnce({
+            status: "rejected",
+            issues: [{ code: "meaning_empty", field: "meaning" }],
+        } as never);
         const payload: ExpressionInfo = {
             expression: "refresh",
             meaning: "",
@@ -145,7 +151,10 @@ describe("local server", () => {
             body: JSON.stringify(payload),
         });
 
-        expect(response.status).toBe(200);
-        expect(refreshTextDB).toHaveBeenCalledTimes(1);
+        expect(response.status).toBe(422);
+        await expect(response.json()).resolves.toEqual({
+            status: "rejected",
+            issues: [{ code: "meaning_empty", field: "meaning" }],
+        });
     });
 });

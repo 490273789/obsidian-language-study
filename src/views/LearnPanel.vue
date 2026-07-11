@@ -238,7 +238,6 @@ import { ReadingView } from "./ReadingView";
 import { search } from "@dict/youdao/engine";
 import store from "@/store";
 import { usePlugin, useView } from "@/ui/context";
-import { emitLangrRefresh, emitLangrRefreshStat } from "@/events";
 import { useLangrNaiveTheme, useLangrNaiveThemeOverrides } from "@/ui/theme";
 
 const view = useView<LearnPanelView>();
@@ -360,34 +359,55 @@ async function submit() {
     }
 
     submitLoading.value = true;
-    let data = JSON.parse(JSON.stringify(model.value));
-    (data as any).expression = (data as any).expression.trim().toLowerCase();
-    // 超过1条例句时，sentences中的对象会变成Proxy，尚不知原因，因此用JSON转换一下
-    let statusCode = 0;
     try {
-        statusCode = await plugin.db.postExpression(data);
+        const result = await plugin.learningRecordIntake.accept({
+            expression: model.value.expression,
+            meaning: model.value.meaning,
+            status: model.value.status,
+            type: model.value.t,
+            tags: model.value.tags,
+            notes: model.value.notes,
+            sentences: model.value.sentences,
+        });
+
+        if (result.status === "rejected") {
+            const firstIssue = result.issues[0];
+            if (firstIssue?.code === "expression_empty") {
+                new Notice(t("Expression is empty!"));
+            } else if (firstIssue?.code === "meaning_empty") {
+                new Notice(t("Meaning is empty!"));
+            } else if (firstIssue?.code === "word_contains_whitespace") {
+                new Notice(t("It looks more like a PHRASE than a WORD"));
+            } else {
+                new Notice(t("Learning Record is invalid"));
+            }
+            void fail();
+            return;
+        }
+
+        if (result.status === "notCommitted") {
+            new Notice(t("Submit failed"));
+            void fail();
+            return;
+        }
+
+        model.value.expression = result.record.expression;
+        void success();
+        const hasFollowUpFailure =
+            result.readerUpdate.status === "failed" ||
+            result.statisticsUpdate.status === "failed" ||
+            (result.publication.status === "attempted" &&
+                (result.publication.wordDatabase.status === "failed" ||
+                    result.publication.reviewDatabase.status === "failed"));
+        if (hasFollowUpFailure) {
+            new Notice(t("Learning Record saved, but some updates failed"));
+        }
     } catch (error) {
-        console.warn("Submit failed, please check server status", error);
+        console.error("Learning Record Intake failed unexpectedly", error);
+        new Notice(t("Submit failed"));
+        void fail();
     } finally {
         submitLoading.value = false;
-    }
-
-    if (statusCode !== 200) {
-        new Notice("Submit failed");
-        fail();
-        return;
-    }
-
-    success();
-
-    emitLangrRefresh(model.value.expression, model.value.t, model.value.status);
-    emitLangrRefreshStat();
-
-    //自动刷新数据库
-    if (plugin.settings.auto_refresh_db) {
-        // setTimeout(() => {
-        plugin.refreshTextDB();
-        // }, 0);
     }
 }
 

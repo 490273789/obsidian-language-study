@@ -12,6 +12,44 @@ import {
 
 import DbProvider from "./base";
 import { moment } from "@/utils/moment";
+import { isLearningRecord, LearningRecordStoreError } from "@/learningRecord/intake";
+import type { LearningRecordCandidate, LearningRecordCommitReceipt } from "@/learningRecord/intake";
+
+function committedRecordMatchesCandidate(
+    record: LearningRecordCommitReceipt["record"],
+    candidate: LearningRecordCandidate
+): boolean {
+    return (
+        record.expression === candidate.expression &&
+        record.meaning === candidate.meaning &&
+        record.status === candidate.status &&
+        record.type === candidate.type &&
+        JSON.stringify(record.tags) === JSON.stringify(candidate.tags) &&
+        JSON.stringify(record.notes) === JSON.stringify(candidate.notes) &&
+        JSON.stringify(record.sentences) === JSON.stringify(candidate.sentences)
+    );
+}
+
+function parseCommitReceipt(
+    value: unknown,
+    candidate: LearningRecordCandidate
+): LearningRecordCommitReceipt {
+    if (typeof value !== "object" || value === null) {
+        throw new LearningRecordStoreError("record_store_incompatible");
+    }
+    const receipt = value as Record<string, unknown>;
+    if (
+        (receipt.operation !== "created" && receipt.operation !== "updated") ||
+        !isLearningRecord(receipt.record) ||
+        !committedRecordMatchesCandidate(receipt.record, candidate)
+    ) {
+        throw new LearningRecordStoreError("record_store_incompatible");
+    }
+    return {
+        operation: receipt.operation,
+        record: receipt.record,
+    };
+}
 
 export class WebDb extends DbProvider {
     host: string;
@@ -136,21 +174,25 @@ export class WebDb extends DbProvider {
         }
     }
 
-    // 添加或更新单词/词组的信息
-    async postExpression(payload: ExpressionInfo): Promise<number> {
-        let request: RequestUrlParam = {
+    async commitWhole(
+        candidate: LearningRecordCandidate,
+        firstAcceptedAtIfNew: number
+    ): Promise<LearningRecordCommitReceipt> {
+        const request: RequestUrlParam = {
             url: `${this.proto}://${this.host}:${this.port}${this.prefix}/update`,
             method: "POST",
-            body: JSON.stringify(payload),
+            body: JSON.stringify({ record: candidate, firstAcceptedAtIfNew }),
             contentType: "application/json",
             headers: this.baseHeaders,
         };
         try {
-            let response = await requestUrl(request);
-            return response.status;
-        } catch (e) {
-            console.warn("Error while saving data to server." + e);
-            throw e;
+            const response = await requestUrl(request);
+            return parseCommitReceipt(response.json, candidate);
+        } catch (error) {
+            if (error instanceof LearningRecordStoreError) {
+                throw error;
+            }
+            throw new LearningRecordStoreError("record_store_unavailable");
         }
     }
 

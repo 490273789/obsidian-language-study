@@ -114,7 +114,7 @@ describe("TextDatabasePublication", () => {
                 "second  ,  beta",
             ].join("\n")
         );
-        expect(reloadCustomDictionaries).not.toHaveBeenCalled();
+        expect(reloadCustomDictionaries).toHaveBeenCalledTimes(1);
     });
 
     it("publishes the review database and preserves existing spaced-repetition metadata", async () => {

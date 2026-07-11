@@ -1,4 +1,5 @@
 import { createAutomaton } from "ac-auto";
+import Dexie from "dexie";
 import { exportDB, importInto } from "dexie-export-import";
 import download from "downloadjs";
 
@@ -19,6 +20,8 @@ import DbProvider from "./base";
 import WordDB from "./idb";
 import type Plugin from "@/plugin";
 import { moment } from "@/utils/moment";
+import { LearningRecordStoreError } from "@/learningRecord/intake";
+import type { LearningRecordCandidate, LearningRecordCommitReceipt } from "@/learningRecord/intake";
 
 type PhraseAutomaton = {
     search(article: string): Promise<[number, string][]>;
@@ -187,43 +190,76 @@ export class LocalDb extends DbProvider {
         return exprs;
     }
 
-    async postExpression(payload: ExpressionInfo): Promise<number> {
-        let stored = await this.idb.expressions
-            .where("expression")
-            .equals(payload.expression)
-            .first();
+    async commitWhole(
+        candidate: LearningRecordCandidate,
+        firstAcceptedAtIfNew: number
+    ): Promise<LearningRecordCommitReceipt> {
+        let receipt: LearningRecordCommitReceipt;
+        try {
+            receipt = await this.idb.transaction(
+                "rw",
+                this.idb.expressions,
+                this.idb.sentences,
+                async () => {
+                    const stored = await this.idb.expressions
+                        .where("expression")
+                        .equals(candidate.expression)
+                        .first();
 
-        let sentences = new Set<number>();
-        for (let sen of payload.sentences) {
-            let searched = await this.idb.sentences.where("text").equals(sen.text).first();
-            if (searched?.id !== undefined) {
-                await this.idb.sentences.update(searched.id, sen);
-                sentences.add(searched.id);
-            } else {
-                let id = await this.idb.sentences.add(sen);
-                sentences.add(id);
+                    const sentenceIds = new Set<number>();
+                    for (const sentence of candidate.sentences) {
+                        const searched = await this.idb.sentences
+                            .where("text")
+                            .equals(sentence.text)
+                            .first();
+                        if (searched?.id !== undefined) {
+                            await this.idb.sentences.update(searched.id, sentence);
+                            sentenceIds.add(searched.id);
+                        } else {
+                            const id = await this.idb.sentences.add(sentence);
+                            sentenceIds.add(id);
+                        }
+                    }
+
+                    const firstAcceptedAt = stored?.date ?? firstAcceptedAtIfNew;
+                    const storedRecord = {
+                        expression: candidate.expression,
+                        meaning: candidate.meaning,
+                        status: candidate.status,
+                        t: candidate.type,
+                        notes: [...candidate.notes],
+                        sentences: sentenceIds,
+                        tags: new Set<string>(candidate.tags),
+                        connections: new Map<string, string>(),
+                        date: firstAcceptedAt,
+                    };
+                    const operation = stored?.id === undefined ? "created" : "updated";
+                    if (stored?.id === undefined) {
+                        await this.idb.expressions.add(storedRecord);
+                    } else {
+                        await this.idb.expressions.update(stored.id, storedRecord);
+                    }
+
+                    return {
+                        operation,
+                        record: {
+                            ...candidate,
+                            tags: [...candidate.tags],
+                            notes: [...candidate.notes],
+                            sentences: candidate.sentences.map((sentence) => ({ ...sentence })),
+                            firstAcceptedAt,
+                        },
+                    } satisfies LearningRecordCommitReceipt;
+                }
+            );
+        } catch (error) {
+            if (error instanceof Dexie.DexieError) {
+                throw new LearningRecordStoreError("record_store_unavailable");
             }
-        }
-
-        let updatedWord = {
-            expression: payload.expression,
-            meaning: payload.meaning,
-            status: payload.status,
-            t: payload.t,
-            notes: payload.notes,
-            sentences,
-            tags: new Set<string>(payload.tags),
-            connections: new Map<string, string>(),
-            date: moment().unix(),
-        };
-        if (stored?.id !== undefined) {
-            await this.idb.expressions.update(stored.id, updatedWord);
-        } else {
-            await this.idb.expressions.add(updatedWord);
+            throw error;
         }
         this.invalidatePhraseCache();
-
-        return 200;
+        return receipt;
     }
 
     async getTags(): Promise<string[]> {
