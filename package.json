@@ -16,7 +16,8 @@
         "format": "oxfmt --config oxfmt.config.mts --write --no-error-on-unmatched-pattern \"src/**/*.{ts,vue,css}\" \"tests/**/*.ts\" \"*.{ts,mjs,mts,json,jsonc}\"",
         "format:check": "oxfmt --config oxfmt.config.mts --check --no-error-on-unmatched-pattern \"src/**/*.{ts,vue,css}\" \"tests/**/*.ts\" \"*.{ts,mjs,mts,json,jsonc}\"",
         "check": "pnpm typecheck && pnpm test && pnpm lint && pnpm format:check",
-        "build": "pnpm typecheck && pnpm test && vite build --mode production",
+        "build": "pnpm typecheck && pnpm test && vite build --mode production && pnpm check:mobile-bundle",
+        "check:mobile-bundle": "node scripts/check-mobile-bundle.mjs",
         "pub": "node publish.mjs",
         "version": "node version-bump.mjs && git add manifest.json versions.json"
     },

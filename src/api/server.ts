@@ -1,4 +1,4 @@
-import http from "node:http";
+import type { IncomingMessage, Server as HttpServer, ServerResponse } from "node:http";
 import type LanguageLearner from "@/plugin";
 import { dict } from "@/constant";
 
@@ -55,7 +55,7 @@ function mapLearningRecordCandidate(input: unknown): unknown {
 
 export default class Server {
     plugin: LanguageLearner;
-    _server: http.Server | null = null;
+    _server: HttpServer | null = null;
     port: number;
 
     constructor(plugin: LanguageLearner, port: number) {
@@ -77,7 +77,8 @@ export default class Server {
     }
 
     async start() {
-        const server = http.createServer();
+        const { createServer } = await import("node:http");
+        const server = createServer();
         this._server = server;
         server.on("request", this.process);
         await this._startListen(this.port);
@@ -105,7 +106,7 @@ export default class Server {
         console.info(`${dict["NAME"]}: Server on port ${this.port} has closed`);
     }
 
-    process = async (req: http.IncomingMessage, res: http.ServerResponse) => {
+    process = async (req: IncomingMessage, res: ServerResponse) => {
         if (!this.setCorsHeaders(req, res)) {
             this.sendText(res, 403, "Forbidden");
             return;
@@ -171,7 +172,7 @@ export default class Server {
         }
     };
 
-    private setCorsHeaders(req: http.IncomingMessage, res: http.ServerResponse): boolean {
+    private setCorsHeaders(req: IncomingMessage, res: ServerResponse): boolean {
         const origin = req.headers.origin;
         if (!isAllowedOrigin(origin)) {
             return false;
@@ -185,13 +186,13 @@ export default class Server {
         return true;
     }
 
-    private sendJson(res: http.ServerResponse, statusCode: number, payload: unknown): void {
+    private sendJson(res: ServerResponse, statusCode: number, payload: unknown): void {
         res.setHeader("Content-Type", mimeType[".json"]);
         res.statusCode = statusCode;
         res.end(JSON.stringify(payload));
     }
 
-    private sendText(res: http.ServerResponse, statusCode: number, payload: string): void {
+    private sendText(res: ServerResponse, statusCode: number, payload: string): void {
         if (!res.hasHeader("Content-Type")) {
             res.setHeader("Content-Type", mimeType[".txt"]);
         }
@@ -199,7 +200,7 @@ export default class Server {
         res.end(payload);
     }
 
-    async parseData<T = unknown>(req: http.IncomingMessage): Promise<T> {
+    async parseData<T = unknown>(req: IncomingMessage): Promise<T> {
         return new Promise<T>((resolve, reject) => {
             const chunks: Buffer[] = [];
             let totalBytes = 0;
