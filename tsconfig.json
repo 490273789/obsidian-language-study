@@ -26,8 +26,8 @@
         "src/**/*.tsx",
         "src/**/*.vue",
         "shims.d.ts",
-        "vite.config.ts",
-        "vitest.config.ts",
+        "vite.config.mts",
+        "vitest.config.mts",
         "oxlint.config.mts",
         "oxfmt.config.mts",
         "tests/**/*.ts"
