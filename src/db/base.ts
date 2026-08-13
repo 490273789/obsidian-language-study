@@ -7,7 +7,10 @@ import {
     CountInfo,
     WordCount,
 } from "./interface";
-import type { LearningRecordCandidate, LearningRecordCommitReceipt } from "@/learningRecord/intake";
+import type {
+    LearningRecordCandidate,
+    LearningRecordCommitReceipt,
+} from "@/learningRecord/intake";
 
 abstract class DbProvider {
     abstract open(): Promise<void>;
@@ -17,14 +20,18 @@ abstract class DbProvider {
     // 查询单个单词/词组的全部信息
     abstract getExpression(expression: string): Promise<ExpressionInfo | null>;
     //获取一批单词的简略信息
-    abstract getExpressionsSimple(expressions: string[]): Promise<ExpressionInfoSimple[]>;
+    abstract getExpressionsSimple(
+        expressions: string[],
+    ): Promise<ExpressionInfoSimple[]>;
     // 某一时间之后添加的全部单词
     abstract getExpressionAfter(time: string): Promise<ExpressionInfo[]>;
     // 获取全部单词的简略信息
-    abstract getAllExpressionSimple(ignores?: boolean): Promise<ExpressionInfoSimple[]>;
+    abstract getAllExpressionSimple(
+        ignores?: boolean,
+    ): Promise<ExpressionInfoSimple[]>;
     abstract commitWhole(
         candidate: LearningRecordCandidate,
-        firstAcceptedAtIfNew: number
+        firstAcceptedAtIfNew: number,
     ): Promise<LearningRecordCommitReceipt>;
     // 获取所有tag
     abstract getTags(): Promise<string[]>;
@@ -36,12 +43,6 @@ abstract class DbProvider {
     abstract getCount(): Promise<CountInfo>;
     // 获取7天内的统计信息
     abstract countSeven(): Promise<WordCount[]>;
-    // 销毁数据库
-    abstract destroyAll(): Promise<void>;
-    // 导入数据库
-    abstract importDB(data: File | unknown): Promise<void>;
-    // 导出数据库
-    abstract exportDB(): Promise<void>;
 }
 
 export default DbProvider;

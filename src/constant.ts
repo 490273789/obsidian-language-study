@@ -1,5 +1,3 @@
-import type { ExpressionStatus, ExpressionType } from "@/db/interface";
-
 const dict = {
     NAME: "Language Learner",
 };
@@ -15,11 +13,7 @@ interface EventMap extends GlobalEventHandlersEventMap {
         target?: HTMLElement;
         evtPosition?: Position;
     }>;
-    "obsidian-langr-refresh": CustomEvent<{
-        expression: string;
-        type: ExpressionType;
-        status: ExpressionStatus;
-    }>;
+    "obsidian-langr-refresh": CustomEvent<{}>;
     "obsidian-langr-refresh-stat": CustomEvent<{}>;
 }
 

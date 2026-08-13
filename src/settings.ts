@@ -535,8 +535,12 @@ export class SettingTab extends PluginSettingTab {
                             // let fr = new FileReader()
                             // fr.onload = async () => {
                             // let data = JSON.parse(fr.result as string)
-                            await this.plugin.db.importDB(file);
-                            new Notice("Imported");
+                            if (this.plugin.db instanceof LocalDb) {
+                                await this.plugin.db.importDB(file);
+                                new Notice("Imported");
+                            } else {
+                                new Notice("Local database required");
+                            }
                             // }
                             // fr.readAsText(file)
                         },
@@ -546,8 +550,12 @@ export class SettingTab extends PluginSettingTab {
             )
             .addButton((button) =>
                 button.setButtonText(t("Export")).onClick(async () => {
-                    await this.plugin.db.exportDB();
-                    new Notice("Exported");
+                    if (this.plugin.db instanceof LocalDb) {
+                        await this.plugin.db.exportDB();
+                        new Notice("Exported");
+                    } else {
+                        new Notice("Local database required");
+                    }
                 }),
             );
         // 获取所有非无视单词
@@ -608,10 +616,14 @@ export class SettingTab extends PluginSettingTab {
                                 "Are you sure you want to destroy your database?",
                             ),
                             async () => {
-                                await this.plugin.db.destroyAll();
-                                new Notice("已清空");
-                                this.plugin.db = new LocalDb(this.plugin);
-                                this.plugin.db.open();
+                                if (this.plugin.db instanceof LocalDb) {
+                                    await this.plugin.db.destroyAll();
+                                    new Notice("已清空");
+                                    this.plugin.db = new LocalDb(this.plugin);
+                                    this.plugin.db.open();
+                                } else {
+                                    new Notice("Local database required");
+                                }
                             },
                         );
                         modal.open();

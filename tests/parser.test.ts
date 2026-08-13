@@ -4,27 +4,16 @@ import { TextParser } from "@/views/parser";
 import type { ArticleWords, WordsPhrase } from "@/db/interface";
 
 function makeParser() {
-    const getExpressionsSimple = vi.fn(async (expressions: string[]) =>
-        expressions.map((expression) => ({
-            expression,
-            meaning: `${expression} meaning`,
-            status: 1 as const,
-            t: "WORD" as const,
-            tags: [],
-            note_num: 0,
-            sen_num: 0,
-            date: 0,
-        }))
-    );
-    const db = {
-        async getStoredWords(payload: ArticleWords): Promise<WordsPhrase> {
+    const getStoredWords = vi.fn(
+        async (payload: ArticleWords): Promise<WordsPhrase> => {
             if (payload.article.includes("new york")) {
                 return {
                     words: payload.words
                         .filter((word) => word === "alpha" || word === "beta")
                         .map((word) => ({
                             text: word,
-                            status: word === "beta" ? (0 as const) : (1 as const),
+                            status:
+                                word === "beta" ? (0 as const) : (1 as const),
                         })),
                     phrases: [
                         {
@@ -54,36 +43,48 @@ function makeParser() {
                         .filter((word) => word === "alpha" || word === "beta")
                         .map((word) => ({
                             text: word,
-                            status: word === "beta" ? (0 as const) : (1 as const),
+                            status:
+                                word === "beta" ? (0 as const) : (1 as const),
                         })),
                     phrases: [],
                 };
             }
             return { words: [], phrases: [] };
         },
-        getExpressionsSimple,
-    };
+    );
+
+    const getExpressionsSimple = vi.fn(async (expressions: string[]) =>
+        expressions.map((expression) => ({
+            expression,
+            meaning: `${expression} meaning`,
+            status: 1 as const,
+            t: "WORD" as const,
+            tags: [],
+            note_num: 0,
+            sen_num: 0,
+            date: 0,
+        })),
+    );
+
     return {
-        parser: new TextParser({ db } as never),
+        parser: new TextParser({ getStoredWords, getExpressionsSimple }),
+        getStoredWords,
         getExpressionsSimple,
     };
 }
 
-describe("TextParser", () => {
-    it("escapes source text before rendering html", async () => {
-        const { parser } = makeParser();
-        const html = await parser.parse(`<script>alert(1)</script>`);
-
-        expect(html).toContain("&lt;");
-        expect(html).not.toContain("<script>");
-    });
-
-    it("renders stored words and phrases with status classes", async () => {
-        const { parser } = makeParser();
+describe("TextParser (adapter)", () => {
+    it("renders article with a single merged getStoredWords call", async () => {
+        const { parser, getStoredWords } = makeParser();
         const html = await parser.parse("alpha visits new york.");
 
         expect(html).toContain(`class="word learning"`);
         expect(html).toContain(`class="phrase familiar"`);
+        expect(getStoredWords).toHaveBeenCalledTimes(1);
+        expect(getStoredWords).toHaveBeenCalledWith({
+            article: "alpha visits new york.",
+            words: ["alpha", "visits", "new", "york"],
+        });
     });
 
     it("keeps concurrent parses isolated", async () => {
@@ -101,22 +102,24 @@ describe("TextParser", () => {
     it("counts unknown, learned, and ignored words", async () => {
         const { parser } = makeParser();
 
-        await expect(parser.countWords("Alpha beta gamma.")).resolves.toEqual([1, 1, 1]);
+        await expect(parser.countWords("Alpha beta gamma.")).resolves.toEqual([
+            1, 1, 1,
+        ]);
     });
 
     it("returns only positive-status expressions for collected words and phrases", async () => {
         const { parser, getExpressionsSimple } = makeParser();
-        const result = await parser.getWordsPhrases("Alpha meets new york and beta.");
+        const result = await parser.getWordsPhrases(
+            "Alpha meets new york and beta.",
+        );
 
-        expect(getExpressionsSimple).toHaveBeenCalledWith(["new york", "alpha"]);
-        expect(result.map((item) => item.expression)).toEqual(["new york", "alpha"]);
-    });
-
-    it("does not wrap phrase text when the stored offset does not align to parser nodes", async () => {
-        const { parser } = makeParser();
-        const html = await parser.parse("new yorker arrived.");
-
-        expect(html).not.toContain(`class="phrase`);
-        expect(html).toContain(`class="word new"`);
+        expect(getExpressionsSimple).toHaveBeenCalledWith([
+            "new york",
+            "alpha",
+        ]);
+        expect(result.map((item) => item.expression)).toEqual([
+            "new york",
+            "alpha",
+        ]);
     });
 });

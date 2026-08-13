@@ -97,13 +97,19 @@ function stringifyYaml(value: unknown): string {
     return `${JSON.stringify(value)}\n`;
 }
 
-function createMoment() {
+const DAY_MS = 86_400_000;
+
+function createMoment(base?: number) {
+    const value = base ?? Date.now();
     return {
-        unix: () => Math.floor(Date.now() / 1000),
-        subtract: () => createMoment(),
-        startOf: () => createMoment(),
-        add: () => createMoment(),
-        endOf: () => createMoment(),
+        unix: () => Math.floor(value / 1000),
+        subtract: (amount: number, unit: string) =>
+            createMoment(value - amount * (unit === "days" ? DAY_MS : 0)),
+        startOf: () => createMoment(Math.floor(value / DAY_MS) * DAY_MS),
+        add: (amount: number, unit: string) =>
+            createMoment(value + amount * (unit === "days" ? DAY_MS : 0)),
+        endOf: () =>
+            createMoment(Math.floor(value / DAY_MS) * DAY_MS + DAY_MS - 1000),
         format: () => "",
     };
 }

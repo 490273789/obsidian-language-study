@@ -5,7 +5,6 @@ import LanguageLearner from "@/plugin";
 import ReadingArea from "./ReadingArea.vue";
 import { t } from "@/lang/helper";
 import { providePlugin, provideView } from "@/ui/context";
-import type { EventMap } from "@/constant";
 import { ReadingDocument } from "@/reading/readingDocument";
 import { ReadingSession } from "@/reading/readingSession";
 
@@ -75,12 +74,18 @@ export class ReadingView extends TextFileView {
                 write: (text) => this.plugin.app.vault.modify(file, text),
             },
             progressStore: {
-                getPosition: () => this.plugin.frontManager.getFrontMatter(file, "langr-pos"),
+                getPosition: () =>
+                    this.plugin.frontManager.getFrontMatter(file, "langr-pos"),
                 setPosition: (position) =>
-                    this.plugin.frontManager.setFrontMatter(file, "langr-pos", position),
+                    this.plugin.frontManager.setFrontMatter(
+                        file,
+                        "langr-pos",
+                        position,
+                    ),
             },
             expressionLookup: {
-                getWordsPhrases: (text) => this.plugin.parser.getWordsPhrases(text),
+                getWordsPhrases: (text) =>
+                    this.plugin.parser.getWordsPhrases(text),
             },
         });
     }
@@ -119,82 +124,9 @@ export class ReadingView extends TextFileView {
 
     clear(): void {}
 
-    // 新词面板中提交后，刷新阅读页面中单词的状态
-    refresh = (evt: EventMap["obsidian-langr-refresh"]) => {
-        let expression: string = evt.detail.expression.toLowerCase();
-        let type: string = evt.detail.type;
-        let status: number = evt.detail.status;
-        const statusMap = ["ignore", "learning", "familiar", "known", "learned"];
-
-        if (type === "WORD") {
-            let wordEls = this.contentEl.querySelectorAll(".word");
-            if (wordEls.length === 0) {
-                return;
-            }
-            wordEls.forEach((el) => {
-                if (el.textContent?.toLowerCase() === expression) {
-                    el.className = `word ${statusMap[status]}`;
-                }
-            });
-        } else if (type === "PHRASE") {
-            let phraseEls = this.contentEl.querySelectorAll(".phrase");
-            let isExist = false;
-            if (phraseEls.length > 0) {
-                phraseEls.forEach((el) => {
-                    if (el.textContent?.toLowerCase() === expression) {
-                        isExist = true;
-                        el.className = `phrase ${statusMap[status]}`;
-                    }
-                });
-            }
-
-            this.removeSelect();
-            if (isExist) {
-                return;
-            }
-
-            // 词组拆分成单词和空格
-            let words: string[] = [];
-            expression.split(" ").forEach((w) => {
-                if (w !== "") {
-                    words.push(w, " ");
-                }
-            });
-            words.pop();
-
-            let isMatch = (startEl: Element, words: string[]) => {
-                let el: Element | null = startEl;
-                let container: Element[] = [];
-                for (let word of words) {
-                    if (!el || el.textContent?.toLowerCase() !== word) {
-                        return null;
-                    }
-                    container.push(el);
-                    el = el.nextElementSibling;
-                }
-
-                return container;
-            };
-
-            // 在匹配词组的单词元素外面包一个span.phrase
-            let sentencesEls = this.containerEl.querySelectorAll(".stns");
-            sentencesEls.forEach((senEl) => {
-                let children = senEl.children;
-                let idx = -1;
-                while (idx++ < children.length) {
-                    let container;
-                    if ((container = isMatch(children[idx], words))) {
-                        let phraseEl = createSpan({ cls: `phrase ${statusMap[status]}` });
-                        senEl.insertBefore(phraseEl, children[idx]);
-                        container.forEach((el) => {
-                            el.remove();
-                            phraseEl.appendChild(el);
-                        });
-                        idx += words.length - 1;
-                    }
-                }
-            });
-        }
+    // 新词面板中提交后，重新渲染当前页以反映最新状态
+    refresh = () => {
+        void this.session?.act({ type: "refresh" });
     };
 
     wrapSelect(elStart: HTMLElement, elEnd: HTMLElement) {
@@ -212,7 +144,7 @@ export class ReadingView extends TextFileView {
         }
         let selectSpan = document.body.createSpan({ cls: "select" });
         parent.insertBefore(selectSpan, elStart);
-        for (let el: Node | null = elStart; el && el !== elEnd;) {
+        for (let el: Node | null = elStart; el && el !== elEnd; ) {
             const next: ChildNode | null = el.nextSibling;
             selectSpan.appendChild(el);
             el = next;
@@ -223,7 +155,8 @@ export class ReadingView extends TextFileView {
 
     removeSelect() {
         //把span.select里面的东西拿出来
-        let selects = this.contentEl.querySelectorAll<HTMLElement>("span.select");
+        let selects =
+            this.contentEl.querySelectorAll<HTMLElement>("span.select");
         selects.forEach((el) => {
             let parent = el.parentElement;
             if (!parent) {
@@ -247,7 +180,10 @@ export class ReadingView extends TextFileView {
     }
 
     async onOpen() {
-        addEventListener("obsidian-langr-refresh", this.refresh as EventListener);
+        addEventListener(
+            "obsidian-langr-refresh",
+            this.refresh as EventListener,
+        );
         this.initHeaderButtons();
 
         // const contentEl = this.contentEl.createEl("div", {
@@ -257,16 +193,23 @@ export class ReadingView extends TextFileView {
 
     async onClose() {
         this.closed = true;
-        removeEventListener("obsidian-langr-refresh", this.refresh as EventListener);
+        removeEventListener(
+            "obsidian-langr-refresh",
+            this.refresh as EventListener,
+        );
         this.vueapp?.unmount();
         this.vueapp = null;
         const result = await this.session?.close();
         if (result?.progress === "failed") {
-            console.warn("Reading Session could not save its confirmed position while closing");
+            console.warn(
+                "Reading Session could not save its confirmed position while closing",
+            );
             new Notice(t("Reading position has not been saved"));
         }
         if (result?.words === "failed") {
-            console.warn("Reading Session could not update the Reading Document words material");
+            console.warn(
+                "Reading Session could not update the Reading Document words material",
+            );
             new Notice(t("Reading Document words could not be updated"));
         }
     }

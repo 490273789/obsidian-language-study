@@ -7,17 +7,23 @@ import {
     ExpressionInfoSimple,
     CountInfo,
     WordCount,
-    Span,
 } from "./interface";
 
 import DbProvider from "./base";
+import { buildDaySpans } from "./spans";
 import { moment } from "@/utils/moment";
-import { isLearningRecord, LearningRecordStoreError } from "@/learningRecord/intake";
-import type { LearningRecordCandidate, LearningRecordCommitReceipt } from "@/learningRecord/intake";
+import {
+    isLearningRecord,
+    LearningRecordStoreError,
+} from "@/learningRecord/intake";
+import type {
+    LearningRecordCandidate,
+    LearningRecordCommitReceipt,
+} from "@/learningRecord/intake";
 
 function committedRecordMatchesCandidate(
     record: LearningRecordCommitReceipt["record"],
-    candidate: LearningRecordCandidate
+    candidate: LearningRecordCandidate,
 ): boolean {
     return (
         record.expression === candidate.expression &&
@@ -32,7 +38,7 @@ function committedRecordMatchesCandidate(
 
 function parseCommitReceipt(
     value: unknown,
-    candidate: LearningRecordCandidate
+    candidate: LearningRecordCandidate,
 ): LearningRecordCommitReceipt {
     if (typeof value !== "object" || value === null) {
         throw new LearningRecordStoreError("record_store_incompatible");
@@ -116,7 +122,9 @@ export class WebDb extends DbProvider {
         }
     }
 
-    async getExpressionsSimple(expressions: string[]): Promise<ExpressionInfoSimple[]> {
+    async getExpressionsSimple(
+        expressions: string[],
+    ): Promise<ExpressionInfoSimple[]> {
         expressions = expressions.map((v) => v.toLowerCase());
         let request: RequestUrlParam = {
             url: `${this.proto}://${this.host}:${this.port}${this.prefix}/words_simple`,
@@ -155,7 +163,9 @@ export class WebDb extends DbProvider {
     }
 
     // 通过status查询单词/词组,获取简略信息
-    async getAllExpressionSimple(ignores?: boolean): Promise<ExpressionInfoSimple[]> {
+    async getAllExpressionSimple(
+        ignores?: boolean,
+    ): Promise<ExpressionInfoSimple[]> {
         let mode = ignores ? "all" : "no_ignore";
 
         let request: RequestUrlParam = {
@@ -169,14 +179,16 @@ export class WebDb extends DbProvider {
 
             return response.json;
         } catch (e) {
-            console.warn("Error while getting all simple data from server." + e);
+            console.warn(
+                "Error while getting all simple data from server." + e,
+            );
             return [];
         }
     }
 
     async commitWhole(
         candidate: LearningRecordCandidate,
-        firstAcceptedAtIfNew: number
+        firstAcceptedAtIfNew: number,
     ): Promise<LearningRecordCommitReceipt> {
         const request: RequestUrlParam = {
             url: `${this.proto}://${this.host}:${this.port}${this.prefix}/update`,
@@ -272,16 +284,7 @@ export class WebDb extends DbProvider {
 
     // 获取包括今天在内的7天内每一天的新单词量和累计单词量
     async countSeven(): Promise<WordCount[]> {
-        let spans: Span[] = [];
-
-        spans = [0, 1, 2, 3, 4, 5, 6].map((i) => {
-            let start = moment().subtract(6, "days").startOf("day");
-            let from = start.add(i, "days");
-            return {
-                from: from.unix(),
-                to: from.endOf("day").unix(),
-            };
-        });
+        const spans = buildDaySpans();
 
         let request: RequestUrlParam = {
             url: `${this.proto}://${this.host}:${this.port}${this.prefix}/count_time`,
@@ -298,13 +301,5 @@ export class WebDb extends DbProvider {
             console.warn("Error getting seven-day counts" + e);
             return [];
         }
-    }
-
-    async importDB() {}
-
-    async exportDB() {}
-
-    async destroyAll() {
-        // 什么也没有发生
     }
 }

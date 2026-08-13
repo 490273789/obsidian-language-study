@@ -5,7 +5,6 @@ import {
     WorkspaceLeaf,
     ViewState,
     MarkdownView,
-    Editor,
     TFile,
     Platform,
 } from "obsidian";
@@ -33,13 +32,22 @@ import {
 
 import { MyPluginSettings, normalizeSettings, SettingTab } from "./settings";
 import store from "./store";
-import { playAudio } from "./utils/helpers";
+import { playPronunciation } from "./utils/helpers";
 import type { Position } from "./constant";
-import { emitLangrRefresh, emitLangrRefreshStat, emitLangrSearch } from "./events";
+import {
+    emitLangrRefresh,
+    emitLangrRefreshStat,
+    emitLangrSearch,
+} from "./events";
 import { getVaultBasePath } from "./utils/platform";
 import { moment } from "./utils/moment";
-import { activatePluginView, detachPluginViews, registerPluginViews } from "./plugin/views";
+import {
+    activatePluginView,
+    detachPluginViews,
+    registerPluginViews,
+} from "./plugin/views";
 import { registerPluginCommands } from "./plugin/commands";
+import { registerInputHandlers } from "./plugin/input";
 import { LearningRecordIntakeModule } from "./learningRecord/intake";
 
 import Global from "./views/Global.vue";
@@ -74,13 +82,13 @@ export default class LanguageLearner extends Plugin {
                   this.settings.host,
                   this.settings.port,
                   this.settings.use_https,
-                  this.settings.api_key
+                  this.settings.api_key,
               )
             : new LocalDb(this);
         await this.db.open();
 
         // 设置解析器
-        this.parser = new TextParser(this);
+        this.parser = new TextParser(this.db);
         this.frontManager = new FrontMatterManager(this.app);
         this.textDatabasePublication = this.createTextDatabasePublication();
         this.learningRecordIntake = this.createLearningRecordIntake();
@@ -104,14 +112,12 @@ export default class LanguageLearner extends Plugin {
         this.addCommands();
         this.registerCustomViews();
         this.registerReadingToggle();
-        this.registerContextMenu();
-        this.registerLeftClick();
-        this.registerMouseup();
+        registerInputHandlers(this);
         this.registerEvent(
             this.app.workspace.on("css-change", () => {
                 store.dark = document.body.hasClass("theme-dark");
                 store.themeChange = !store.themeChange;
-            })
+            }),
         );
 
         // 创建全局app用于各种浮动元素
@@ -215,7 +221,7 @@ export default class LanguageLearner extends Plugin {
                 state: leaf.view.getState(),
                 //popstate: true,
             } as ViewState,
-            { focus }
+            { focus },
         );
     }
 
@@ -236,13 +242,16 @@ export default class LanguageLearner extends Plugin {
                 reviewDelimiter: this.settings.review_delimiter,
             }),
             expressionStore: {
-                getAllExpressionSimple: (ignores) => this.db.getAllExpressionSimple(ignores),
+                getAllExpressionSimple: (ignores) =>
+                    this.db.getAllExpressionSimple(ignores),
                 getExpressionAfter: (time) => this.db.getExpressionAfter(time),
             },
             vault: {
                 getFile: (path) => {
                     const file = this.app.vault.getAbstractFileByPath(path);
-                    return file && !("children" in file) ? (file as TFile) : null;
+                    return file && !("children" in file)
+                        ? (file as TFile)
+                        : null;
                 },
                 read: (file) => this.app.vault.read(file),
                 write: (file, text) => this.app.vault.modify(file, text),
@@ -250,7 +259,7 @@ export default class LanguageLearner extends Plugin {
             completionReloader: {
                 reloadCustomDictionaries: () => {
                     (this.app as any).commands.executeCommandById(
-                        "various-complements:reload-custom-dictionaries"
+                        "various-complements:reload-custom-dictionaries",
                     );
                 },
             },
@@ -263,29 +272,33 @@ export default class LanguageLearner extends Plugin {
                 commitWhole: (candidate, firstAcceptedAtIfNew) =>
                     this.db.commitWhole(candidate, firstAcceptedAtIfNew),
             },
-            updateReadingDocument: async (record) => {
-                emitLangrRefresh(record.expression, record.type, record.status);
+            updateReadingDocument: async () => {
+                emitLangrRefresh();
             },
             updateStatistics: async () => {
                 emitLangrRefreshStat();
             },
             textDatabasePublication: {
-                publishWordDatabase: () => this.textDatabasePublication.publishWordDatabase(),
-                publishReviewDatabase: () => this.textDatabasePublication.publishReviewDatabase(),
+                publishWordDatabase: () =>
+                    this.textDatabasePublication.publishWordDatabase(),
+                publishReviewDatabase: () =>
+                    this.textDatabasePublication.publishReviewDatabase(),
             },
             isAutomaticPublicationEnabled: () => this.settings.auto_refresh_db,
             now: () => moment().unix(),
         });
     }
 
-    reportTextDatabasePublicationResult(result: TextDatabasePublicationResult): void {
+    reportTextDatabasePublicationResult(
+        result: TextDatabasePublicationResult,
+    ): void {
         if (result.status !== "invalidTarget") {
             return;
         }
         new Notice(
             result.target === "word"
                 ? "Invalid refresh database path"
-                : "Invalid word database path"
+                : "Invalid word database path",
         );
     }
 
@@ -303,7 +316,8 @@ export default class LanguageLearner extends Plugin {
     };
 
     refreshReviewDb = async (): Promise<TextDatabasePublicationResult> => {
-        const result = await this.textDatabasePublication.publishReviewDatabase();
+        const result =
+            await this.textDatabasePublication.publishReviewDatabase();
         this.reportTextDatabasePublicationResult(result);
         return result;
     };
@@ -314,11 +328,21 @@ export default class LanguageLearner extends Plugin {
         pluginSelf.register(
             around(MarkdownView.prototype, {
                 onPaneMenu(next) {
-                    return function (this: MarkdownView, m: Menu, source: string) {
+                    return function (
+                        this: MarkdownView,
+                        m: Menu,
+                        source: string,
+                    ) {
                         const file = this.file;
-                        const cache = file ? pluginSelf.app.metadataCache.getFileCache(file) : null;
+                        const cache = file
+                            ? pluginSelf.app.metadataCache.getFileCache(file)
+                            : null;
 
-                        if (!file || !cache?.frontmatter || !cache?.frontmatter[FRONT_MATTER_KEY]) {
+                        if (
+                            !file ||
+                            !cache?.frontmatter ||
+                            !cache?.frontmatter[FRONT_MATTER_KEY]
+                        ) {
                             return next.call(this, m, source);
                         }
 
@@ -333,7 +357,7 @@ export default class LanguageLearner extends Plugin {
                         next.call(this, m, source);
                     };
                 },
-            })
+            }),
         );
 
         // 增加标题栏切换阅读模式和mardown模式的按钮
@@ -343,37 +367,57 @@ export default class LanguageLearner extends Plugin {
                     return function (
                         this: WorkspaceLeaf,
                         state: ViewState,
-                        eState?: unknown
+                        eState?: unknown,
                     ): Promise<void> {
                         return next.call(this, state, eState).then(() => {
-                            if (state.type === "markdown" && state.state?.file) {
-                                const cache = pluginSelf.app.metadataCache.getCache(
-                                    state.state.file as string
-                                );
-                                if (cache?.frontmatter && cache.frontmatter[FRONT_MATTER_KEY]) {
-                                    if (!pluginSelf.markdownButtons["reading"]) {
+                            if (
+                                state.type === "markdown" &&
+                                state.state?.file
+                            ) {
+                                const cache =
+                                    pluginSelf.app.metadataCache.getCache(
+                                        state.state.file as string,
+                                    );
+                                if (
+                                    cache?.frontmatter &&
+                                    cache.frontmatter[FRONT_MATTER_KEY]
+                                ) {
+                                    if (
+                                        !pluginSelf.markdownButtons["reading"]
+                                    ) {
                                         // 在软件初始化的时候，view上面可能没有 addAction 这个方法
                                         setTimeout(() => {
-                                            const action = (this.view as MarkdownView).addAction(
+                                            const action = (
+                                                this.view as MarkdownView
+                                            ).addAction(
                                                 "view",
                                                 t("Open as Reading View"),
                                                 () => {
-                                                    void pluginSelf.setReadingView(this);
-                                                }
+                                                    void pluginSelf.setReadingView(
+                                                        this,
+                                                    );
+                                                },
                                             );
-                                            pluginSelf.markdownButtons["reading"] = action;
-                                            action.addClass("change-to-reading");
+                                            pluginSelf.markdownButtons[
+                                                "reading"
+                                            ] = action;
+                                            action.addClass(
+                                                "change-to-reading",
+                                            );
                                         });
                                     }
                                 } else {
                                     // 在软件初始化的时候，view上面可能没有 actionsEl 这个字段
                                     (
-                                        this.view as MarkdownView & { actionsEl?: HTMLElement }
+                                        this.view as MarkdownView & {
+                                            actionsEl?: HTMLElement;
+                                        }
                                     ).actionsEl
                                         ?.querySelectorAll(".change-to-reading")
                                         .forEach((el) => el.remove());
                                     // pluginSelf.markdownButtons["reading"]?.remove();
-                                    pluginSelf.markdownButtons["reading"] = null;
+                                    pluginSelf.markdownButtons["reading"] =
+                                        null;
                                 }
                             } else {
                                 pluginSelf.markdownButtons["reading"] = null;
@@ -381,11 +425,15 @@ export default class LanguageLearner extends Plugin {
                         });
                     };
                 },
-            })
+            }),
         );
     };
 
-    async queryWord(word: string, target?: HTMLElement, evtPosition?: Position): Promise<void> {
+    async queryWord(
+        word: string,
+        target?: HTMLElement,
+        evtPosition?: Position,
+    ): Promise<void> {
         if (!word) return;
 
         if (!this.settings.popup_search) {
@@ -399,95 +447,8 @@ export default class LanguageLearner extends Plugin {
         emitLangrSearch(word, target, evtPosition);
 
         if (this.settings.auto_pron) {
-            let accent = this.settings.review_prons;
-            let wordUrl =
-                `https://dict.youdao.com/dictvoice?type=${accent}&audio=` +
-                encodeURIComponent(word);
-            playAudio(wordUrl);
+            playPronunciation(word, this.settings.review_prons);
         }
-    }
-
-    // 管理所有的右键菜单
-    registerContextMenu() {
-        let addMemu = (mu: Menu, selection: string) => {
-            mu.addItem((item) => {
-                item.setTitle(t("Search word"))
-                    .setIcon("info")
-                    .onClick(async () => {
-                        this.queryWord(selection);
-                    });
-            });
-        };
-        // markdown 编辑模式 右键菜单
-        this.registerEvent(
-            (this.app.workspace.on as any)(
-                "editor-menu",
-                (menu: Menu, editor: Editor, view: MarkdownView) => {
-                    let selection = editor.getSelection();
-                    if (selection.trim()) {
-                        addMemu(menu, selection);
-                    }
-                }
-            )
-        );
-        // markdown 预览模式 右键菜单
-        this.registerDomEvent(document.body, "contextmenu", (evt) => {
-            if ((evt.target as HTMLElement).matchParent(".markdown-preview-view")) {
-                const selection = window.getSelection()?.toString().trim() ?? "";
-                if (!selection) return;
-
-                evt.preventDefault();
-                let menu = new Menu();
-
-                addMemu(menu, selection);
-
-                menu.showAtMouseEvent(evt);
-            }
-        });
-    }
-
-    // 管理所有的左键抬起
-    registerMouseup() {
-        this.registerDomEvent(document.body, "pointerup", (evt) => {
-            const target = evt.target as HTMLElement;
-            if (!target.matchParent(".stns")) {
-                // 处理普通模式
-                const funcKey = this.settings.function_key;
-                if (
-                    (funcKey === "disable" || evt[funcKey] === false) &&
-                    !(
-                        this.store.searchPinned &&
-                        !target.matchParent("#langr-search,#langr-learn-panel")
-                    )
-                )
-                    return;
-
-                let selection = window.getSelection()?.toString().trim() ?? "";
-                if (!selection) return;
-
-                evt.stopImmediatePropagation();
-                void this.queryWord(selection, undefined, { x: evt.pageX, y: evt.pageY });
-                return;
-            }
-        });
-    }
-
-    // 管理所有的鼠标左击
-    registerLeftClick() {
-        this.registerDomEvent(document.body, "click", (evt) => {
-            let target = evt.target as HTMLElement;
-            if (target.tagName === "H4" && target.matchParent(".sr-modal-content")) {
-                let word = target.textContent;
-                if (!word) {
-                    return;
-                }
-                let accent = this.settings.review_prons;
-                let wordUrl =
-                    `https://dict.youdao.com/dictvoice?type=${accent}&audio=` +
-                    encodeURIComponent(word);
-                playAudio(wordUrl);
-            }
-        });
     }
 
     async loadSettings() {
