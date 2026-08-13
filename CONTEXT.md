@@ -20,6 +20,10 @@ _Avoid_: SR file, review export
 An Obsidian note structured for reading mode, with article, words, notes, and reading-progress material.
 _Avoid_: Reading state, reading view, reading service
 
+**Reading Session**:
+An active passage through a Reading Document, with a current visible location and a session-specific page size. A Reading Session is temporary; only its confirmed reading position is retained in the Reading Document.
+_Avoid_: Reading state, reader session
+
 **Learning Record Intake**:
 The acceptance of a new or updated learning record as one complete domain operation, including the resulting publication and reader-visible updates.
 _Avoid_: Expression recording, submission, save

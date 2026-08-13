@@ -1,4 +1,4 @@
-import { Menu, TextFileView, WorkspaceLeaf } from "obsidian";
+import { Menu, Notice, TextFileView, WorkspaceLeaf } from "obsidian";
 import { App as VueApp, createApp } from "vue";
 
 import LanguageLearner from "@/plugin";
@@ -7,18 +7,21 @@ import { t } from "@/lang/helper";
 import { providePlugin, provideView } from "@/ui/context";
 import type { EventMap } from "@/constant";
 import { ReadingDocument } from "@/reading/readingDocument";
+import { ReadingSession } from "@/reading/readingSession";
 
 export const READING_VIEW_TYPE: string = "langr-reading";
 export const READING_ICON: string = "highlight-glyph";
 
 export class ReadingView extends TextFileView {
     plugin: LanguageLearner;
-    text = "";
     actionButtons: Record<string, HTMLElement> = {};
     vueapp: VueApp | null = null;
     firstInit: boolean;
-    lastPos = 0;
+    articleText = "";
     document: ReadingDocument | null = null;
+    session: ReadingSession | null = null;
+    private closed = false;
+    private initialization: Promise<void> | null = null;
 
     constructor(leaf: WorkspaceLeaf, plugin: LanguageLearner) {
         super(leaf);
@@ -34,21 +37,12 @@ export class ReadingView extends TextFileView {
         return this.data;
     }
 
-    async setViewData(data: string, clear?: boolean) {
-        this.text = data;
-
+    async setViewData(data: string, _clear?: boolean) {
         if (this.firstInit) {
-            this.document = this.createReadingDocument();
-            this.lastPos = this.document ? await this.document.getLastPosition() : 0;
-
-            this.vueapp = createApp(ReadingArea);
-            providePlugin(this.vueapp, this.plugin);
-            provideView(this.vueapp, this);
-            this.vueapp.mount(this.contentEl);
-
             this.firstInit = false;
+            this.initialization = this.initializeReadingSession(data);
         }
-        //this.plugin.setMarkdownView(this.leaf, false)
+        await this.initialization;
     }
 
     getViewType(): string {
@@ -89,6 +83,38 @@ export class ReadingView extends TextFileView {
                 getWordsPhrases: (text) => this.plugin.parser.getWordsPhrases(text),
             },
         });
+    }
+
+    private async initializeReadingSession(data: string): Promise<void> {
+        const document = this.createReadingDocument();
+        if (!document) {
+            return;
+        }
+        this.document = document;
+        const articleLines = document.getArticleLines(data);
+        this.articleText = articleLines.join("\n");
+        const session = new ReadingSession({
+            articleLines,
+            defaultPageSize: this.plugin.settings.default_paragraphs,
+            document: {
+                getLastPosition: () => document.getLastPosition(),
+                setPosition: (position) => document.setPosition(position),
+                publishWordsSection: () => document.publishWordsSection(),
+            },
+            renderer: {
+                render: (text) => this.plugin.parser.parse(text),
+            },
+        });
+        this.session = session;
+        await session.initialize();
+        if (this.closed) {
+            return;
+        }
+
+        this.vueapp = createApp(ReadingArea);
+        providePlugin(this.vueapp, this.plugin);
+        provideView(this.vueapp, this);
+        this.vueapp.mount(this.contentEl);
     }
 
     clear(): void {}
@@ -186,7 +212,7 @@ export class ReadingView extends TextFileView {
         }
         let selectSpan = document.body.createSpan({ cls: "select" });
         parent.insertBefore(selectSpan, elStart);
-        for (let el: Node | null = elStart; el && el !== elEnd; ) {
+        for (let el: Node | null = elStart; el && el !== elEnd;) {
             const next: ChildNode | null = el.nextSibling;
             selectSpan.appendChild(el);
             el = next;
@@ -230,9 +256,18 @@ export class ReadingView extends TextFileView {
     }
 
     async onClose() {
+        this.closed = true;
         removeEventListener("obsidian-langr-refresh", this.refresh as EventListener);
         this.vueapp?.unmount();
         this.vueapp = null;
-        await this.document?.publishWordsSection();
+        const result = await this.session?.close();
+        if (result?.progress === "failed") {
+            console.warn("Reading Session could not save its confirmed position while closing");
+            new Notice(t("Reading position has not been saved"));
+        }
+        if (result?.words === "failed") {
+            console.warn("Reading Session could not update the Reading Document words material");
+            new Notice(t("Reading Document words could not be updated"));
+        }
     }
 }

@@ -1,13 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import {
-    ReadingDocument,
-    divideReadingSections,
-    getInitialPage,
-    getPageForResizedPageSize,
-    getPositionForPage,
-    normalizePageSize,
-} from "@/reading/readingDocument";
+import { ReadingDocument, divideReadingSections } from "@/reading/readingDocument";
 import type { ExpressionInfoSimple } from "@/db/interface";
 
 function makeExpression(expression: string, meaning: string): ExpressionInfoSimple {
@@ -101,29 +94,11 @@ describe("ReadingDocument", () => {
         expect(harness.text).toBe("^^^article\nalpha\n^^^notes\nnew note\n\n^^^words\nword");
     });
 
-    it("keeps reading progress calculations behavior-compatible", async () => {
+    it("reads and writes the confirmed reading position", async () => {
         const harness = makeReadingDocument("", "9");
         await expect(harness.document.getLastPosition()).resolves.toBe(9);
-        expect(normalizePageSize("all")).toBe(Number.MAX_VALUE);
-        expect(normalizePageSize("8")).toBe(8);
-        expect(getInitialPage(9, 4)).toBe(3);
-        expect(getPageForResizedPageSize(3, 4, 8)).toBe(2);
-        expect(getPositionForPage(3, 4)).toBe("9");
-
-        await harness.document.setPagePosition(3, 4);
-        expect(harness.position).toBe("9");
-    });
-
-    it("returns page state without formatting UI copy", () => {
-        const { document } = makeReadingDocument("");
-        const articleLines = ["one", "two", "three", "four", "five"];
-
-        expect(document.getPageState(articleLines, 2, 2)).toEqual({
-            articleLines,
-            totalLines: 5,
-            pageRange: { startLine: 2, endLine: 4, totalLines: 5 },
-            pageText: "three\nfour",
-        });
+        await harness.document.setPosition("5");
+        expect(harness.position).toBe("5");
     });
 
     it("publishes the words section on close when both article and words sections exist", async () => {

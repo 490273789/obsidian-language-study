@@ -27,19 +27,6 @@ type ReadingSectionRange = {
     end: number;
 };
 
-type ReadingPageRange = {
-    startLine: number;
-    endLine: number;
-    totalLines: number;
-};
-
-type ReadingPageState = {
-    articleLines: string[];
-    totalLines: number;
-    pageRange: ReadingPageRange;
-    pageText: string;
-};
-
 const sectionMarkers: Record<ReadingSection, string> = {
     article: "^^^article",
     words: "^^^words",
@@ -66,32 +53,6 @@ function divideReadingSections(
     return segments;
 }
 
-function normalizePageSize(defaultParagraphs: string): number {
-    return defaultParagraphs === "all" ? Number.MAX_VALUE : parseInt(defaultParagraphs);
-}
-
-function getInitialPage(lastPosition: number, pageSize: number): number {
-    return lastPosition ? Math.ceil(lastPosition / pageSize) : 1;
-}
-
-function getPositionForPage(page: number, pageSize: number): string {
-    return `${(page - 1) * pageSize + 1}`;
-}
-
-function getPageRange(page: number, pageSize: number, totalLines: number): ReadingPageRange {
-    const startLine = (page - 1) * pageSize;
-    const endLine = startLine + pageSize > totalLines ? totalLines : startLine + pageSize;
-    return { startLine, endLine, totalLines };
-}
-
-function getPageForResizedPageSize(
-    page: number,
-    previousPageSize: number,
-    pageSize: number
-): number {
-    return Math.ceil(((page - 1) * previousPageSize + 1) / pageSize);
-}
-
 function renderWordsSection(expressions: ExpressionInfoSimple[]): string {
     return (
         expressions.map((word) => `+ **${word.expression}** : ${word.meaning}`).join("\n") + "\n\n"
@@ -114,8 +75,8 @@ class ReadingDocument {
         return parseInt(lastPosition) || 0;
     }
 
-    async setPagePosition(page: number, pageSize: number): Promise<void> {
-        await this.progressStore.setPosition(getPositionForPage(page, pageSize));
+    async setPosition(position: string): Promise<void> {
+        await this.progressStore.setPosition(position);
     }
 
     async readSection(section: ReadingSection, create = false): Promise<string | null> {
@@ -159,24 +120,6 @@ class ReadingDocument {
         return lines.slice(article.start, article.end);
     }
 
-    getInitialPage(pageSize: number, lastPosition: number): number {
-        return getInitialPage(lastPosition, pageSize);
-    }
-
-    getPageForResizedPageSize(page: number, previousPageSize: number, pageSize: number): number {
-        return getPageForResizedPageSize(page, previousPageSize, pageSize);
-    }
-
-    getPageState(articleLines: string[], page: number, pageSize: number): ReadingPageState {
-        const pageRange = getPageRange(page, pageSize, articleLines.length);
-        return {
-            articleLines,
-            totalLines: articleLines.length,
-            pageRange,
-            pageText: articleLines.slice(pageRange.startLine, pageRange.endLine).join("\n"),
-        };
-    }
-
     async publishWordsSection(): Promise<"skipped" | "published"> {
         const words = await this.readSection("words");
         if (words === null) {
@@ -194,22 +137,11 @@ class ReadingDocument {
     }
 }
 
-export {
-    ReadingDocument,
-    divideReadingSections,
-    getInitialPage,
-    getPageForResizedPageSize,
-    getPageRange,
-    getPositionForPage,
-    normalizePageSize,
-    renderWordsSection,
-};
+export { ReadingDocument, divideReadingSections, renderWordsSection };
 export type {
     ReadingDocumentDependencies,
     ReadingDocumentFile,
     ReadingExpressionLookup,
-    ReadingPageRange,
-    ReadingPageState,
     ReadingProgressStore,
     ReadingSection,
     ReadingSectionRange,

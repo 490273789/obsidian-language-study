@@ -6,7 +6,10 @@
                     <header class="reading-header">
                         <div class="reading-heading">
                             <div class="reading-title">{{ t("Reading Mode") }}</div>
-                            <div class="langr-subtle">{{ pageSummary }}</div>
+                            <div class="langr-subtle">
+                                {{ pageSummary }}
+                                <span v-if="isRendering">· {{ t("Loading reading page") }}</span>
+                            </div>
                         </div>
                         <audio
                             class="reading-audio"
@@ -19,15 +22,8 @@
                                 {{ t("Notes") }}
                             </button>
                             <button
-                                v-if="page * pageSize < totalLines"
                                 class="reading-action finish-reading"
-                                @click="addIgnores"
-                            >
-                                {{ t("Finish Reading") }}
-                            </button>
-                            <button
-                                v-else
-                                class="reading-action finish-reading"
+                                :disabled="!canFinishReading"
                                 @click="addIgnores"
                             >
                                 {{ t("Finish Reading") }}
@@ -53,8 +49,24 @@
                             fontFamily: store.fontFamily,
                             lineHeight: store.lineHeight,
                         }"
-                        v-html="renderedText"
-                    />
+                    >
+                        <div
+                            v-if="sessionState.status === 'renderFailed'"
+                            class="reading-session-message is-error"
+                        >
+                            <span>{{ t("Reading page failed to render") }}</span>
+                            <button class="reading-session-retry" @click="retryRender">
+                                {{ t("Retry") }}
+                            </button>
+                        </div>
+                        <div
+                            v-if="sessionState.progress === 'unsaved'"
+                            class="reading-session-message is-warning"
+                        >
+                            {{ t("Reading position has not been saved") }}
+                        </div>
+                        <div class="reading-content" v-html="renderedText" />
+                    </div>
 
                     <footer class="pagination reading-pagination">
                         <NPagination
@@ -100,7 +112,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, watchEffect } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted, watchEffect, shallowRef } from "vue";
 import { NPagination, NConfigProvider, NDrawer, NDrawerContent, NInput } from "naive-ui";
 import { MarkdownRenderer, Platform } from "obsidian";
 import PluginType from "@/plugin";
@@ -113,7 +125,6 @@ import { useView } from "@/ui/context";
 import { emitLangrRefreshStat } from "@/events";
 import { resolveLocalResourcePath } from "@/utils/platform";
 import { useLangrNaiveTheme, useLangrNaiveThemeOverrides } from "@/ui/theme";
-import { normalizePageSize } from "@/reading/readingDocument";
 
 let view = useView<ReadingView>();
 let plugin = view.plugin as PluginType;
@@ -126,6 +137,15 @@ if (!view.document) {
     throw new Error("Reading view requires a reading document");
 }
 const readingDocument = view.document;
+if (!view.session) {
+    throw new Error("Reading view requires a reading session");
+}
+const readingSession = view.session;
+const sessionState = shallowRef(readingSession.snapshot());
+const unsubscribeSession = readingSession.subscribe((state) => {
+    sessionState.value = state;
+});
+onUnmounted(unsubscribeSession);
 
 const theme = useLangrNaiveTheme(() => store.dark);
 const themeOverrides = useLangrNaiveThemeOverrides();
@@ -167,8 +187,7 @@ function onMouseOver(e: MouseEvent) {
     }
 }
 
-const article = readingDocument.getArticleLines(view.text);
-let totalLines = article.length;
+const articleText = view.articleText;
 
 // 计数
 let unknown = ref(0);
@@ -183,9 +202,8 @@ if (plugin.settings.word_count) {
     watch(
         [countChange],
         async () => {
-            [unknown.value, learn.value, ignore.value] = await plugin.parser.countWords(
-                article.join("\n")
-            );
+            [unknown.value, learn.value, ignore.value] =
+                await plugin.parser.countWords(articleText);
         },
         { immediate: true }
     );
@@ -210,73 +228,69 @@ const pageSizes = [
 ];
 
 const pageSlot = Platform.isMobileApp ? 5 : undefined;
-
-let pageSize = ref(normalizePageSize(plugin.settings.default_paragraphs));
-let page = ref(readingDocument.getInitialPage(pageSize.value, view.lastPos));
+const page = computed({
+    get: () => sessionState.value.desired.page,
+    set: (value: number) => {
+        void readingSession.act({ type: "navigate", page: value });
+    },
+});
+const pageSize = computed({
+    get: () => sessionState.value.desired.pageSize,
+    set: (value: number) => {
+        void readingSession.act({ type: "resize", pageSize: value });
+    },
+});
+const totalLines = computed(() => sessionState.value.totalLines);
 const pageSummary = computed(() => {
-    const pageState = readingDocument.getPageState(article, page.value, pageSize.value);
-    if (pageState.totalLines === 0) {
+    const confirmed = sessionState.value.confirmed;
+    if (!confirmed || confirmed.range.totalLines === 0) {
         return `0 ${t("paragraph")}`;
     }
-    return `${pageState.pageRange.startLine + 1}-${pageState.pageRange.endLine} / ${
-        pageState.totalLines
+    return `${confirmed.range.startLine + 1}-${confirmed.range.endLine} / ${
+        confirmed.range.totalLines
     } ${t("paragraph")}`;
 });
-
-let renderedText = ref("");
-let psChange = ref(true); // 标志pageSize的改变
-let refreshHandle = ref(true);
-let renderRequestId = 0;
-
-// pageSize变化应该使page同时进行调整以尽量保持原阅读位置
-// 同时page和pageSize的改变都应该引起langr-pos的改变，但应只修改一次
-// 因此引入psChange这个变量
-watch([pageSize], async ([ps], [prev_ps]) => {
-    let oldPage = page.value;
-    page.value = readingDocument.getPageForResizedPageSize(page.value, prev_ps, ps);
-    if (oldPage === page.value) {
-        psChange.value = !psChange.value;
-    }
-});
-
-watch(
-    [page, psChange, refreshHandle],
-    async ([p, pc], [prev_p, prev_pc]) => {
-        const requestId = ++renderRequestId;
-        const pageState = readingDocument.getPageState(article, p, pageSize.value);
-
-        const html = await plugin.parser.parse(pageState.pageText);
-        if (requestId !== renderRequestId) {
-            return;
-        }
-        renderedText.value = html;
-
-        if (p !== prev_p || pc != prev_pc) {
-            await readingDocument.setPagePosition(p, pageSize.value);
-        }
-    },
-    { immediate: true }
+const renderedText = computed(() => sessionState.value.confirmed?.renderedText ?? "");
+const isRendering = computed(() => sessionState.value.status === "rendering");
+let finishLoading = ref(false);
+const canFinishReading = computed(
+    () =>
+        sessionState.value.status === "ready" &&
+        sessionState.value.confirmed !== null &&
+        !finishLoading.value
 );
+
+function retryRender() {
+    void readingSession.act({ type: "retry" });
+}
 
 // 设置阅读文字样式
 
 // 添加无视单词
 async function addIgnores() {
+    if (!canFinishReading.value) {
+        return;
+    }
+    finishLoading.value = true;
     let ignores = contentEl.querySelectorAll(".word.new") as unknown as HTMLElement[];
     let ignore_words: Set<string> = new Set();
     ignores.forEach((el) => {
         ignore_words.add(el.textContent.toLowerCase());
     });
-    await plugin.db.postIgnoreWords([...ignore_words]);
-    // this.setViewData(this.data)
-    refreshHandle.value = !refreshHandle.value;
-    emitLangrRefreshStat();
+    try {
+        await plugin.db.postIgnoreWords([...ignore_words]);
+        emitLangrRefreshStat();
+        refreshCount();
 
-    if (page.value * pageSize.value < totalLines) {
-        page.value++;
+        const confirmed = sessionState.value.confirmed;
+        if (confirmed && confirmed.range.endLine < sessionState.value.totalLines) {
+            await readingSession.act({ type: "navigate", page: confirmed.page + 1 });
+        } else {
+            await readingSession.act({ type: "refresh" });
+        }
+    } finally {
+        finishLoading.value = false;
     }
-
-    refreshCount();
 }
 
 let reading = ref<HTMLElement | null>(null);
@@ -426,6 +440,13 @@ if (plugin.constants.platform === "mobile") {
         transform: translateY(-1px);
     }
 
+    .reading-action:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+    }
+
     .finish-reading {
         color: var(--background-primary);
         border-color: var(--langr-accent);
@@ -480,6 +501,37 @@ if (plugin.constants.platform === "mobile") {
             0 1px 2px rgba(0, 0, 0, 0.035);
         font-family: var(--langr-font-reading);
         touch-action: none;
+
+        .reading-session-message {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--langr-space-2);
+            margin-bottom: var(--langr-space-3);
+            padding: var(--langr-space-2) var(--langr-space-3);
+            border: 1px solid var(--langr-border-strong);
+            border-radius: var(--langr-radius-sm);
+            background: var(--langr-surface-inset);
+            font-size: 12px;
+        }
+
+        .reading-session-message.is-error {
+            color: var(--text-error);
+            border-color: var(--background-modifier-error);
+        }
+
+        .reading-session-message.is-warning {
+            color: var(--text-warning);
+        }
+
+        .reading-session-retry {
+            padding: 2px 8px;
+            color: var(--text-normal);
+            border: 1px solid var(--langr-border-strong);
+            border-radius: var(--langr-radius-xs);
+            background: var(--langr-surface-glass);
+            cursor: pointer;
+        }
 
         span.word {
             user-select: contain;

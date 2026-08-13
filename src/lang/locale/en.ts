@@ -25,6 +25,11 @@ export default {
     paragraph: "paragraph",
     page: "page",
     All: "All",
+    "Loading reading page": "Loading reading page",
+    "Reading page failed to render": "Reading page failed to render",
+    Retry: "Retry",
+    "Reading position has not been saved": "Reading position has not been saved",
+    "Reading Document words could not be updated": "Reading Document words could not be updated",
 
     // LearnPanelView.ts
     "Learning New Words": "Learning New Words",

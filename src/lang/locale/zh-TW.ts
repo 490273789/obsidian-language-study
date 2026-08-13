@@ -25,6 +25,11 @@ export default {
     paragraph: "段落",
     page: "頁",
     All: "全部",
+    "Loading reading page": "正在載入閱讀頁面",
+    "Reading page failed to render": "閱讀頁面渲染失敗",
+    Retry: "重試",
+    "Reading position has not been saved": "閱讀位置尚未儲存",
+    "Reading Document words could not be updated": "閱讀文件的詞彙內容更新失敗",
 
     // LearnPanelView.ts
     "Learning New Words": "學習新單字",
