@@ -42,7 +42,10 @@ echarts.use([
 ]);
 
 type EChartsOption = echarts.ComposeOption<
-    GridComponentOption | LineSeriesOption | TooltipComponentOption | TitleComponentOption
+    | GridComponentOption
+    | LineSeriesOption
+    | TooltipComponentOption
+    | TitleComponentOption
 >;
 
 const plugin = usePlugin();
@@ -57,17 +60,20 @@ function readCssVar(name: string, fallback: string): string {
         return fallback;
     }
 
-    return window.getComputedStyle(document.body).getPropertyValue(name).trim() || fallback;
+    return (
+        window.getComputedStyle(document.body).getPropertyValue(name).trim() ||
+        fallback
+    );
 }
 
 function makeChartTheme(): EChartsOption {
-    const accent = readCssVar("--langr-accent", "#00a8d7");
-    const hot = readCssVar("--langr-accent-hot", "#e64bbd");
-    const warm = readCssVar("--langr-accent-warm", "#c78618");
-    const text = readCssVar("--text-normal", "#172126");
-    const muted = readCssVar("--text-muted", "#5d6870");
-    const grid = readCssVar("--langr-border-strong", "#7ccfe2");
-    const surface = readCssVar("--langr-surface-raised", "#f8feff");
+    const accent = readCssVar("--langr-accent", "#4a6cf7");
+    const hot = readCssVar("--langr-accent-hot", "#3b5bdb");
+    const warm = readCssVar("--langr-accent-warm", "#c49a6c");
+    const text = readCssVar("--text-normal", "#1f2328");
+    const muted = readCssVar("--text-muted", "#6b7280");
+    const grid = readCssVar("--langr-border-strong", "#d4d4d8");
+    const surface = readCssVar("--langr-surface-raised", "#ffffff");
 
     return {
         color: [muted, accent, hot],
@@ -119,7 +125,7 @@ function makeChartTheme(): EChartsOption {
                     color: accent,
                 },
                 areaStyle: {
-                    color: "rgba(0, 168, 215, 0.14)",
+                    color: "rgba(128, 128, 128, 0.12)",
                 },
             },
             {
@@ -153,7 +159,9 @@ onMounted(async () => {
     updateChart();
 });
 
-const last7days = [6, 5, 4, 3, 2, 1, 0].map((i) => moment().subtract(i, "days").format("M-D"));
+const last7days = [6, 5, 4, 3, 2, 1, 0].map((i) =>
+    moment().subtract(i, "days").format("M-D"),
+);
 
 option = {
     title: {
@@ -214,11 +222,17 @@ option = {
 async function updateChart() {
     let data = await plugin.db.countSeven();
     let dayIgnoreWords = data.map((d) => d.today[0]);
-    let dayNoIgnoreWords = data.map((d) => d.today.slice(1).reduce((a, b) => a + b));
+    let dayNoIgnoreWords = data.map((d) =>
+        d.today.slice(1).reduce((a, b) => a + b),
+    );
     let accumAllWords = data.map((d) => d.accumulated.reduce((a, b) => a + b));
 
     sevenDays.setOption({
-        series: [{ data: dayIgnoreWords }, { data: dayNoIgnoreWords }, { data: accumAllWords }],
+        series: [
+            { data: dayIgnoreWords },
+            { data: dayNoIgnoreWords },
+            { data: accumAllWords },
+        ],
     });
 }
 
@@ -240,7 +254,7 @@ onUnmounted(() => {
     .stat-card {
         overflow: hidden;
         min-height: 420px;
-        border-color: var(--langr-border-neon);
+        border-color: var(--langr-border);
         box-shadow: var(--langr-shadow-strong);
     }
 
@@ -248,19 +262,15 @@ onUnmounted(() => {
         padding: var(--langr-space-3) var(--langr-space-4);
         border-bottom: 1px solid var(--langr-border-strong);
         background:
-            linear-gradient(
-                90deg,
-                color-mix(in srgb, var(--langr-accent) 12%, transparent),
-                transparent 42%
-            ),
+            linear-gradient(180deg, var(--langr-sheen), transparent),
             var(--langr-surface-glass);
     }
 
     .stat-title {
         font-size: 14px;
-        font-weight: 700;
-        color: var(--langr-accent);
-        text-transform: uppercase;
+        font-weight: 600;
+        color: var(--text-normal);
+        letter-spacing: -0.01em;
     }
 
     #chart {

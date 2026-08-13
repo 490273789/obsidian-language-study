@@ -28,8 +28,10 @@ export default {
     "Loading reading page": "Loading reading page",
     "Reading page failed to render": "Reading page failed to render",
     Retry: "Retry",
-    "Reading position has not been saved": "Reading position has not been saved",
-    "Reading Document words could not be updated": "Reading Document words could not be updated",
+    "Reading position has not been saved":
+        "Reading position has not been saved",
+    "Reading Document words could not be updated":
+        "Reading Document words could not be updated",
 
     // LearnPanelView.ts
     "Learning New Words": "Learning New Words",
@@ -60,7 +62,8 @@ export default {
     "Origin sentence": "Origin sentence",
     "Translation (Optional)": "Translation (Optional)",
     "Origin (Optional)": "Origin (Optional)",
-    "It looks more like a PHRASE than a WORD": "It looks more like a PHRASE than a WORD",
+    "It looks more like a PHRASE than a WORD":
+        "It looks more like a PHRASE than a WORD",
     "Meaning is empty!": "Meaning is empty",
     "Expression is empty!": "Expression is empty",
     "Learning Record is invalid": "Learning Record is invalid",
@@ -78,11 +81,13 @@ export default {
 
     // settings
     "Use Server": "Use Server",
-    "Use a seperated backend server": "Use a seperated backend server(Only for developer now)",
+    "Use a seperated backend server":
+        "Use a seperated backend server(Only for developer now)",
     "Use https": "Use https",
     "Be sure your server enabled https": "Be sure your server enabled https",
     "Api Key": "Api Key",
-    "Input your api-key for authentication": "Input your api-key for authentication",
+    "Input your api-key for authentication":
+        "Input your api-key for authentication",
     "Server Host": "Server Host",
     "Your server's host name (like 11.11.11.11 or baidu.com)":
         "Your server's host name (like 11.11.11.11 or baidu.com)",
@@ -117,7 +122,6 @@ export default {
     Dictionaries: "Dictionaries",
     Youdao: "Youdao",
     Cambridge: "Cambridge",
-    Jukuu: "Jukuu",
     Hujiang: "Hujiang",
 
     "Word Database Path": "Word Database Path",
@@ -127,7 +131,8 @@ export default {
     "Choose a md file as review database for spaced-repetition":
         "Choose a md file as review database for spaced-repetition",
     "Last review sync": "Last review sync",
-    "Last time the review database was updated": "Last time the review database was updated",
+    "Last time the review database was updated":
+        "Last time the review database was updated",
     "Destroy Database": "Destroy Database",
     "Destroy all stuff and start over": "Destroy all stuff and start over",
     "Are you sure you want to destroy your database?":
@@ -141,7 +146,8 @@ export default {
 
     "Text Database": "Text Database",
     "Auto refresh": "Auto refresh",
-    "Auto refresh database when submitting": "Auto refresh database when submitting",
+    "Auto refresh database when submitting":
+        "Auto refresh database when submitting",
 
     "IndexDB Database": "IndexDB Database",
     "Database Name": "Database Name",

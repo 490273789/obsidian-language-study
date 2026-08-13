@@ -26,7 +26,7 @@ const props = withDefaults(
         unknown: 0,
         learn: 0,
         ignore: 0,
-    }
+    },
 );
 
 let isPercent = ref(true);
@@ -64,7 +64,7 @@ let styleC = computed(() => {
 /*计数条*/
 .count-bar {
     overflow: hidden;
-    border: 1px solid var(--langr-border-neon);
+    border: 1px solid var(--langr-border);
     height: 18px;
     width: 100%;
     min-width: 160px;
@@ -76,13 +76,8 @@ let styleC = computed(() => {
     cursor: pointer;
     line-height: 18px;
     border-radius: 999px;
-    background: var(--langr-scanline), var(--langr-surface-inset);
-    background-size:
-        100% 4px,
-        auto;
-    box-shadow:
-        inset 0 1px 0 color-mix(in srgb, var(--background-primary) 72%, transparent),
-        var(--langr-glow-cyan);
+    background: var(--langr-surface-inset);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
 
     .b1 {
         min-width: fit-content;
@@ -93,7 +88,8 @@ let styleC = computed(() => {
             var(--langr-status-new-bg),
             color-mix(in srgb, var(--langr-status-new-fg) 14%, transparent)
         );
-        box-shadow: inset -1px 0 0 color-mix(in srgb, var(--langr-border-strong) 70%, transparent);
+        box-shadow: inset -1px 0 0
+            color-mix(in srgb, var(--langr-border-strong) 70%, transparent);
     }
 
     .b2 {
@@ -105,7 +101,8 @@ let styleC = computed(() => {
             var(--langr-status-learning-bg),
             color-mix(in srgb, var(--langr-status-learning-fg) 13%, transparent)
         );
-        box-shadow: inset -1px 0 0 color-mix(in srgb, var(--langr-border-strong) 70%, transparent);
+        box-shadow: inset -1px 0 0
+            color-mix(in srgb, var(--langr-border-strong) 70%, transparent);
     }
 
     .b3 {

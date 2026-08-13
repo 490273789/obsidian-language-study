@@ -1,6 +1,10 @@
 <template>
     <div id="langr-learn-panel" class="langr-shell">
-        <NConfigProvider class="learn-provider" :theme="theme" :theme-overrides="themeOverrides">
+        <NConfigProvider
+            class="learn-provider"
+            :theme="theme"
+            :theme-overrides="themeOverrides"
+        >
             <div class="learn-panel-scroll">
                 <NForm
                     class="learn-form"
@@ -13,8 +17,12 @@
                     <section class="learn-section langr-card">
                         <header class="learn-section-header">
                             <div>
-                                <div class="learn-section-title">{{ t("Expression") }}</div>
-                                <div class="langr-subtle">{{ t("A word or a phrase") }}</div>
+                                <div class="learn-section-title">
+                                    {{ t("Expression") }}
+                                </div>
+                                <div class="langr-subtle">
+                                    {{ t("A word or a phrase") }}
+                                </div>
                             </div>
                         </header>
                         <NFormItem :label="t('Expression')" path="expression">
@@ -36,8 +44,12 @@
                         <div class="learn-choice-stack">
                             <NFormItem :label="t('Type')" path="t">
                                 <NRadioGroup v-model:value="model.t">
-                                    <NRadio value="WORD">{{ t("Word") }}</NRadio>
-                                    <NRadio value="PHRASE">{{ t("Phrase") }}</NRadio>
+                                    <NRadio value="WORD">{{
+                                        t("Word")
+                                    }}</NRadio>
+                                    <NRadio value="PHRASE">{{
+                                        t("Phrase")
+                                    }}</NRadio>
                                 </NRadioGroup>
                             </NFormItem>
                             <NFormItem :label="t('Status')" path="status">
@@ -46,7 +58,11 @@
                                     v-model:value="model.status"
                                     size="small"
                                 >
-                                    <NRadioButton v-for="(s, i) in status" :key="i" :value="i">
+                                    <NRadioButton
+                                        v-for="(s, i) in status"
+                                        :key="i"
+                                        :value="i"
+                                    >
                                         {{ s.text }}
                                     </NRadioButton>
                                 </NRadioGroup>
@@ -69,7 +85,9 @@
 
                     <section class="learn-section langr-card">
                         <header class="learn-section-header">
-                            <div class="learn-section-title">{{ t("Notes") }}</div>
+                            <div class="learn-section-title">
+                                {{ t("Notes") }}
+                            </div>
                         </header>
                         <NFormItem :show-label="false" path="notes">
                             <NDynamicInput
@@ -93,7 +111,9 @@
 
                     <section class="learn-section langr-card">
                         <header class="learn-section-header">
-                            <div class="learn-section-title">{{ t("Sentences") }}</div>
+                            <div class="learn-section-title">
+                                {{ t("Sentences") }}
+                            </div>
                         </header>
                         <NDynamicInput
                             class="sentence-input"
@@ -114,9 +134,14 @@
                                         <NInput
                                             size="small"
                                             type="textarea"
-                                            v-model:value="model.sentences[index].text"
+                                            v-model:value="
+                                                model.sentences[index].text
+                                            "
                                             :placeholder="t('Origin sentence')"
-                                            :autosize="{ minRows: 1, maxRows: 3 }"
+                                            :autosize="{
+                                                minRows: 1,
+                                                maxRows: 3,
+                                            }"
                                         />
                                     </NFormItem>
                                     <NFormItem
@@ -127,9 +152,16 @@
                                         <NInput
                                             size="small"
                                             type="textarea"
-                                            v-model:value="model.sentences[index].trans"
-                                            :placeholder="t('Translation (Optional)')"
-                                            :autosize="{ minRows: 1, maxRows: 3 }"
+                                            v-model:value="
+                                                model.sentences[index].trans
+                                            "
+                                            :placeholder="
+                                                t('Translation (Optional)')
+                                            "
+                                            :autosize="{
+                                                minRows: 1,
+                                                maxRows: 3,
+                                            }"
                                         />
                                     </NFormItem>
                                     <NFormItem
@@ -140,9 +172,16 @@
                                         <NInput
                                             size="small"
                                             type="textarea"
-                                            v-model:value="model.sentences[index].origin"
-                                            :placeholder="t('Origin (Optional)')"
-                                            :autosize="{ minRows: 1, maxRows: 3 }"
+                                            v-model:value="
+                                                model.sentences[index].origin
+                                            "
+                                            :placeholder="
+                                                t('Origin (Optional)')
+                                            "
+                                            :autosize="{
+                                                minRows: 1,
+                                                maxRows: 3,
+                                            }"
                                         />
                                     </NFormItem>
                                 </div>
@@ -353,7 +392,10 @@ async function submit() {
         new Notice(t("Meaning is empty!"));
         return;
     }
-    if (model.value.expression.trim().split(" ").length > 1 && model.value.t === "WORD") {
+    if (
+        model.value.expression.trim().split(" ").length > 1 &&
+        model.value.t === "WORD"
+    ) {
         new Notice(t("It looks more like a PHRASE than a WORD"));
         return;
     }
@@ -442,9 +484,8 @@ useEvent(window, "obsidian-langr-search", async (evt: CustomEvent) => {
         let reading = view.app.workspace.getActiveViewOfType(ReadingView);
 
         if (reading?.file) {
-            let presetOrigin = view.app.metadataCache.getFileCache(reading.file)?.frontmatter?.[
-                "langr-origin"
-            ];
+            let presetOrigin = view.app.metadataCache.getFileCache(reading.file)
+                ?.frontmatter?.["langr-origin"];
             defaultOrigin = presetOrigin ? presetOrigin : reading.file.name;
         }
 
@@ -454,7 +495,8 @@ useEvent(window, "obsidian-langr-search", async (evt: CustomEvent) => {
                 if (res && (res.result as any).translation) {
                     let html = (res.result as any).translation as string;
                     const paragraphs = html.match(/<p>([^<>]+)<\/p>/g);
-                    filledTrans = paragraphs?.[1]?.match(/<p>(.*)<\/p>/)?.[1] ?? "";
+                    filledTrans =
+                        paragraphs?.[1]?.match(/<p>(.*)<\/p>/)?.[1] ?? "";
                 }
             } catch (e) {
                 filledTrans = "";
@@ -471,7 +513,9 @@ useEvent(window, "obsidian-langr-search", async (evt: CustomEvent) => {
                     origin: defaultOrigin,
                 });
             } else {
-                let added = expr.sentences.find((sen) => sen.text === sentenceText);
+                let added = expr.sentences.find(
+                    (sen) => sen.text === sentenceText,
+                );
                 if (!added) {
                     expr.sentences = expr.sentences.concat(storedSen);
                 }
@@ -539,15 +583,9 @@ useEvent(window, "obsidian-langr-search", async (evt: CustomEvent) => {
 
     .learn-section {
         padding: var(--langr-space-3);
-        border-color: var(--langr-border-neon);
-        background:
-            linear-gradient(
-                135deg,
-                color-mix(in srgb, var(--langr-accent) 10%, transparent),
-                transparent 30%
-            ),
-            var(--langr-surface-raised);
-        box-shadow: var(--langr-shadow-strong);
+        border-color: var(--langr-border);
+        background: var(--langr-surface-raised);
+        box-shadow: var(--langr-shadow);
     }
 
     .learn-section-header {
@@ -562,9 +600,9 @@ useEvent(window, "obsidian-langr-search", async (evt: CustomEvent) => {
 
     .learn-section-title {
         font-size: 13px;
-        font-weight: 700;
-        color: var(--langr-accent);
-        text-transform: uppercase;
+        font-weight: 600;
+        color: var(--text-normal);
+        letter-spacing: -0.01em;
     }
 
     .learn-choice-stack {
@@ -602,8 +640,8 @@ useEvent(window, "obsidian-langr-search", async (evt: CustomEvent) => {
         background: var(--langr-surface-inset);
 
         &.n-radio-button--checked {
-            color: var(--langr-accent-hot);
-            box-shadow: var(--langr-glow-hot);
+            color: var(--langr-accent);
+            box-shadow: var(--langr-glow-cyan);
         }
     }
 
@@ -620,16 +658,10 @@ useEvent(window, "obsidian-langr-search", async (evt: CustomEvent) => {
         padding: var(--langr-space-2);
         border: 1px solid var(--langr-border-strong);
         border-radius: var(--langr-radius-sm);
-        background:
-            linear-gradient(
-                90deg,
-                color-mix(in srgb, var(--langr-accent-hot) 8%, transparent),
-                transparent
-            ),
-            var(--langr-surface-inset);
+        background: var(--langr-surface-inset);
         box-shadow:
-            inset 0 1px 0 color-mix(in srgb, var(--background-primary) 72%, transparent),
-            inset 0 0 0 1px color-mix(in srgb, var(--langr-accent) 8%, transparent);
+            inset 0 1px 0 var(--langr-hairline),
+            inset 0 1px 3px rgba(0, 0, 0, 0.04);
     }
 
     .n-dynamic-input .n-button-group {
@@ -661,21 +693,17 @@ useEvent(window, "obsidian-langr-search", async (evt: CustomEvent) => {
         z-index: 1;
         margin-top: var(--langr-space-3);
         padding: var(--langr-space-2);
-        border: 1px solid var(--langr-border-neon);
+        border: 1px solid var(--langr-border);
         border-radius: var(--langr-radius-md);
         background:
-            linear-gradient(
-                90deg,
-                color-mix(in srgb, var(--langr-accent-hot) 12%, transparent),
-                color-mix(in srgb, var(--langr-accent) 9%, transparent)
-            ),
+            linear-gradient(180deg, var(--langr-sheen), transparent),
             var(--langr-surface-glass);
-        box-shadow: var(--langr-shadow-strong);
+        box-shadow: var(--langr-shadow);
     }
 
     .submit-button {
         width: 100%;
-        box-shadow: var(--langr-glow-cyan);
+        box-shadow: none;
     }
 
     .submit-state-icon {

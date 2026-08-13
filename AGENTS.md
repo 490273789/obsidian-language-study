@@ -49,8 +49,8 @@ This repo uses a single-context domain-doc layout. See `docs/agents/domain.md`.
 - `src/dictionary/`: dictionary registry plus dictionary-specific engines and Vue renderers.
 - `src/api/server.ts`: desktop-only localhost HTTP bridge for browser extension integration.
 - `src/utils/safeHtml.ts`: branded safe HTML helpers. Use this path for user-controlled HTML.
-- `src/stalin.css`: shared cyberpunk theme tokens and common UI classes. `src/main.css` imports it.
-- `docs/cyberpunk-ui.md`: visual design rules for plugin UI work.
+- `src/stalin.css`: shared minimal theme tokens and common UI classes. `src/main.css` imports it.
+- `docs/cyberpunk-ui.md`: visual design rules for plugin UI work (minimal style spec).
 - `tests/`: Vitest tests using `happy-dom` and `tests/mocks/obsidian.ts`.
 
 ## Commands

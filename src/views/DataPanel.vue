@@ -1,6 +1,10 @@
 <template>
     <div id="langr-data" class="langr-shell">
-        <NConfigProvider class="data-provider" :theme="theme" :theme-overrides="themeOverrides">
+        <NConfigProvider
+            class="data-provider"
+            :theme="theme"
+            :theme-overrides="themeOverrides"
+        >
             <div class="data-panel-layout">
                 <section class="data-toolbar langr-card">
                     <div class="data-filter-row">
@@ -44,7 +48,15 @@
 </template>
 
 <script setup lang="ts">
-import { h, ref, reactive, watch, watchEffect, Suspense, defineAsyncComponent } from "vue";
+import {
+    h,
+    ref,
+    reactive,
+    watch,
+    watchEffect,
+    Suspense,
+    defineAsyncComponent,
+} from "vue";
 import { NConfigProvider, NDataTable, NTag, NInput } from "naive-ui";
 import { t } from "@/lang/helper";
 import { moment } from "@/utils/moment";
@@ -70,7 +82,13 @@ interface Row {
     noteNum: number;
 }
 
-const statusMap = [t("Ignore"), t("Learning"), t("Familiar"), t("Known"), t("Learned")];
+const statusMap = [
+    t("Ignore"),
+    t("Learning"),
+    t("Familiar"),
+    t("Known"),
+    t("Learned"),
+];
 
 let loading = ref(true);
 let data = ref<Row[]>([]);
@@ -177,8 +195,8 @@ let collumns = reactive<DataTableColumns<Row>>([
                         type: "info",
                         size: "tiny",
                     },
-                    { default: () => tag }
-                )
+                    { default: () => tag },
+                ),
             );
         },
         filter(value: string | number, row: Row) {
@@ -225,15 +243,11 @@ let collumns = reactive<DataTableColumns<Row>>([
         flex-direction: column;
         gap: var(--langr-space-2);
         padding: var(--langr-space-3);
-        border-color: var(--langr-border-neon);
+        border-color: var(--langr-border);
         background:
-            linear-gradient(
-                90deg,
-                color-mix(in srgb, var(--langr-accent-hot) 10%, transparent),
-                transparent 42%
-            ),
+            linear-gradient(180deg, var(--langr-sheen), transparent),
             var(--langr-surface-glass);
-        box-shadow: var(--langr-shadow-strong);
+        box-shadow: var(--langr-shadow);
     }
 
     .data-filter-row {
@@ -246,10 +260,9 @@ let collumns = reactive<DataTableColumns<Row>>([
     .data-filter-label {
         width: 58px;
         flex: 0 0 auto;
-        color: var(--langr-accent);
+        color: var(--langr-muted);
         font-size: 12px;
-        font-weight: 700;
-        text-transform: uppercase;
+        font-weight: 600;
     }
 
     .tag-row {
@@ -262,7 +275,7 @@ let collumns = reactive<DataTableColumns<Row>>([
         border: 1px solid var(--langr-border-strong);
         border-radius: var(--langr-radius-sm);
         background: var(--langr-surface-inset);
-        box-shadow: var(--langr-glow-cyan);
+        box-shadow: inset 0 1px 0 var(--langr-hairline);
     }
 
     .tag-list {
@@ -278,7 +291,7 @@ let collumns = reactive<DataTableColumns<Row>>([
         min-height: 0;
         overflow: hidden;
         padding: var(--langr-space-2);
-        border-color: var(--langr-border-neon);
+        border-color: var(--langr-border);
         background: var(--langr-surface-raised);
         box-shadow: var(--langr-shadow-strong);
     }
@@ -299,10 +312,18 @@ let collumns = reactive<DataTableColumns<Row>>([
         --n-merged-border-color: var(--langr-border-strong);
         --n-border-color: var(--langr-border-strong);
         --n-td-color: var(--langr-surface);
-        --n-td-color-hover: color-mix(in srgb, var(--langr-accent) 8%, var(--langr-surface));
+        --n-td-color-hover: color-mix(
+            in srgb,
+            var(--langr-accent) 8%,
+            var(--langr-surface)
+        );
         --n-td-text-color: var(--text-normal);
         --n-th-color: var(--langr-surface-inset);
-        --n-th-color-hover: color-mix(in srgb, var(--langr-accent) 10%, var(--langr-surface-inset));
+        --n-th-color-hover: color-mix(
+            in srgb,
+            var(--langr-accent) 10%,
+            var(--langr-surface-inset)
+        );
         --n-th-text-color: var(--text-muted);
         --n-th-font-weight: 700;
         --n-resizable-container-size: 0;
@@ -337,7 +358,11 @@ let collumns = reactive<DataTableColumns<Row>>([
 
     .n-data-table .n-data-table-tr:hover,
     .n-data-table .n-data-table-tr:hover .n-data-table-td {
-        background: color-mix(in srgb, var(--langr-accent) 8%, var(--langr-surface));
+        background: color-mix(
+            in srgb,
+            var(--langr-accent) 8%,
+            var(--langr-surface)
+        );
     }
 
     .n-data-table .n-data-table-td--last-row {
@@ -359,7 +384,8 @@ let collumns = reactive<DataTableColumns<Row>>([
                 border: 1px solid var(--langr-border-strong);
                 border-radius: var(--langr-radius-sm);
                 background: var(--langr-surface-inset);
-                box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--langr-accent) 7%, transparent);
+                box-shadow: inset 0 0 0 1px
+                    color-mix(in srgb, var(--langr-accent) 7%, transparent);
             }
         }
 

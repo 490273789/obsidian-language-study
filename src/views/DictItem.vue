@@ -1,5 +1,8 @@
 <template>
-    <section class="dict-item" :class="{ open: isOpen, expand: isExpand, loading: isLoading }">
+    <section
+        class="dict-item"
+        :class="{ open: isOpen, expand: isExpand, loading: isLoading }"
+    >
         <header class="dict-item-header" @click="onOpen">
             <div :class="['dict-icon', props.id]"></div>
             <span class="dict-name">{{ props.name }}</span>
@@ -70,7 +73,7 @@ watch(
         } else {
             isOpen.value = true;
         }
-    }
+    },
 );
 
 function onOpen() {
@@ -90,7 +93,8 @@ function onExpand() {
 let bgRGB = Platform.isMobileApp
     ? getRGB(".workspace-drawer.mod-left", "background-color")
     : getRGB(".workspace-leaf", "background-color");
-let makeRGBA = (rgb: typeof bgRGB, alpha: number) => `rgba(${rgb.R},${rgb.G},${rgb.B}, ${alpha})`;
+let makeRGBA = (rgb: typeof bgRGB, alpha: number) =>
+    `rgba(${rgb.R},${rgb.G},${rgb.B}, ${alpha})`;
 let bgRGBA1 = ref(makeRGBA(bgRGB, 0));
 let bgRGBA2 = ref(makeRGBA(bgRGB, 0.5));
 let bgRGBA3 = ref(makeRGBA(bgRGB, 1));
@@ -112,7 +116,7 @@ watch(
         bgRGBA1.value = makeRGBA(bgRGB, 0);
         bgRGBA2.value = makeRGBA(bgRGB, 0.5);
         bgRGBA3.value = makeRGBA(bgRGB, 1);
-    }
+    },
 );
 </script>
 
@@ -120,10 +124,10 @@ watch(
 .dict-item {
     overflow: hidden;
     margin-bottom: var(--langr-space-3);
-    border: 1px solid var(--langr-border-neon);
+    border: 1px solid var(--langr-border);
     border-radius: var(--langr-radius-md);
     background: var(--langr-surface-raised);
-    box-shadow: var(--langr-shadow-strong);
+    box-shadow: var(--langr-shadow);
 
     header.dict-item-header {
         display: flex;
@@ -135,11 +139,7 @@ watch(
         padding: var(--langr-space-2);
         border-bottom: 1px solid var(--langr-border-strong);
         background:
-            linear-gradient(
-                90deg,
-                color-mix(in srgb, var(--langr-accent) 12%, transparent),
-                transparent 48%
-            ),
+            linear-gradient(180deg, var(--langr-sheen), transparent),
             v-bind(bgRGBA3);
         min-height: 34px;
         cursor: pointer;
@@ -154,10 +154,9 @@ watch(
 
         .dict-name {
             font-size: 13px;
-            font-weight: 700;
+            font-weight: 600;
             line-height: 1.2;
-            color: var(--langr-accent);
-            text-transform: uppercase;
+            color: var(--text-normal);
         }
 
         .empty-area {
@@ -181,10 +180,13 @@ watch(
             box-shadow: none;
 
             &:hover {
-                color: var(--langr-accent-hot);
+                color: var(--langr-accent);
                 border-color: var(--langr-border-hover);
-                background: color-mix(in srgb, var(--langr-accent-hot) 11%, transparent);
-                box-shadow: var(--langr-glow-hot);
+                background: color-mix(
+                    in srgb,
+                    var(--langr-accent) 8%,
+                    transparent
+                );
             }
 
             .fold-arrow {
@@ -228,9 +230,6 @@ watch(
                 z-index: 10;
                 bottom: 0;
                 fill: var(--langr-accent);
-                filter: drop-shadow(
-                    0 0 6px color-mix(in srgb, var(--langr-accent) 48%, transparent)
-                );
                 margin: 0 auto;
             }
         }
