@@ -1,10 +1,11 @@
 import { t } from "@/lang/helper";
 import type { DictionaryAdapter, DictionaryLookupReceipt } from "./interface";
 
-import { search as youdaoSearch, type YoudaoResult } from "./youdao/engine";
-import { search as cambridgeSearch, type CambridgeResult } from "./cambridge/engine";
-import { search as deeplSearch } from "./deepl/engine";
-import { search as hjdictSearch, type HjdictResult } from "./hjdict/engine";
+import { search as youdaoSearch, type YoudaoResult } from "@dict/youdao/engine";
+import { search as cambridgeSearch, type CambridgeResult } from "@dict/cambridge/engine";
+import { search as deeplSearch } from "@dict/deepl/engine";
+import { search as hjdictSearch, type HjdictResult } from "@dict/hjdict/engine";
+import { translateSentence } from "./translation";
 
 export const youdaoAdapter: DictionaryAdapter<YoudaoResult> = {
     id: "youdao",
@@ -38,21 +39,7 @@ export const youdaoAdapter: DictionaryAdapter<YoudaoResult> = {
         }
     },
     async translate(sentence: string): Promise<string> {
-        const trimmed = sentence.trim();
-        if (!trimmed) {
-            return "";
-        }
-        try {
-            const res = await youdaoSearch(trimmed);
-            if (res && (res.result as any)?.translation) {
-                const html = (res.result as any).translation as string;
-                const paragraphs = html.match(/<p>([^<>]+)<\/p>/g);
-                return paragraphs?.[1]?.match(/<p>(.*)<\/p>/)?.[1]?.trim() ?? "";
-            }
-            return "";
-        } catch {
-            return "";
-        }
+        return translateSentence(sentence, youdaoSearch);
     },
 };
 

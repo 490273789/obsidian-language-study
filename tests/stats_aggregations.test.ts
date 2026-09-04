@@ -58,6 +58,7 @@ describe("stats aggregations (pure domain)", () => {
                 expect(item.dayLearned).toBe(0);
                 expect(item.accumulated).toBe(0);
                 expect(item.statusBreakdown).toEqual([0, 0, 0, 0, 0]);
+                expect(item.accumulatedBreakdown).toEqual([0, 0, 0, 0, 0]);
             }
         });
 
@@ -106,6 +107,7 @@ describe("stats aggregations (pure domain)", () => {
                 dayLearned: 2,
                 accumulated: 5,
                 statusBreakdown: [1, 1, 0, 1, 0],
+                accumulatedBreakdown: [2, 2, 0, 1, 0],
             });
 
             // 9-3:
@@ -117,6 +119,7 @@ describe("stats aggregations (pure domain)", () => {
                 dayLearned: 1,
                 accumulated: 6,
                 statusBreakdown: [0, 0, 0, 0, 1],
+                accumulatedBreakdown: [2, 2, 0, 1, 1],
             });
 
             // 9-4:
@@ -128,6 +131,7 @@ describe("stats aggregations (pure domain)", () => {
                 dayLearned: 1,
                 accumulated: 9,
                 statusBreakdown: [2, 0, 1, 0, 0],
+                accumulatedBreakdown: [4, 2, 1, 1, 1],
             });
         });
 
@@ -143,6 +147,7 @@ describe("stats aggregations (pure domain)", () => {
             const stats = aggregateDailyLearningStats(items, windows);
             expect(stats[0].dayLearned).toBe(1);
             expect(stats[0].accumulated).toBe(1);
+            expect(stats[0].accumulatedBreakdown).toEqual([0, 1, 0, 0, 0]);
         });
     });
 
@@ -170,6 +175,7 @@ describe("stats aggregations (pure domain)", () => {
                 dayLearned: 3, // 1 + 2
                 accumulated: 17, // 10 + 5 + 2
                 statusBreakdown: [3, 1, 2, 0, 0],
+                accumulatedBreakdown: [10, 5, 2, 0, 0],
             });
             expect(result[1]).toEqual({
                 dateLabel: "9-4",
@@ -178,6 +184,7 @@ describe("stats aggregations (pure domain)", () => {
                 dayLearned: 2, // 1 + 1
                 accumulated: 20, // 11 + 5 + 2 + 1 + 1
                 statusBreakdown: [1, 0, 0, 1, 1],
+                accumulatedBreakdown: [11, 5, 2, 1, 1],
             });
         });
     });

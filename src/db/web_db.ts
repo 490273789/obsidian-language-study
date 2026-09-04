@@ -301,6 +301,7 @@ export class WebDb extends DbProvider {
                 dayLearned: 0,
                 accumulated: 0,
                 statusBreakdown: [0, 0, 0, 0, 0],
+                accumulatedBreakdown: [0, 0, 0, 0, 0],
             }));
         }
     }

@@ -50,8 +50,8 @@ export function aggregateDailyLearningStats(
 
     // 初始化各个窗口的当天明细统计容器
     const windowBreakdowns = windows.map(() => new Array<number>(5).fill(0));
-    // 统计早于第一个窗口的所有存量记录（用于计算初始累计基数）
-    let priorAccumulated = 0;
+    // 统计早于第一个窗口的所有存量记录（用于计算初始累计基数，按状态细分）
+    const priorBreakdown = new Array<number>(5).fill(0);
 
     for (const item of items) {
         // 过滤非 WORD 类型的项（如果调用方混入了其他类型）
@@ -72,7 +72,7 @@ export function aggregateDailyLearningStats(
 
         // 如果早于整个统计窗口的最开始时刻，计入窗口前存量
         if (date < firstWindow.from) {
-            priorAccumulated++;
+            priorBreakdown[status]++;
             continue;
         }
 
@@ -86,26 +86,28 @@ export function aggregateDailyLearningStats(
         }
     }
 
-    // 滑动累计计算
-    let runningTotal = priorAccumulated;
+    // 滑动累计计算（按状态及总数）
+    const runningAccumulatedBreakdown = [...priorBreakdown];
     const result: DailyLearningStat[] = [];
 
     for (let w = 0; w < windows.length; w++) {
         const win = windows[w];
         const breakdown = windowBreakdowns[w];
+        for (let s = 0; s < 5; s++) {
+            runningAccumulatedBreakdown[s] += breakdown[s];
+        }
         const dayIgnore = breakdown[0];
         const dayLearned = breakdown.slice(1).reduce((acc, count) => acc + count, 0);
-        const dayTotal = dayIgnore + dayLearned;
-
-        runningTotal += dayTotal;
+        const accumulated = runningAccumulatedBreakdown.reduce((acc, count) => acc + count, 0);
 
         result.push({
             dateLabel: win.dateLabel,
             timestamp: win.to,
             dayIgnore,
             dayLearned,
-            accumulated: runningTotal,
+            accumulated,
             statusBreakdown: [...breakdown],
+            accumulatedBreakdown: [...runningAccumulatedBreakdown],
         });
     }
 
@@ -140,6 +142,7 @@ export function convertLegacyWordCounts(
             dayLearned,
             accumulated,
             statusBreakdown: [...today],
+            accumulatedBreakdown: [...accumulatedArr],
         };
     });
 }

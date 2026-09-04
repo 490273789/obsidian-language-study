@@ -342,14 +342,10 @@ export class LocalDb extends DbProvider {
 
     async countSeven(): Promise<WordCount[]> {
         const stats = await this.getDailyLearningStats(7);
-        return stats.map((s) => {
-            // 为向后兼容旧的 WordCount 结构（5个状态的数组）
-            const today = [...s.statusBreakdown];
-            return {
-                today,
-                accumulated: [0, 0, 0, 0, s.accumulated],
-            };
-        });
+        return stats.map((s) => ({
+            today: [...s.statusBreakdown],
+            accumulated: [...s.accumulatedBreakdown],
+        }));
     }
 
     async importDB(file: File) {

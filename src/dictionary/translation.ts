@@ -1,4 +1,4 @@
-import { search as youdaoSearch } from "./youdao/engine";
+import { search as youdaoSearch } from "@dict/youdao/engine";
 
 export type SentenceTranslateEngine = (text: string) => Promise<unknown>;
 

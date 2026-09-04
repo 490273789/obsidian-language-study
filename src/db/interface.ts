@@ -71,6 +71,7 @@ interface DailyLearningStat {
     dayLearned: number;
     accumulated: number;
     statusBreakdown: readonly number[];
+    accumulatedBreakdown: readonly number[];
 }
 
 interface LearningRecordTimeItem {
