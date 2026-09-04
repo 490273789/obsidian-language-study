@@ -1,3 +1,5 @@
+import { getStoredLanguage } from "@/lang/helper";
+
 import { fetchDirtyDOM } from "../helpers";
 // import { getStaticSpeaker } from '@/components/Speaker'
 import {
@@ -23,7 +25,7 @@ export const getSrcPage: GetSrcPageFunction = (text) => {
         zh: "en-chs",
         "zh-TW": "en-chz",
     };
-    let language = window.localStorage.getItem("language") ?? "en";
+    let language = getStoredLanguage();
     let lang = langDict[language] || "en";
     //   if (lang === 'default') {
     //     switch (config.langCode) {
