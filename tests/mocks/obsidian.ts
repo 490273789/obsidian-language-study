@@ -108,8 +108,7 @@ function createMoment(base?: number) {
         startOf: () => createMoment(Math.floor(value / DAY_MS) * DAY_MS),
         add: (amount: number, unit: string) =>
             createMoment(value + amount * (unit === "days" ? DAY_MS : 0)),
-        endOf: () =>
-            createMoment(Math.floor(value / DAY_MS) * DAY_MS + DAY_MS - 1000),
+        endOf: () => createMoment(Math.floor(value / DAY_MS) * DAY_MS + DAY_MS - 1000),
         format: () => "",
     };
 }

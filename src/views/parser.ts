@@ -16,9 +16,7 @@ import type { ArticleRenderContext } from "./renderArticle";
 
 type ParserQueryStore = Readonly<{
     getStoredWords(payload: ArticleWords): Promise<WordsPhrase>;
-    getExpressionsSimple(
-        expressions: string[],
-    ): Promise<ExpressionInfoSimple[]>;
+    getExpressionsSimple(expressions: string[]): Promise<ExpressionInfoSimple[]>;
 }>;
 
 export class TextParser {
@@ -42,14 +40,10 @@ export class TextParser {
             article: text.toLowerCase(),
             words,
         });
-        return this.db.getExpressionsSimple(
-            selectPositiveExpressions(wordsPhrases),
-        );
+        return this.db.getExpressionsSimple(selectPositiveExpressions(wordsPhrases));
     }
 
-    private async buildRenderContext(
-        text: string,
-    ): Promise<ArticleRenderContext> {
+    private async buildRenderContext(text: string): Promise<ArticleRenderContext> {
         const words = collectArticleWords(text);
         const wordsPhrases = await this.db.getStoredWords({
             article: text.toLowerCase(),
@@ -57,9 +51,7 @@ export class TextParser {
         });
 
         const wordStatuses = new Map<string, ExpressionStatus>();
-        wordsPhrases.words.forEach((word) =>
-            wordStatuses.set(word.text, word.status),
-        );
+        wordsPhrases.words.forEach((word) => wordStatuses.set(word.text, word.status));
 
         return {
             phrases: wordsPhrases.phrases,

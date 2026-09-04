@@ -34,18 +34,11 @@ import { MyPluginSettings, normalizeSettings, SettingTab } from "./settings";
 import store from "./store";
 import { playPronunciation } from "./utils/helpers";
 import type { Position } from "./constant";
-import {
-    emitLangrRefresh,
-    emitLangrRefreshStat,
-    emitLangrSearch,
-} from "./events";
+import type { ReadingSelection } from "./reading/readingContext";
+import { emitLangrRefresh, emitLangrRefreshStat, emitLangrSearch } from "./events";
 import { getVaultBasePath } from "./utils/platform";
 import { moment } from "./utils/moment";
-import {
-    activatePluginView,
-    detachPluginViews,
-    registerPluginViews,
-} from "./plugin/views";
+import { activatePluginView, detachPluginViews, registerPluginViews } from "./plugin/views";
 import { registerPluginCommands } from "./plugin/commands";
 import { registerInputHandlers } from "./plugin/input";
 import { LearningRecordIntakeModule } from "./learningRecord/intake";
@@ -82,7 +75,7 @@ export default class LanguageLearner extends Plugin {
                   this.settings.host,
                   this.settings.port,
                   this.settings.use_https,
-                  this.settings.api_key,
+                  this.settings.api_key
               )
             : new LocalDb(this);
         await this.db.open();
@@ -117,7 +110,7 @@ export default class LanguageLearner extends Plugin {
             this.app.workspace.on("css-change", () => {
                 store.dark = document.body.hasClass("theme-dark");
                 store.themeChange = !store.themeChange;
-            }),
+            })
         );
 
         // 创建全局app用于各种浮动元素
@@ -221,7 +214,7 @@ export default class LanguageLearner extends Plugin {
                 state: leaf.view.getState(),
                 //popstate: true,
             } as ViewState,
-            { focus },
+            { focus }
         );
     }
 
@@ -242,16 +235,13 @@ export default class LanguageLearner extends Plugin {
                 reviewDelimiter: this.settings.review_delimiter,
             }),
             expressionStore: {
-                getAllExpressionSimple: (ignores) =>
-                    this.db.getAllExpressionSimple(ignores),
+                getAllExpressionSimple: (ignores) => this.db.getAllExpressionSimple(ignores),
                 getExpressionAfter: (time) => this.db.getExpressionAfter(time),
             },
             vault: {
                 getFile: (path) => {
                     const file = this.app.vault.getAbstractFileByPath(path);
-                    return file && !("children" in file)
-                        ? (file as TFile)
-                        : null;
+                    return file && !("children" in file) ? (file as TFile) : null;
                 },
                 read: (file) => this.app.vault.read(file),
                 write: (file, text) => this.app.vault.modify(file, text),
@@ -259,7 +249,7 @@ export default class LanguageLearner extends Plugin {
             completionReloader: {
                 reloadCustomDictionaries: () => {
                     (this.app as any).commands.executeCommandById(
-                        "various-complements:reload-custom-dictionaries",
+                        "various-complements:reload-custom-dictionaries"
                     );
                 },
             },
@@ -279,26 +269,22 @@ export default class LanguageLearner extends Plugin {
                 emitLangrRefreshStat();
             },
             textDatabasePublication: {
-                publishWordDatabase: () =>
-                    this.textDatabasePublication.publishWordDatabase(),
-                publishReviewDatabase: () =>
-                    this.textDatabasePublication.publishReviewDatabase(),
+                publishWordDatabase: () => this.textDatabasePublication.publishWordDatabase(),
+                publishReviewDatabase: () => this.textDatabasePublication.publishReviewDatabase(),
             },
             isAutomaticPublicationEnabled: () => this.settings.auto_refresh_db,
             now: () => moment().unix(),
         });
     }
 
-    reportTextDatabasePublicationResult(
-        result: TextDatabasePublicationResult,
-    ): void {
+    reportTextDatabasePublicationResult(result: TextDatabasePublicationResult): void {
         if (result.status !== "invalidTarget") {
             return;
         }
         new Notice(
             result.target === "word"
                 ? "Invalid refresh database path"
-                : "Invalid word database path",
+                : "Invalid word database path"
         );
     }
 
@@ -316,8 +302,7 @@ export default class LanguageLearner extends Plugin {
     };
 
     refreshReviewDb = async (): Promise<TextDatabasePublicationResult> => {
-        const result =
-            await this.textDatabasePublication.publishReviewDatabase();
+        const result = await this.textDatabasePublication.publishReviewDatabase();
         this.reportTextDatabasePublicationResult(result);
         return result;
     };
@@ -328,21 +313,11 @@ export default class LanguageLearner extends Plugin {
         pluginSelf.register(
             around(MarkdownView.prototype, {
                 onPaneMenu(next) {
-                    return function (
-                        this: MarkdownView,
-                        m: Menu,
-                        source: string,
-                    ) {
+                    return function (this: MarkdownView, m: Menu, source: string) {
                         const file = this.file;
-                        const cache = file
-                            ? pluginSelf.app.metadataCache.getFileCache(file)
-                            : null;
+                        const cache = file ? pluginSelf.app.metadataCache.getFileCache(file) : null;
 
-                        if (
-                            !file ||
-                            !cache?.frontmatter ||
-                            !cache?.frontmatter[FRONT_MATTER_KEY]
-                        ) {
+                        if (!file || !cache?.frontmatter || !cache?.frontmatter[FRONT_MATTER_KEY]) {
                             return next.call(this, m, source);
                         }
 
@@ -357,7 +332,7 @@ export default class LanguageLearner extends Plugin {
                         next.call(this, m, source);
                     };
                 },
-            }),
+            })
         );
 
         // 增加标题栏切换阅读模式和mardown模式的按钮
@@ -367,43 +342,26 @@ export default class LanguageLearner extends Plugin {
                     return function (
                         this: WorkspaceLeaf,
                         state: ViewState,
-                        eState?: unknown,
+                        eState?: unknown
                     ): Promise<void> {
                         return next.call(this, state, eState).then(() => {
-                            if (
-                                state.type === "markdown" &&
-                                state.state?.file
-                            ) {
-                                const cache =
-                                    pluginSelf.app.metadataCache.getCache(
-                                        state.state.file as string,
-                                    );
-                                if (
-                                    cache?.frontmatter &&
-                                    cache.frontmatter[FRONT_MATTER_KEY]
-                                ) {
-                                    if (
-                                        !pluginSelf.markdownButtons["reading"]
-                                    ) {
+                            if (state.type === "markdown" && state.state?.file) {
+                                const cache = pluginSelf.app.metadataCache.getCache(
+                                    state.state.file as string
+                                );
+                                if (cache?.frontmatter && cache.frontmatter[FRONT_MATTER_KEY]) {
+                                    if (!pluginSelf.markdownButtons["reading"]) {
                                         // 在软件初始化的时候，view上面可能没有 addAction 这个方法
                                         setTimeout(() => {
-                                            const action = (
-                                                this.view as MarkdownView
-                                            ).addAction(
+                                            const action = (this.view as MarkdownView).addAction(
                                                 "view",
                                                 t("Open as Reading View"),
                                                 () => {
-                                                    void pluginSelf.setReadingView(
-                                                        this,
-                                                    );
-                                                },
+                                                    void pluginSelf.setReadingView(this);
+                                                }
                                             );
-                                            pluginSelf.markdownButtons[
-                                                "reading"
-                                            ] = action;
-                                            action.addClass(
-                                                "change-to-reading",
-                                            );
+                                            pluginSelf.markdownButtons["reading"] = action;
+                                            action.addClass("change-to-reading");
                                         });
                                     }
                                 } else {
@@ -416,8 +374,7 @@ export default class LanguageLearner extends Plugin {
                                         ?.querySelectorAll(".change-to-reading")
                                         .forEach((el) => el.remove());
                                     // pluginSelf.markdownButtons["reading"]?.remove();
-                                    pluginSelf.markdownButtons["reading"] =
-                                        null;
+                                    pluginSelf.markdownButtons["reading"] = null;
                                 }
                             } else {
                                 pluginSelf.markdownButtons["reading"] = null;
@@ -425,14 +382,14 @@ export default class LanguageLearner extends Plugin {
                         });
                     };
                 },
-            }),
+            })
         );
     };
 
     async queryWord(
         word: string,
-        target?: HTMLElement,
-        evtPosition?: Position,
+        context?: ReadingSelection,
+        evtPosition?: Position
     ): Promise<void> {
         if (!word) return;
 
@@ -440,11 +397,11 @@ export default class LanguageLearner extends Plugin {
             await this.activateView(SEARCH_PANEL_VIEW, "left");
         }
 
-        if (target && Platform.isDesktopApp) {
+        if (context && Platform.isDesktopApp) {
             await this.activateView(LEARN_PANEL_VIEW, "right");
         }
 
-        emitLangrSearch(word, target, evtPosition);
+        emitLangrSearch(word, context, evtPosition);
 
         if (this.settings.auto_pron) {
             playPronunciation(word, this.settings.review_prons);

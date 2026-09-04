@@ -74,18 +74,12 @@ export class ReadingView extends TextFileView {
                 write: (text) => this.plugin.app.vault.modify(file, text),
             },
             progressStore: {
-                getPosition: () =>
-                    this.plugin.frontManager.getFrontMatter(file, "langr-pos"),
+                getPosition: () => this.plugin.frontManager.getFrontMatter(file, "langr-pos"),
                 setPosition: (position) =>
-                    this.plugin.frontManager.setFrontMatter(
-                        file,
-                        "langr-pos",
-                        position,
-                    ),
+                    this.plugin.frontManager.setFrontMatter(file, "langr-pos", position),
             },
             expressionLookup: {
-                getWordsPhrases: (text) =>
-                    this.plugin.parser.getWordsPhrases(text),
+                getWordsPhrases: (text) => this.plugin.parser.getWordsPhrases(text),
             },
         });
     }
@@ -144,7 +138,7 @@ export class ReadingView extends TextFileView {
         }
         let selectSpan = document.body.createSpan({ cls: "select" });
         parent.insertBefore(selectSpan, elStart);
-        for (let el: Node | null = elStart; el && el !== elEnd; ) {
+        for (let el: Node | null = elStart; el && el !== elEnd;) {
             const next: ChildNode | null = el.nextSibling;
             selectSpan.appendChild(el);
             el = next;
@@ -155,8 +149,7 @@ export class ReadingView extends TextFileView {
 
     removeSelect() {
         //把span.select里面的东西拿出来
-        let selects =
-            this.contentEl.querySelectorAll<HTMLElement>("span.select");
+        let selects = this.contentEl.querySelectorAll<HTMLElement>("span.select");
         selects.forEach((el) => {
             let parent = el.parentElement;
             if (!parent) {
@@ -180,10 +173,7 @@ export class ReadingView extends TextFileView {
     }
 
     async onOpen() {
-        addEventListener(
-            "obsidian-langr-refresh",
-            this.refresh as EventListener,
-        );
+        addEventListener("obsidian-langr-refresh", this.refresh as EventListener);
         this.initHeaderButtons();
 
         // const contentEl = this.contentEl.createEl("div", {
@@ -193,23 +183,16 @@ export class ReadingView extends TextFileView {
 
     async onClose() {
         this.closed = true;
-        removeEventListener(
-            "obsidian-langr-refresh",
-            this.refresh as EventListener,
-        );
+        removeEventListener("obsidian-langr-refresh", this.refresh as EventListener);
         this.vueapp?.unmount();
         this.vueapp = null;
         const result = await this.session?.close();
         if (result?.progress === "failed") {
-            console.warn(
-                "Reading Session could not save its confirmed position while closing",
-            );
+            console.warn("Reading Session could not save its confirmed position while closing");
             new Notice(t("Reading position has not been saved"));
         }
         if (result?.words === "failed") {
-            console.warn(
-                "Reading Session could not update the Reading Document words material",
-            );
+            console.warn("Reading Session could not update the Reading Document words material");
             new Notice(t("Reading Document words could not be updated"));
         }
     }

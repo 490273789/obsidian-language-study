@@ -21,10 +21,7 @@ import { buildDaySpans } from "./spans";
 import type Plugin from "@/plugin";
 import { moment } from "@/utils/moment";
 import { LearningRecordStoreError } from "@/learningRecord/intake";
-import type {
-    LearningRecordCandidate,
-    LearningRecordCommitReceipt,
-} from "@/learningRecord/intake";
+import type { LearningRecordCandidate, LearningRecordCommitReceipt } from "@/learningRecord/intake";
 
 type PhraseAutomaton = {
     search(article: string): Promise<[number, string][]>;
@@ -72,10 +69,7 @@ export class LocalDb extends DbProvider {
 
         this.phraseCache = {
             statuses,
-            automaton:
-                statuses.size > 0
-                    ? await createAutomaton([...statuses.keys()])
-                    : null,
+            automaton: statuses.size > 0 ? await createAutomaton([...statuses.keys()]) : null,
         };
         return this.phraseCache;
     }
@@ -83,10 +77,7 @@ export class LocalDb extends DbProvider {
     // 寻找页面中已经记录过的单词和词组
     async getStoredWords(payload: ArticleWords): Promise<WordsPhrase> {
         let storedWords = (
-            await this.idb.expressions
-                .where("expression")
-                .anyOf(payload.words)
-                .toArray()
+            await this.idb.expressions.where("expression").anyOf(payload.words).toArray()
         ).map((expr) => {
             return { text: expr.expression, status: expr.status } as Word;
         });
@@ -95,15 +86,13 @@ export class LocalDb extends DbProvider {
         if (payload.article) {
             const phraseCache = await this.getPhraseCache();
             searchedPhrases = phraseCache.automaton
-                ? (await phraseCache.automaton.search(payload.article)).map(
-                      (match) => {
-                          return {
-                              text: match[1],
-                              status: phraseCache.statuses.get(match[1]) ?? 0,
-                              offset: match[0],
-                          } as Phrase;
-                      },
-                  )
+                ? (await phraseCache.automaton.search(payload.article)).map((match) => {
+                      return {
+                          text: match[1],
+                          status: phraseCache.statuses.get(match[1]) ?? 0,
+                          offset: match[0],
+                      } as Phrase;
+                  })
                 : [];
         }
 
@@ -112,10 +101,7 @@ export class LocalDb extends DbProvider {
 
     async getExpression(expression: string): Promise<ExpressionInfo | null> {
         expression = expression.toLowerCase();
-        let expr = await this.idb.expressions
-            .where("expression")
-            .equals(expression)
-            .first();
+        let expr = await this.idb.expressions.where("expression").equals(expression).first();
 
         if (!expr) {
             return null;
@@ -137,15 +123,10 @@ export class LocalDb extends DbProvider {
         };
     }
 
-    async getExpressionsSimple(
-        expressions: string[],
-    ): Promise<ExpressionInfoSimple[]> {
+    async getExpressionsSimple(expressions: string[]): Promise<ExpressionInfoSimple[]> {
         expressions = expressions.map((e) => e.toLowerCase());
 
-        let exprs = await this.idb.expressions
-            .where("expression")
-            .anyOf(expressions)
-            .toArray();
+        let exprs = await this.idb.expressions.where("expression").anyOf(expressions).toArray();
 
         return exprs.map((v) => {
             return {
@@ -188,35 +169,30 @@ export class LocalDb extends DbProvider {
         }
         return res;
     }
-    async getAllExpressionSimple(
-        ignores?: boolean,
-    ): Promise<ExpressionInfoSimple[]> {
+    async getAllExpressionSimple(ignores?: boolean): Promise<ExpressionInfoSimple[]> {
         let exprs: ExpressionInfoSimple[];
         let bottomStatus = ignores ? -1 : 0;
-        exprs = (
-            await this.idb.expressions
-                .where("status")
-                .above(bottomStatus)
-                .toArray()
-        ).map((expr): ExpressionInfoSimple => {
-            return {
-                expression: expr.expression,
-                status: expr.status,
-                meaning: expr.meaning,
-                t: expr.t,
-                tags: [...expr.tags.keys()],
-                note_num: expr.notes.length,
-                sen_num: expr.sentences.size,
-                date: expr.date,
-            };
-        });
+        exprs = (await this.idb.expressions.where("status").above(bottomStatus).toArray()).map(
+            (expr): ExpressionInfoSimple => {
+                return {
+                    expression: expr.expression,
+                    status: expr.status,
+                    meaning: expr.meaning,
+                    t: expr.t,
+                    tags: [...expr.tags.keys()],
+                    note_num: expr.notes.length,
+                    sen_num: expr.sentences.size,
+                    date: expr.date,
+                };
+            }
+        );
 
         return exprs;
     }
 
     async commitWhole(
         candidate: LearningRecordCandidate,
-        firstAcceptedAtIfNew: number,
+        firstAcceptedAtIfNew: number
     ): Promise<LearningRecordCommitReceipt> {
         let receipt: LearningRecordCommitReceipt;
         try {
@@ -237,10 +213,7 @@ export class LocalDb extends DbProvider {
                             .equals(sentence.text)
                             .first();
                         if (searched?.id !== undefined) {
-                            await this.idb.sentences.update(
-                                searched.id,
-                                sentence,
-                            );
+                            await this.idb.sentences.update(searched.id, sentence);
                             sentenceIds.add(searched.id);
                         } else {
                             const id = await this.idb.sentences.add(sentence);
@@ -248,8 +221,7 @@ export class LocalDb extends DbProvider {
                         }
                     }
 
-                    const firstAcceptedAt =
-                        stored?.date ?? firstAcceptedAtIfNew;
+                    const firstAcceptedAt = stored?.date ?? firstAcceptedAtIfNew;
                     const storedRecord = {
                         expression: candidate.expression,
                         meaning: candidate.meaning,
@@ -261,15 +233,11 @@ export class LocalDb extends DbProvider {
                         connections: new Map<string, string>(),
                         date: firstAcceptedAt,
                     };
-                    const operation =
-                        stored?.id === undefined ? "created" : "updated";
+                    const operation = stored?.id === undefined ? "created" : "updated";
                     if (stored?.id === undefined) {
                         await this.idb.expressions.add(storedRecord);
                     } else {
-                        await this.idb.expressions.update(
-                            stored.id,
-                            storedRecord,
-                        );
+                        await this.idb.expressions.update(stored.id, storedRecord);
                     }
 
                     return {
@@ -284,7 +252,7 @@ export class LocalDb extends DbProvider {
                             firstAcceptedAt,
                         },
                     } satisfies LearningRecordCommitReceipt;
-                },
+                }
             );
         } catch (error) {
             if (error instanceof Dexie.DexieError) {
@@ -321,17 +289,14 @@ export class LocalDb extends DbProvider {
                     connections: new Map<string, string>(),
                     date: moment().unix(),
                 };
-            }),
+            })
         );
         this.invalidatePhraseCache();
         return;
     }
 
     async tryGetSen(text: string): Promise<Sentence | null> {
-        let stored = await this.idb.sentences
-            .where("text")
-            .equals(text)
-            .first();
+        let stored = await this.idb.sentences.where("text").equals(text).first();
         return stored ?? null;
     }
 
@@ -361,11 +326,7 @@ export class LocalDb extends DbProvider {
             let today = new Array(5).fill(0);
             await this.idb.expressions
                 .filter((expr) => {
-                    return (
-                        expr.t == "WORD" &&
-                        expr.date >= span.from &&
-                        expr.date <= span.to
-                    );
+                    return expr.t == "WORD" && expr.date >= span.from && expr.date <= span.to;
                 })
                 .each((expr) => {
                     today[expr.status]++;

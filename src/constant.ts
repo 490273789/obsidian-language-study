@@ -1,3 +1,5 @@
+import type { ReadingSelection } from "@/reading/readingContext";
+
 const dict = {
     NAME: "Language Learner",
 };
@@ -10,7 +12,7 @@ type Position = {
 interface EventMap extends GlobalEventHandlersEventMap {
     "obsidian-langr-search": CustomEvent<{
         selection: string;
-        target?: HTMLElement;
+        context?: ReadingSelection;
         evtPosition?: Position;
     }>;
     "obsidian-langr-refresh": CustomEvent<{}>;

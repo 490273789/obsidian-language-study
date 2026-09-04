@@ -65,8 +65,7 @@ export default {
     "Meaning is empty!": "含义不应为空",
     "Meaning is empty": "含义不应为空",
     "Learning Record is invalid": "学习记录无效",
-    "Learning Record saved, but some updates failed":
-        "学习记录已保存，但部分更新失败",
+    "Learning Record saved, but some updates failed": "学习记录已保存，但部分更新失败",
     "Submit failed": "提交失败",
     Submit: "提交",
 
@@ -111,8 +110,7 @@ export default {
     "Auto pronounce when searching": "查词时自动发音",
     "Use a popup search panel": "使用弹出式查词面板",
     "Word Select": "划词翻译",
-    "Press function key and select text to translate":
-        "按下功能键同时划词或双击单词即可打开翻译",
+    "Press function key and select text to translate": "按下功能键同时划词或双击单词即可打开翻译",
     Disable: "关闭",
     "Dictionary Height": "词典默认展开高度",
     Dictionaries: "词典",
@@ -147,8 +145,7 @@ export default {
     // "Change": "Change",
     "Reopen DB after changing database name": "切换数据库后点击按钮重启数据库",
     "Import & Export": "导入导出数据",
-    "Warning: Import will override current database":
-        "警告: 导入会覆盖掉当前的数据库",
+    "Warning: Import will override current database": "警告: 导入会覆盖掉当前的数据库",
     Import: "导入",
     Export: "导出",
     "Get all ignores": "获取所有无视单词",
@@ -162,8 +159,7 @@ export default {
     "Use Machine Translation": "使用机器翻译",
     "Auto translate sentences": "用机器翻译自动翻译例句",
     "Open count bar": "开启单词计数条(较影响打开文章时的性能)",
-    "Count the word number of different type of article":
-        "计算文章中各种词的数目和占比",
+    "Count the word number of different type of article": "计算文章中各种词的数目和占比",
     "Font Size": "字体大小",
     "Like 15px or 1.5em": "比如 15px 或 1.5em",
     "Font Family": "字体",
@@ -185,6 +181,5 @@ export default {
     "Self as Server": "开启服务器功能",
     "Make plugin a server and interact with chrome extension":
         "插件打开一个服务器提供api，由此可以与谷歌浏览器插件交互",
-    "when changing port, you should restart the server":
-        "如果改变端口，请重启服务器",
+    "when changing port, you should restart the server": "如果改变端口，请重启服务器",
 };

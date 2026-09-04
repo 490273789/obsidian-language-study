@@ -65,8 +65,7 @@ export default {
     "Meaning is empty!": "含義不應為空",
     "Meaning is empty": "含義不應為空",
     "Learning Record is invalid": "學習記錄無效",
-    "Learning Record saved, but some updates failed":
-        "學習記錄已保存，但部分更新失敗",
+    "Learning Record saved, but some updates failed": "學習記錄已保存，但部分更新失敗",
     "Submit failed": "提交失敗",
     Submit: "提交",
 
@@ -98,8 +97,7 @@ export default {
 
     Translate: "查字",
     "Word Select": "劃詞翻譯",
-    "Press function key and select text to translate":
-        "按下功能鍵同時劃詞或雙擊單字即可開啟翻譯",
+    "Press function key and select text to translate": "按下功能鍵同時劃詞或雙擊單字即可開啟翻譯",
     Disable: "關閉",
     "Dictionary Height": "詞典預設展開高度",
     Dictionaries: "詞典",
@@ -122,13 +120,11 @@ export default {
     Yes: "確定",
     "No!!!": "不要!!!",
     Reset: "重置",
-    "Are you sure you want to reset last sync time?":
-        "確定要重置重新整理時間嗎?",
+    "Are you sure you want to reset last sync time?": "確定要重置重新整理時間嗎?",
 
     "Text Database": "文字資料庫",
     "Auto refresh": "自動重新整理資料庫",
-    "Auto refresh database when submitting":
-        "當提交單字時自動重新整理文字資料庫",
+    "Auto refresh database when submitting": "當提交單字時自動重新整理文字資料庫",
 
     "IndexDB Database": "IndexDB 資料庫",
     "Database Name": "資料庫名稱",
@@ -136,8 +132,7 @@ export default {
     // "Change": "Change",
     "Reopen DB after changing database name": "切換資料庫後點擊按鈕重啟資料庫",
     "Import & Export": "匯入導出數據",
-    "Warning: Import will override current database":
-        "警告: 匯入會覆蓋掉目前的資料庫",
+    "Warning: Import will override current database": "警告: 匯入會覆蓋掉目前的資料庫",
     Import: "匯入",
     Export: "導出",
     "Get all ignores": "獲取所有無視單字",
@@ -151,8 +146,7 @@ export default {
     "Use Machine Translation": "使用機器翻譯",
     "Auto translate sentences": "用機器翻譯自動翻譯例句",
     "Open count bar": "開啟單字計數條(較影響開啟文章時的效能)",
-    "Count the word number of different type of article":
-        "計算文章中各種詞的數目和佔比",
+    "Count the word number of different type of article": "計算文章中各種詞的數目和佔比",
     "Font Size": "字型大小",
     "Like 15px or 1.5em": "比如 15px 或 1.5em",
     "Font Family": "字型",
@@ -173,6 +167,5 @@ export default {
     "Self as Server": "開啟伺服器功能",
     "Make plugin a server and interact with chrome extension":
         "外掛開啟一個伺服器提供API，由此可以與Google瀏覽器外掛互動",
-    "when changing port, you should restart the server":
-        "如果改變埠，請重啟伺服器",
+    "when changing port, you should restart the server": "如果改變埠，請重啟伺服器",
 };

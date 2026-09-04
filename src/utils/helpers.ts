@@ -4,7 +4,6 @@ export function playAudio(src: string) {
 
 export function playPronunciation(word: string, accent: string) {
     const wordUrl =
-        `https://dict.youdao.com/dictvoice?type=${accent}&audio=` +
-        encodeURIComponent(word);
+        `https://dict.youdao.com/dictvoice?type=${accent}&audio=` + encodeURIComponent(word);
     playAudio(wordUrl);
 }

@@ -4,22 +4,11 @@ import { Root, Content, Literal, Parent, Sentence } from "nlcst";
 import { visit } from "unist-util-visit";
 import { toString } from "nlcst-to-string";
 
-import type {
-    ExpressionStatus,
-    Phrase,
-    Word,
-    WordsPhrase,
-} from "@/db/interface";
+import type { ExpressionStatus, Phrase, Word, WordsPhrase } from "@/db/interface";
 import { escapeHtml, unsafeMarkSafeHtml } from "@/utils/safeHtml";
 import type { SafeHtml } from "@/utils/safeHtml";
 
-const STATUS_MAP = [
-    "ignore",
-    "learning",
-    "familiar",
-    "known",
-    "learned",
-] as const;
+const STATUS_MAP = ["ignore", "learning", "familiar", "known", "learned"] as const;
 const processor = unified().use(retextEnglish);
 
 type AnyNode = Root | Content | Content[];
@@ -63,7 +52,7 @@ function collectArticleWords(text: string): string[] {
 // 根据已存储单词的状态，统计 [未知, 已学, 忽略]
 function countWordStatuses(
     words: readonly string[],
-    storedWords: readonly Word[],
+    storedWords: readonly Word[]
 ): [number, number, number] {
     const wordSet = new Set(words);
     let ignore = 0;
@@ -112,19 +101,14 @@ function wrapPhrases(tree: Root, phrases: Phrase[]): void {
             return;
         }
         const sentenceEnd = node.position?.end.offset ?? -1;
-        while (
-            phraseIndex < phrases.length &&
-            phrases[phraseIndex].offset < sentenceEnd
-        ) {
+        while (phraseIndex < phrases.length && phrases[phraseIndex].offset < sentenceEnd) {
             const phrase = phrases[phraseIndex];
             const children = node.children;
             const start = children.findIndex(
-                (child) => child.position?.start.offset === phrase.offset,
+                (child) => child.position?.start.offset === phrase.offset
             );
             const end = children.findIndex(
-                (child) =>
-                    child.position?.end.offset ===
-                    phrase.offset + phrase.text.length,
+                (child) => child.position?.end.offset === phrase.offset + phrase.text.length
             );
 
             if (start === -1 || end === -1 || end < start) {
@@ -138,8 +122,7 @@ function wrapPhrases(tree: Root, phrases: Phrase[]): void {
                 children: phraseChildren,
                 position: {
                     start: phraseChildren[0].position?.start,
-                    end: phraseChildren[phraseChildren.length - 1].position
-                        ?.end,
+                    end: phraseChildren[phraseChildren.length - 1].position?.end,
                 },
             } as unknown as (typeof children)[number]);
             phraseIndex++;
@@ -170,13 +153,8 @@ function toHTMLString(node: AnyNode, context: ParseContext): string {
             case "PhraseNode": {
                 const phraseNode = node as PhraseNode;
                 let childText = toString(phraseNode.children);
-                let text = toHTMLString(
-                    phraseNode.children as Content[],
-                    context,
-                );
-                let phrase = context.phrases.find(
-                    (p) => p.text === childText.toLowerCase(),
-                );
+                let text = toHTMLString(phraseNode.children as Content[], context);
+                let phrase = context.phrases.find((p) => p.text === childText.toLowerCase());
                 let status = phrase ? STATUS_MAP[phrase.status] : "new";
 
                 return `<span class="phrase ${status}">${text}</span>`;
@@ -195,10 +173,5 @@ function toHTMLString(node: AnyNode, context: ParseContext): string {
     return "";
 }
 
-export {
-    countWordStatuses,
-    collectArticleWords,
-    renderArticle,
-    selectPositiveExpressions,
-};
+export { countWordStatuses, collectArticleWords, renderArticle, selectPositiveExpressions };
 export type { ArticleRenderContext };

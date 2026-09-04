@@ -1,10 +1,6 @@
 <template>
     <div id="langr-learn-panel" class="langr-shell">
-        <NConfigProvider
-            class="learn-provider"
-            :theme="theme"
-            :theme-overrides="themeOverrides"
-        >
+        <NConfigProvider class="learn-provider" :theme="theme" :theme-overrides="themeOverrides">
             <div class="learn-panel-scroll">
                 <NForm
                     class="learn-form"
@@ -44,12 +40,8 @@
                         <div class="learn-choice-stack">
                             <NFormItem :label="t('Type')" path="t">
                                 <NRadioGroup v-model:value="model.t">
-                                    <NRadio value="WORD">{{
-                                        t("Word")
-                                    }}</NRadio>
-                                    <NRadio value="PHRASE">{{
-                                        t("Phrase")
-                                    }}</NRadio>
+                                    <NRadio value="WORD">{{ t("Word") }}</NRadio>
+                                    <NRadio value="PHRASE">{{ t("Phrase") }}</NRadio>
                                 </NRadioGroup>
                             </NFormItem>
                             <NFormItem :label="t('Status')" path="status">
@@ -58,11 +50,7 @@
                                     v-model:value="model.status"
                                     size="small"
                                 >
-                                    <NRadioButton
-                                        v-for="(s, i) in status"
-                                        :key="i"
-                                        :value="i"
-                                    >
+                                    <NRadioButton v-for="(s, i) in status" :key="i" :value="i">
                                         {{ s.text }}
                                     </NRadioButton>
                                 </NRadioGroup>
@@ -134,9 +122,7 @@
                                         <NInput
                                             size="small"
                                             type="textarea"
-                                            v-model:value="
-                                                model.sentences[index].text
-                                            "
+                                            v-model:value="model.sentences[index].text"
                                             :placeholder="t('Origin sentence')"
                                             :autosize="{
                                                 minRows: 1,
@@ -152,12 +138,8 @@
                                         <NInput
                                             size="small"
                                             type="textarea"
-                                            v-model:value="
-                                                model.sentences[index].trans
-                                            "
-                                            :placeholder="
-                                                t('Translation (Optional)')
-                                            "
+                                            v-model:value="model.sentences[index].trans"
+                                            :placeholder="t('Translation (Optional)')"
                                             :autosize="{
                                                 minRows: 1,
                                                 maxRows: 3,
@@ -172,12 +154,8 @@
                                         <NInput
                                             size="small"
                                             type="textarea"
-                                            v-model:value="
-                                                model.sentences[index].origin
-                                            "
-                                            :placeholder="
-                                                t('Origin (Optional)')
-                                            "
+                                            v-model:value="model.sentences[index].origin"
+                                            :placeholder="t('Origin (Optional)')"
                                             :autosize="{
                                                 minRows: 1,
                                                 maxRows: 3,
@@ -273,8 +251,8 @@ import { ExpressionInfo, ExpressionType, Sentence } from "@/db/interface";
 import { t } from "@/lang/helper";
 import { useEvent } from "@/utils/use";
 import { LearnPanelView } from "./LearnPanelView";
-import { ReadingView } from "./ReadingView";
-import { search } from "@dict/youdao/engine";
+import type { ReadingSelection } from "@/reading/readingContext";
+import { translateSentence } from "@/dictionary/translation";
 import store from "@/store";
 import { usePlugin, useView } from "@/ui/context";
 import { useLangrNaiveTheme, useLangrNaiveThemeOverrides } from "@/ui/theme";
@@ -392,10 +370,7 @@ async function submit() {
         new Notice(t("Meaning is empty!"));
         return;
     }
-    if (
-        model.value.expression.trim().split(" ").length > 1 &&
-        model.value.t === "WORD"
-    ) {
+    if (model.value.expression.trim().split(" ").length > 1 && model.value.t === "WORD") {
         new Notice(t("It looks more like a PHRASE than a WORD"));
         return;
     }
@@ -463,44 +438,20 @@ useEvent(window, "obsidian-langr-search", async (evt: CustomEvent) => {
         exprType = "PHRASE";
     }
 
-    let target = evt.detail.target as HTMLElement;
+    const context = evt.detail.context as ReadingSelection | undefined;
 
     let sentenceText = "";
     let storedSen: Sentence | null = null;
     let defaultOrigin = "";
     let filledTrans = "";
 
-    if (target) {
-        let sentenceEl = target.parentElement?.hasClass("stns")
-            ? target.parentElement
-            : target.parentElement?.parentElement;
-        if (!sentenceEl) {
-            return;
-        }
-        sentenceText = sentenceEl.textContent ?? "";
-
+    if (context) {
+        sentenceText = context.sentenceText;
+        defaultOrigin = context.origin;
         storedSen = await plugin.db.tryGetSen(sentenceText);
 
-        let reading = view.app.workspace.getActiveViewOfType(ReadingView);
-
-        if (reading?.file) {
-            let presetOrigin = view.app.metadataCache.getFileCache(reading.file)
-                ?.frontmatter?.["langr-origin"];
-            defaultOrigin = presetOrigin ? presetOrigin : reading.file.name;
-        }
-
-        if (plugin.settings.use_machine_trans) {
-            try {
-                let res = await search(sentenceText);
-                if (res && (res.result as any).translation) {
-                    let html = (res.result as any).translation as string;
-                    const paragraphs = html.match(/<p>([^<>]+)<\/p>/g);
-                    filledTrans =
-                        paragraphs?.[1]?.match(/<p>(.*)<\/p>/)?.[1] ?? "";
-                }
-            } catch (e) {
-                filledTrans = "";
-            }
+        if (plugin.settings.use_machine_trans && sentenceText) {
+            filledTrans = await translateSentence(sentenceText);
         }
     }
 
@@ -513,9 +464,7 @@ useEvent(window, "obsidian-langr-search", async (evt: CustomEvent) => {
                     origin: defaultOrigin,
                 });
             } else {
-                let added = expr.sentences.find(
-                    (sen) => sen.text === sentenceText,
-                );
+                let added = expr.sentences.find((sen) => sen.text === sentenceText);
                 if (!added) {
                     expr.sentences = expr.sentences.concat(storedSen);
                 }
@@ -524,7 +473,7 @@ useEvent(window, "obsidian-langr-search", async (evt: CustomEvent) => {
         model.value = expr;
         return;
     } else {
-        if (!target) {
+        if (!context) {
             model.value = {
                 expression: selection,
                 meaning: "",
@@ -696,8 +645,7 @@ useEvent(window, "obsidian-langr-search", async (evt: CustomEvent) => {
         border: 1px solid var(--langr-border);
         border-radius: var(--langr-radius-md);
         background:
-            linear-gradient(180deg, var(--langr-sheen), transparent),
-            var(--langr-surface-glass);
+            linear-gradient(180deg, var(--langr-sheen), transparent), var(--langr-surface-glass);
         box-shadow: var(--langr-shadow);
     }
 

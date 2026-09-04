@@ -42,14 +42,8 @@ describe("renderArticle (pure)", () => {
     });
 
     it("collects unique lowercased words, filtering numbers and CJK", () => {
-        expect(collectArticleWords("Alpha alpha beta 123")).toEqual([
-            "alpha",
-            "beta",
-        ]);
-        expect(collectArticleWords("hello 你好 world")).toEqual([
-            "hello",
-            "world",
-        ]);
+        expect(collectArticleWords("Alpha alpha beta 123")).toEqual(["alpha", "beta"]);
+        expect(collectArticleWords("hello 你好 world")).toEqual(["hello", "world"]);
     });
 
     it("counts unknown, learned, and ignored words", () => {
@@ -59,8 +53,8 @@ describe("renderArticle (pure)", () => {
                 [
                     { text: "alpha", status: 1 },
                     { text: "beta", status: 0 },
-                ],
-            ),
+                ]
+            )
         ).toEqual([1, 1, 1]);
     });
 
@@ -72,7 +66,7 @@ describe("renderArticle (pure)", () => {
                     { text: "alpha", status: 1 },
                     { text: "beta", status: 0 },
                 ],
-            }),
+            })
         ).toEqual(["new york", "alpha"]);
     });
 });

@@ -26,7 +26,7 @@ const props = withDefaults(
         unknown: 0,
         learn: 0,
         ignore: 0,
-    },
+    }
 );
 
 let isPercent = ref(true);
@@ -88,8 +88,7 @@ let styleC = computed(() => {
             var(--langr-status-new-bg),
             color-mix(in srgb, var(--langr-status-new-fg) 14%, transparent)
         );
-        box-shadow: inset -1px 0 0
-            color-mix(in srgb, var(--langr-border-strong) 70%, transparent);
+        box-shadow: inset -1px 0 0 color-mix(in srgb, var(--langr-border-strong) 70%, transparent);
     }
 
     .b2 {
@@ -101,8 +100,7 @@ let styleC = computed(() => {
             var(--langr-status-learning-bg),
             color-mix(in srgb, var(--langr-status-learning-fg) 13%, transparent)
         );
-        box-shadow: inset -1px 0 0
-            color-mix(in srgb, var(--langr-border-strong) 70%, transparent);
+        box-shadow: inset -1px 0 0 color-mix(in srgb, var(--langr-border-strong) 70%, transparent);
     }
 
     .b3 {

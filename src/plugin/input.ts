@@ -30,8 +30,8 @@ function registerContextMenu(plugin: LanguageLearner) {
                 if (selection.trim()) {
                     addMemu(menu, selection);
                 }
-            },
-        ),
+            }
+        )
     );
     // markdown 预览模式 右键菜单
     plugin.registerDomEvent(document.body, "contextmenu", (evt) => {
@@ -82,10 +82,7 @@ function registerMouseup(plugin: LanguageLearner) {
 function registerLeftClick(plugin: LanguageLearner) {
     plugin.registerDomEvent(document.body, "click", (evt) => {
         let target = evt.target as HTMLElement;
-        if (
-            target.tagName === "H4" &&
-            target.matchParent(".sr-modal-content")
-        ) {
+        if (target.tagName === "H4" && target.matchParent(".sr-modal-content")) {
             let word = target.textContent;
             if (!word) {
                 return;

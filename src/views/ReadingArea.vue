@@ -1,10 +1,6 @@
 <template>
     <div id="langr-reading" ref="reading" class="langr-shell">
-        <NConfigProvider
-            class="reading-provider"
-            :theme="theme"
-            :theme-overrides="themeOverrides"
-        >
+        <NConfigProvider class="reading-provider" :theme="theme" :theme-overrides="themeOverrides">
             <div class="reading-desk">
                 <section class="reading-card langr-card">
                     <header class="reading-header">
@@ -14,9 +10,7 @@
                             </div>
                             <div class="langr-subtle">
                                 {{ pageSummary }}
-                                <span v-if="isRendering"
-                                    >· {{ t("Loading reading page") }}</span
-                                >
+                                <span v-if="isRendering">· {{ t("Loading reading page") }}</span>
                             </div>
                         </div>
                         <audio
@@ -26,10 +20,7 @@
                             :src="audioSource"
                         />
                         <div class="reading-actions">
-                            <button
-                                class="reading-action"
-                                @click="activeNotes = true"
-                            >
+                            <button class="reading-action" @click="activeNotes = true">
                                 {{ t("Notes") }}
                             </button>
                             <button
@@ -45,21 +36,11 @@
                         class="reading-progress langr-card-muted"
                         v-if="plugin.settings.word_count"
                     >
-                        <CountBar
-                            :unknown="unknown"
-                            :learn="learn"
-                            :ignore="ignore"
-                        />
+                        <CountBar :unknown="unknown" :learn="learn" :ignore="ignore" />
                         <div class="reading-progress-labels">
-                            <span class="langr-status-chip is-new">{{
-                                t("New")
-                            }}</span>
-                            <span class="langr-status-chip is-learning">{{
-                                t("Learning")
-                            }}</span>
-                            <span class="langr-status-chip is-ignore">{{
-                                t("Ignore")
-                            }}</span>
+                            <span class="langr-status-chip is-new">{{ t("New") }}</span>
+                            <span class="langr-status-chip is-learning">{{ t("Learning") }}</span>
+                            <span class="langr-status-chip is-ignore">{{ t("Ignore") }}</span>
                         </div>
                     </div>
 
@@ -75,13 +56,8 @@
                             v-if="sessionState.status === 'renderFailed'"
                             class="reading-session-message is-error"
                         >
-                            <span>{{
-                                t("Reading page failed to render")
-                            }}</span>
-                            <button
-                                class="reading-session-retry"
-                                @click="retryRender"
-                            >
+                            <span>{{ t("Reading page failed to render") }}</span>
+                            <button class="reading-session-retry" @click="retryRender">
                                 {{ t("Retry") }}
                             </button>
                         </div>
@@ -138,22 +114,8 @@
 </template>
 
 <script setup lang="ts">
-import {
-    ref,
-    computed,
-    watch,
-    onMounted,
-    onUnmounted,
-    watchEffect,
-    shallowRef,
-} from "vue";
-import {
-    NPagination,
-    NConfigProvider,
-    NDrawer,
-    NDrawerContent,
-    NInput,
-} from "naive-ui";
+import { ref, computed, watch, onMounted, onUnmounted, watchEffect, shallowRef } from "vue";
+import { NPagination, NConfigProvider, NDrawer, NDrawerContent, NInput } from "naive-ui";
 import { MarkdownRenderer, Platform } from "obsidian";
 import PluginType from "@/plugin";
 import { t } from "@/lang/helper";
@@ -165,6 +127,7 @@ import { useView } from "@/ui/context";
 import { emitLangrRefreshStat } from "@/events";
 import { resolveLocalResourcePath } from "@/utils/platform";
 import { useLangrNaiveTheme, useLangrNaiveThemeOverrides } from "@/ui/theme";
+import { extractReadingSelection } from "@/reading/readingContext";
 
 let view = useView<ReadingView>();
 let plugin = view.plugin as PluginType;
@@ -190,10 +153,11 @@ onUnmounted(unsubscribeSession);
 const theme = useLangrNaiveTheme(() => store.dark);
 const themeOverrides = useLangrNaiveThemeOverrides();
 
-let frontMatter =
-    plugin.app.metadataCache.getFileCache(currentFile)?.frontmatter ?? {};
+let frontMatter = plugin.app.metadataCache.getFileCache(currentFile)?.frontmatter ?? {};
 let audioSource = (frontMatter["langr-audio"] || "") as string;
 audioSource = resolveLocalResourcePath(audioSource, plugin.constants.basePath);
+const presetOrigin = (frontMatter["langr-origin"] || "") as string;
+const documentOrigin = presetOrigin ? presetOrigin : currentFile.name;
 
 // 记笔记
 let activeNotes = ref(false);
@@ -208,12 +172,7 @@ async function afterNoteLeave() {
 let renderedNote = ref<HTMLElement>();
 watchEffect(async (clean) => {
     if (!renderedNote.value) return;
-    await MarkdownRenderer.renderMarkdown(
-        notes.value,
-        renderedNote.value,
-        currentFile.path,
-        view,
-    );
+    await MarkdownRenderer.renderMarkdown(notes.value, renderedNote.value, currentFile.path, view);
     clean(() => {
         renderedNote.value?.empty();
     });
@@ -251,7 +210,7 @@ if (plugin.settings.word_count) {
             [unknown.value, learn.value, ignore.value] =
                 await plugin.parser.countWords(articleText);
         },
-        { immediate: true },
+        { immediate: true }
     );
 
     onMounted(() => {
@@ -296,16 +255,14 @@ const pageSummary = computed(() => {
         confirmed.range.totalLines
     } ${t("paragraph")}`;
 });
-const renderedText = computed(
-    () => sessionState.value.confirmed?.renderedText ?? "",
-);
+const renderedText = computed(() => sessionState.value.confirmed?.renderedText ?? "");
 const isRendering = computed(() => sessionState.value.status === "rendering");
 let finishLoading = ref(false);
 const canFinishReading = computed(
     () =>
         sessionState.value.status === "ready" &&
         sessionState.value.confirmed !== null &&
-        !finishLoading.value,
+        !finishLoading.value
 );
 
 function retryRender() {
@@ -320,9 +277,7 @@ async function addIgnores() {
         return;
     }
     finishLoading.value = true;
-    let ignores = contentEl.querySelectorAll(
-        ".word.new",
-    ) as unknown as HTMLElement[];
+    let ignores = contentEl.querySelectorAll(".word.new") as unknown as HTMLElement[];
     let ignore_words: Set<string> = new Set();
     ignores.forEach((el) => {
         ignore_words.add(el.textContent.toLowerCase());
@@ -333,10 +288,7 @@ async function addIgnores() {
         refreshCount();
 
         const confirmed = sessionState.value.confirmed;
-        if (
-            confirmed &&
-            confirmed.range.endLine < sessionState.value.totalLines
-        ) {
+        if (confirmed && confirmed.range.endLine < sessionState.value.totalLines) {
             await readingSession.act({
                 type: "navigate",
                 page: confirmed.page + 1,
@@ -360,7 +312,13 @@ if (plugin.constants.platform === "mobile") {
             if (prevEl) {
                 let selectSpan = view.wrapSelect(prevEl, target);
                 if (selectSpan) {
-                    plugin.queryWord(selectSpan.textContent ?? "", selectSpan, {
+                    const text = selectSpan.textContent ?? "";
+                    const selectionContext = extractReadingSelection(
+                        selectSpan,
+                        text,
+                        documentOrigin
+                    );
+                    plugin.queryWord(text, selectionContext ?? undefined, {
                         x: e.pageX,
                         y: e.pageY,
                     });
@@ -377,27 +335,25 @@ if (plugin.constants.platform === "mobile") {
 } else {
     useEvent(reading, "pointerdown", (e) => {
         let target = e.target as HTMLElement;
-        if (
-            target.hasClass("word") ||
-            target.hasClass("phrase") ||
-            target.hasClass("select")
-        ) {
+        if (target.hasClass("word") || target.hasClass("phrase") || target.hasClass("select")) {
             prevEl = target;
         }
     });
     useEvent(reading, "pointerup", (e) => {
         let target = e.target as HTMLElement;
-        if (
-            target.hasClass("word") ||
-            target.hasClass("phrase") ||
-            target.hasClass("select")
-        ) {
+        if (target.hasClass("word") || target.hasClass("phrase") || target.hasClass("select")) {
             e.preventDefault();
             e.stopPropagation();
             if (prevEl) {
                 let selectSpan = view.wrapSelect(prevEl, target);
                 if (selectSpan) {
-                    plugin.queryWord(selectSpan.textContent ?? "", selectSpan, {
+                    const text = selectSpan.textContent ?? "";
+                    const selectionContext = extractReadingSelection(
+                        selectSpan,
+                        text,
+                        documentOrigin
+                    );
+                    plugin.queryWord(text, selectionContext ?? undefined, {
                         x: e.pageX,
                         y: e.pageY,
                     });
@@ -447,8 +403,7 @@ if (plugin.constants.platform === "mobile") {
         padding: var(--langr-space-3) var(--langr-space-4);
         border-bottom: 1px solid var(--langr-border-strong);
         background:
-            linear-gradient(180deg, var(--langr-sheen), transparent),
-            var(--langr-surface-glass);
+            linear-gradient(180deg, var(--langr-sheen), transparent), var(--langr-surface-glass);
     }
 
     .reading-heading {
@@ -495,11 +450,7 @@ if (plugin.constants.platform === "mobile") {
     .reading-action:hover {
         border-color: var(--langr-border-hover);
         color: var(--langr-accent);
-        background: color-mix(
-            in srgb,
-            var(--langr-accent) 8%,
-            var(--langr-surface)
-        );
+        background: color-mix(in srgb, var(--langr-accent) 8%, var(--langr-surface));
         box-shadow: var(--langr-glow-cyan);
         transform: translateY(-1px);
     }
@@ -514,20 +465,12 @@ if (plugin.constants.platform === "mobile") {
     .finish-reading {
         color: var(--background-primary);
         border-color: var(--langr-accent);
-        background: linear-gradient(
-            90deg,
-            var(--langr-accent),
-            var(--langr-accent-hot)
-        );
+        background: linear-gradient(90deg, var(--langr-accent), var(--langr-accent-hot));
     }
 
     .finish-reading:hover {
         color: var(--background-primary);
-        background: linear-gradient(
-            90deg,
-            var(--langr-accent-hover),
-            var(--langr-accent-hot)
-        );
+        background: linear-gradient(90deg, var(--langr-accent-hover), var(--langr-accent-hot));
     }
 
     .reading-progress {
@@ -607,13 +550,8 @@ if (plugin.constants.platform === "mobile") {
 
             &:hover {
                 border-color: var(--langr-accent);
-                background: color-mix(
-                    in srgb,
-                    var(--langr-accent) 12%,
-                    transparent
-                );
-                box-shadow: 0 0 0 1px
-                    color-mix(in srgb, var(--langr-accent) 20%, transparent);
+                background: color-mix(in srgb, var(--langr-accent) 12%, transparent);
+                box-shadow: 0 0 0 1px color-mix(in srgb, var(--langr-accent) 20%, transparent);
             }
         }
 
@@ -630,13 +568,8 @@ if (plugin.constants.platform === "mobile") {
 
             &:hover {
                 border-color: var(--langr-accent);
-                background: color-mix(
-                    in srgb,
-                    var(--langr-accent-hot) 10%,
-                    transparent
-                );
-                box-shadow: 0 0 0 1px
-                    color-mix(in srgb, var(--langr-accent-hot) 18%, transparent);
+                background: color-mix(in srgb, var(--langr-accent-hot) 10%, transparent);
+                box-shadow: 0 0 0 1px color-mix(in srgb, var(--langr-accent-hot) 18%, transparent);
             }
         }
 
@@ -648,51 +581,31 @@ if (plugin.constants.platform === "mobile") {
             .new {
                 background-color: var(--langr-status-new-bg);
                 box-shadow: 0 0 0 1px
-                    color-mix(
-                        in srgb,
-                        var(--langr-status-new-fg) 16%,
-                        transparent
-                    );
+                    color-mix(in srgb, var(--langr-status-new-fg) 16%, transparent);
             }
 
             .learning {
                 background-color: var(--langr-status-learning-bg);
                 box-shadow: 0 0 0 1px
-                    color-mix(
-                        in srgb,
-                        var(--langr-status-learning-fg) 16%,
-                        transparent
-                    );
+                    color-mix(in srgb, var(--langr-status-learning-fg) 16%, transparent);
             }
 
             .familiar {
                 background-color: var(--langr-status-familiar-bg);
                 box-shadow: 0 0 0 1px
-                    color-mix(
-                        in srgb,
-                        var(--langr-status-familiar-fg) 16%,
-                        transparent
-                    );
+                    color-mix(in srgb, var(--langr-status-familiar-fg) 16%, transparent);
             }
 
             .known {
                 background-color: var(--langr-status-known-bg);
                 box-shadow: 0 0 0 1px
-                    color-mix(
-                        in srgb,
-                        var(--langr-status-known-fg) 16%,
-                        transparent
-                    );
+                    color-mix(in srgb, var(--langr-status-known-fg) 16%, transparent);
             }
 
             .learned {
                 background-color: var(--langr-status-learned-bg);
                 box-shadow: 0 0 0 1px
-                    color-mix(
-                        in srgb,
-                        var(--langr-status-learned-fg) 16%,
-                        transparent
-                    );
+                    color-mix(in srgb, var(--langr-status-learned-fg) 16%, transparent);
             }
         }
 
@@ -740,8 +653,7 @@ if (plugin.constants.platform === "mobile") {
             padding: var(--langr-space-2);
             overflow: auto;
             background: var(--langr-surface-inset);
-            box-shadow: inset 0 0 0 1px
-                color-mix(in srgb, var(--langr-accent) 8%, transparent);
+            box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--langr-accent) 8%, transparent);
         }
     }
 }

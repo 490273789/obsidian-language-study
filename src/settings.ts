@@ -95,17 +95,9 @@ function cloneDefaultSettings(): MyPluginSettings {
     return JSON.parse(JSON.stringify(DEFAULT_SETTINGS)) as MyPluginSettings;
 }
 
-export function normalizePort(
-    value: unknown,
-    fallback: number,
-    min = 1,
-    max = 65535,
-): number {
+export function normalizePort(value: unknown, fallback: number, min = 1, max = 65535): number {
     const port = typeof value === "string" ? Number(value) : value;
-    return typeof port === "number" &&
-        Number.isInteger(port) &&
-        port >= min &&
-        port <= max
+    return typeof port === "number" && Number.isInteger(port) && port >= min && port <= max
         ? port
         : fallback;
 }
@@ -154,27 +146,16 @@ export function normalizeSettings(raw: unknown): MyPluginSettings {
     });
 
     settings.port = normalizePort(raw.port, DEFAULT_SETTINGS.port);
-    settings.self_port = normalizePort(
-        raw.self_port,
-        DEFAULT_SETTINGS.self_port,
-        1024,
-    );
+    settings.self_port = normalizePort(raw.self_port, DEFAULT_SETTINGS.self_port, 1024);
 
-    if (
-        ["ctrlKey", "altKey", "metaKey", "disable"].includes(
-            raw.function_key as string,
-        )
-    ) {
-        settings.function_key =
-            raw.function_key as MyPluginSettings["function_key"];
+    if (["ctrlKey", "altKey", "metaKey", "disable"].includes(raw.function_key as string)) {
+        settings.function_key = raw.function_key as MyPluginSettings["function_key"];
     }
     if ([",", "\t", "|"].includes(raw.col_delimiter as string)) {
-        settings.col_delimiter =
-            raw.col_delimiter as MyPluginSettings["col_delimiter"];
+        settings.col_delimiter = raw.col_delimiter as MyPluginSettings["col_delimiter"];
     }
     if (["0", "1"].includes(raw.review_prons as string)) {
-        settings.review_prons =
-            raw.review_prons as MyPluginSettings["review_prons"];
+        settings.review_prons = raw.review_prons as MyPluginSettings["review_prons"];
     }
 
     if (isRecord(raw.dictionaries)) {
@@ -191,7 +172,7 @@ export function normalizeSettings(raw: unknown): MyPluginSettings {
                 dictionary.priority,
                 settings.dictionaries[id].priority,
                 1,
-                99,
+                99
             );
             settings.dictionaries[id].priority = priority;
         });
@@ -231,25 +212,23 @@ export class SettingTab extends PluginSettingTab {
             .setName(t("Use Server"))
             .setDesc(t("Use a seperated backend server"))
             .addToggle((toggle) =>
-                toggle
-                    .setValue(this.plugin.settings.use_server)
-                    .onChange(async (use_server) => {
-                        this.plugin.settings.use_server = use_server;
-                        if (use_server) {
-                            this.plugin.db.close();
-                            this.plugin.db = new WebDb(
-                                this.plugin.settings.host,
-                                this.plugin.settings.port,
-                                this.plugin.settings.use_https,
-                                this.plugin.settings.api_key,
-                            );
-                        } else {
-                            this.plugin.db = new LocalDb(this.plugin);
-                            await this.plugin.db.open();
-                        }
-                        await this.plugin.saveSettings();
-                        this.display();
-                    }),
+                toggle.setValue(this.plugin.settings.use_server).onChange(async (use_server) => {
+                    this.plugin.settings.use_server = use_server;
+                    if (use_server) {
+                        this.plugin.db.close();
+                        this.plugin.db = new WebDb(
+                            this.plugin.settings.host,
+                            this.plugin.settings.port,
+                            this.plugin.settings.use_https,
+                            this.plugin.settings.api_key
+                        );
+                    } else {
+                        this.plugin.db = new LocalDb(this.plugin);
+                        await this.plugin.db.open();
+                    }
+                    await this.plugin.saveSettings();
+                    this.display();
+                })
             );
 
         new Setting(containerEl)
@@ -263,7 +242,7 @@ export class SettingTab extends PluginSettingTab {
                         this.plugin.settings.use_https = use_https;
                         await this.plugin.saveSettings();
                         this.display();
-                    }),
+                    })
             );
 
         if (this.plugin.settings.use_https) {
@@ -282,17 +261,15 @@ export class SettingTab extends PluginSettingTab {
                                     this.display();
                                 },
                                 500,
-                                true,
-                            ),
-                        ),
+                                true
+                            )
+                        )
                 );
         }
 
         new Setting(containerEl)
             .setName(t("Server Host"))
-            .setDesc(
-                t("Your server's host name (like 11.11.11.11 or baidu.com)"),
-            )
+            .setDesc(t("Your server's host name (like 11.11.11.11 or baidu.com)"))
             .addText((text) =>
                 text
                     .setValue(this.plugin.settings.host)
@@ -304,18 +281,16 @@ export class SettingTab extends PluginSettingTab {
                                 await this.plugin.saveSettings();
                             },
                             500,
-                            true,
-                        ),
-                    ),
+                            true
+                        )
+                    )
             );
 
         new Setting(containerEl)
             .setName(t("Server Port"))
             .setDesc(
                 // t('An integer between 1024-65535. It should be same as "PORT" variable in .env file of server')
-                t(
-                    'It should be same as "PORT" variable in .env file of server',
-                ),
+                t('It should be same as "PORT" variable in .env file of server')
             )
             .addText((text) =>
                 text
@@ -335,9 +310,9 @@ export class SettingTab extends PluginSettingTab {
                                 }
                             },
                             500,
-                            true,
-                        ),
-                    ),
+                            true
+                        )
+                    )
             );
     }
 
@@ -352,7 +327,7 @@ export class SettingTab extends PluginSettingTab {
                     this.plugin.settings.native = value;
                     await this.plugin.saveSettings();
                     this.display();
-                }),
+                })
         );
 
         new Setting(containerEl).setName(t("Foreign")).addDropdown((foreign) =>
@@ -368,7 +343,7 @@ export class SettingTab extends PluginSettingTab {
                     this.plugin.settings.foreign = value;
                     await this.plugin.saveSettings();
                     this.display();
-                }),
+                })
         );
     }
 
@@ -379,25 +354,21 @@ export class SettingTab extends PluginSettingTab {
             .setName(t("Popup Search Panel"))
             .setDesc(t("Use a popup search panel"))
             .addToggle((toggle) =>
-                toggle
-                    .setValue(this.plugin.settings.popup_search)
-                    .onChange(async (value) => {
-                        this.plugin.settings.popup_search = value;
-                        this.plugin.store.popupSearch = value;
-                        await this.plugin.saveSettings();
-                    }),
+                toggle.setValue(this.plugin.settings.popup_search).onChange(async (value) => {
+                    this.plugin.settings.popup_search = value;
+                    this.plugin.store.popupSearch = value;
+                    await this.plugin.saveSettings();
+                })
             );
 
         new Setting(containerEl)
             .setName(t("Auto pronounce"))
             .setDesc(t("Auto pronounce when searching"))
             .addToggle((toggle) =>
-                toggle
-                    .setValue(this.plugin.settings.auto_pron)
-                    .onChange(async (value) => {
-                        this.plugin.settings.auto_pron = value;
-                        await this.plugin.saveSettings();
-                    }),
+                toggle.setValue(this.plugin.settings.auto_pron).onChange(async (value) => {
+                    this.plugin.settings.auto_pron = value;
+                    await this.plugin.saveSettings();
+                })
             );
 
         new Setting(containerEl)
@@ -411,29 +382,18 @@ export class SettingTab extends PluginSettingTab {
                     .addOption("disable", t("Disable"))
                     .setValue(this.plugin.settings.function_key)
                     .onChange(async (value: string) => {
-                        if (
-                            ![
-                                "ctrlKey",
-                                "altKey",
-                                "metaKey",
-                                "disable",
-                            ].includes(value)
-                        ) {
+                        if (!["ctrlKey", "altKey", "metaKey", "disable"].includes(value)) {
                             return;
                         }
                         this.plugin.settings.function_key =
                             value as MyPluginSettings["function_key"];
                         await this.plugin.saveSettings();
-                    }),
+                    })
             );
 
         containerEl.createEl("h4", { text: t("Dictionaries") });
 
-        let createDictSetting = (
-            id: string,
-            name: string,
-            description: string,
-        ) => {
+        let createDictSetting = (id: string, name: string, description: string) => {
             new Setting(containerEl)
                 .setName(name)
                 .setDesc(description)
@@ -441,12 +401,10 @@ export class SettingTab extends PluginSettingTab {
                     toggle
                         .setValue(this.plugin.settings.dictionaries[id].enable)
                         .onChange((value) => {
-                            this.plugin.settings.dictionaries[id].enable =
-                                value;
-                            this.plugin.store.dictsChange =
-                                !this.plugin.store.dictsChange;
+                            this.plugin.settings.dictionaries[id].enable = value;
+                            this.plugin.store.dictsChange = !this.plugin.store.dictsChange;
                             this.plugin.saveSettings();
-                        }),
+                        })
                 )
                 .addDropdown((num) =>
                     num
@@ -460,18 +418,12 @@ export class SettingTab extends PluginSettingTab {
                         .addOption("8", "8")
                         .addOption("9", "9")
                         .addOption("10", "10")
-                        .setValue(
-                            this.plugin.settings.dictionaries[
-                                id
-                            ].priority.toString(),
-                        )
+                        .setValue(this.plugin.settings.dictionaries[id].priority.toString())
                         .onChange(async (value: string) => {
-                            this.plugin.settings.dictionaries[id].priority =
-                                parseInt(value);
-                            this.plugin.store.dictsChange =
-                                !this.plugin.store.dictsChange;
+                            this.plugin.settings.dictionaries[id].priority = parseInt(value);
+                            this.plugin.store.dictsChange = !this.plugin.store.dictsChange;
                             await this.plugin.saveSettings();
-                        }),
+                        })
                 );
         };
 
@@ -479,17 +431,15 @@ export class SettingTab extends PluginSettingTab {
             createDictSetting(dict, dicts[dict].name, dicts[dict].description);
         });
 
-        new Setting(containerEl)
-            .setName(t("Dictionary Height"))
-            .addText((text) =>
-                text.setValue(this.plugin.settings.dict_height).onChange(
-                    debounce(async (value) => {
-                        this.plugin.settings.dict_height = value;
-                        store.dictHeight = value;
-                        await this.plugin.saveSettings();
-                    }, 500),
-                ),
-            );
+        new Setting(containerEl).setName(t("Dictionary Height")).addText((text) =>
+            text.setValue(this.plugin.settings.dict_height).onChange(
+                debounce(async (value) => {
+                    this.plugin.settings.dict_height = value;
+                    store.dictHeight = value;
+                    await this.plugin.saveSettings();
+                }, 500)
+            )
+        );
     }
 
     indexedDBSettings(containerEl: HTMLElement) {
@@ -510,9 +460,9 @@ export class SettingTab extends PluginSettingTab {
                             this.plugin.saveSettings();
                         },
                         1000,
-                        true,
-                    ),
-                ),
+                        true
+                    )
+                )
             )
             .addButton((button) =>
                 button.setButtonText(t("Reopen")).onClick(async () => {
@@ -520,7 +470,7 @@ export class SettingTab extends PluginSettingTab {
                     this.plugin.db = new LocalDb(this.plugin);
                     await this.plugin.db.open();
                     new Notice("DB is Reopened");
-                }),
+                })
             );
 
         // 导入导出数据库
@@ -529,24 +479,21 @@ export class SettingTab extends PluginSettingTab {
             .setDesc(t("Warning: Import will override current database"))
             .addButton((button) =>
                 button.setButtonText(t("Import")).onClick(async () => {
-                    let modal = new OpenFileModal(
-                        this.plugin.app,
-                        async (file: File) => {
-                            // let fr = new FileReader()
-                            // fr.onload = async () => {
-                            // let data = JSON.parse(fr.result as string)
-                            if (this.plugin.db instanceof LocalDb) {
-                                await this.plugin.db.importDB(file);
-                                new Notice("Imported");
-                            } else {
-                                new Notice("Local database required");
-                            }
-                            // }
-                            // fr.readAsText(file)
-                        },
-                    );
+                    let modal = new OpenFileModal(this.plugin.app, async (file: File) => {
+                        // let fr = new FileReader()
+                        // fr.onload = async () => {
+                        // let data = JSON.parse(fr.result as string)
+                        if (this.plugin.db instanceof LocalDb) {
+                            await this.plugin.db.importDB(file);
+                            new Notice("Imported");
+                        } else {
+                            new Notice("Local database required");
+                        }
+                        // }
+                        // fr.readAsText(file)
+                    });
                     modal.open();
-                }),
+                })
             )
             .addButton((button) =>
                 button.setButtonText(t("Export")).onClick(async () => {
@@ -556,50 +503,39 @@ export class SettingTab extends PluginSettingTab {
                     } else {
                         new Notice("Local database required");
                     }
-                }),
+                })
             );
         // 获取所有非无视单词
         new Setting(containerEl)
             .setName(t("Get all non-ignores"))
             .addButton((button) =>
                 button.setButtonText(t("Export Word")).onClick(async () => {
-                    let words =
-                        await this.plugin.db.getAllExpressionSimple(true);
+                    let words = await this.plugin.db.getAllExpressionSimple(true);
                     let ignores = words
                         .filter((w) => w.status !== 0 && w.t !== "PHRASE")
                         .map((w) => w.expression);
                     await navigator.clipboard.writeText(ignores.join("\n"));
                     new Notice(t("Copied to clipboard"));
-                }),
+                })
             )
             .addButton((button) =>
-                button
-                    .setButtonText(t("Export Word and Phrase"))
-                    .onClick(async () => {
-                        let words =
-                            await this.plugin.db.getAllExpressionSimple(true);
-                        let ignores = words
-                            .filter((w) => w.status !== 0)
-                            .map((w) => w.expression);
-                        await navigator.clipboard.writeText(ignores.join("\n"));
-                        new Notice(t("Copied to clipboard"));
-                    }),
+                button.setButtonText(t("Export Word and Phrase")).onClick(async () => {
+                    let words = await this.plugin.db.getAllExpressionSimple(true);
+                    let ignores = words.filter((w) => w.status !== 0).map((w) => w.expression);
+                    await navigator.clipboard.writeText(ignores.join("\n"));
+                    new Notice(t("Copied to clipboard"));
+                })
             );
 
         // 获取所有无视单词
-        new Setting(containerEl)
-            .setName(t("Get all ignores"))
-            .addButton((button) =>
-                button.setButtonText(t("Export")).onClick(async () => {
-                    let words =
-                        await this.plugin.db.getAllExpressionSimple(true);
-                    let ignores = words
-                        .filter((w) => w.status === 0)
-                        .map((w) => w.expression);
-                    await navigator.clipboard.writeText(ignores.join("\n"));
-                    new Notice(t("Copied to clipboard"));
-                }),
-            );
+        new Setting(containerEl).setName(t("Get all ignores")).addButton((button) =>
+            button.setButtonText(t("Export")).onClick(async () => {
+                let words = await this.plugin.db.getAllExpressionSimple(true);
+                let ignores = words.filter((w) => w.status === 0).map((w) => w.expression);
+                await navigator.clipboard.writeText(ignores.join("\n"));
+                new Notice(t("Copied to clipboard"));
+            })
+        );
 
         // 销毁数据库
         new Setting(containerEl)
@@ -612,9 +548,7 @@ export class SettingTab extends PluginSettingTab {
                     .onClick(async (evt) => {
                         let modal = new WarningModal(
                             this.app,
-                            t(
-                                "Are you sure you want to destroy your database?",
-                            ),
+                            t("Are you sure you want to destroy your database?"),
                             async () => {
                                 if (this.plugin.db instanceof LocalDb) {
                                     await this.plugin.db.destroyAll();
@@ -624,10 +558,10 @@ export class SettingTab extends PluginSettingTab {
                                 } else {
                                     new Notice("Local database required");
                                 }
-                            },
+                            }
                         );
                         modal.open();
-                    }),
+                    })
             );
     }
 
@@ -638,38 +572,30 @@ export class SettingTab extends PluginSettingTab {
             .setName(t("Auto refresh"))
             .setDesc(t("Auto refresh database when submitting"))
             .addToggle((toggle) =>
-                toggle
-                    .setValue(this.plugin.settings.auto_refresh_db)
-                    .onChange(async (value) => {
-                        this.plugin.settings.auto_refresh_db = value;
-                        await this.plugin.saveSettings();
-                    }),
+                toggle.setValue(this.plugin.settings.auto_refresh_db).onChange(async (value) => {
+                    this.plugin.settings.auto_refresh_db = value;
+                    await this.plugin.saveSettings();
+                })
             );
 
         new Setting(containerEl)
             .setName(t("Word Database Path"))
             .setDesc(t("Choose a md file as word database for auto-completion"))
             .addText((text) =>
-                text
-                    .setValue(this.plugin.settings.word_database)
-                    .onChange(async (path) => {
-                        this.plugin.settings.word_database = path;
-                        await this.plugin.saveSettings();
-                    }),
+                text.setValue(this.plugin.settings.word_database).onChange(async (path) => {
+                    this.plugin.settings.word_database = path;
+                    await this.plugin.saveSettings();
+                })
             );
 
         new Setting(containerEl)
             .setName(t("Review Database Path"))
-            .setDesc(
-                t("Choose a md file as review database for spaced-repetition"),
-            )
+            .setDesc(t("Choose a md file as review database for spaced-repetition"))
             .addText((text) =>
-                text
-                    .setValue(this.plugin.settings.review_database)
-                    .onChange(async (path) => {
-                        this.plugin.settings.review_database = path;
-                        await this.plugin.saveSettings();
-                    }),
+                text.setValue(this.plugin.settings.review_database).onChange(async (path) => {
+                    this.plugin.settings.review_database = path;
+                    await this.plugin.saveSettings();
+                })
             );
     }
 
@@ -685,8 +611,8 @@ export class SettingTab extends PluginSettingTab {
                         this.plugin.settings.font_size = value;
                         this.plugin.store.fontSize = value;
                         await this.plugin.saveSettings();
-                    }, 500),
-                ),
+                    }, 500)
+                )
             );
 
         new Setting(containerEl).setName(t("Font Family")).addText((text) =>
@@ -695,8 +621,8 @@ export class SettingTab extends PluginSettingTab {
                     this.plugin.settings.font_family = value;
                     this.plugin.store.fontFamily = value;
                     await this.plugin.saveSettings();
-                }, 500),
-            ),
+                }, 500)
+            )
         );
 
         new Setting(containerEl).setName(t("Line Height")).addText((text) =>
@@ -705,26 +631,24 @@ export class SettingTab extends PluginSettingTab {
                     this.plugin.settings.line_height = value;
                     this.plugin.store.lineHeight = value;
                     await this.plugin.saveSettings();
-                }, 500),
-            ),
+                }, 500)
+            )
         );
 
-        new Setting(containerEl)
-            .setName(t("Default Paragraphs"))
-            .addDropdown((num) =>
-                num
-                    .addOption("2", "1")
-                    .addOption("4", "2")
-                    .addOption("8", "4")
-                    .addOption("16", "8")
-                    .addOption("32", "16")
-                    .addOption("all", "All")
-                    .setValue(this.plugin.settings.default_paragraphs)
-                    .onChange(async (value: string) => {
-                        this.plugin.settings.default_paragraphs = value;
-                        await this.plugin.saveSettings();
-                    }),
-            );
+        new Setting(containerEl).setName(t("Default Paragraphs")).addDropdown((num) =>
+            num
+                .addOption("2", "1")
+                .addOption("4", "2")
+                .addOption("8", "4")
+                .addOption("16", "8")
+                .addOption("32", "16")
+                .addOption("all", "All")
+                .setValue(this.plugin.settings.default_paragraphs)
+                .onChange(async (value: string) => {
+                    this.plugin.settings.default_paragraphs = value;
+                    await this.plugin.saveSettings();
+                })
+        );
 
         new Setting(containerEl)
             .setName(t("Use Machine Translation"))
@@ -733,44 +657,38 @@ export class SettingTab extends PluginSettingTab {
                 toggle
                     .setValue(this.plugin.settings.use_machine_trans)
                     .onChange(async (use_machine_trans) => {
-                        this.plugin.settings.use_machine_trans =
-                            use_machine_trans;
+                        this.plugin.settings.use_machine_trans = use_machine_trans;
                         await this.plugin.saveSettings();
-                    }),
+                    })
             );
         new Setting(containerEl)
             .setName(t("Open count bar"))
             .setDesc(t("Count the word number of different type of article"))
             .addToggle((toggle) =>
-                toggle
-                    .setValue(this.plugin.settings.word_count)
-                    .onChange(async (value) => {
-                        this.plugin.settings.word_count = value;
-                        await this.plugin.saveSettings();
-                    }),
+                toggle.setValue(this.plugin.settings.word_count).onChange(async (value) => {
+                    this.plugin.settings.word_count = value;
+                    await this.plugin.saveSettings();
+                })
             );
     }
 
     completionSettings(containerEl: HTMLElement) {
         containerEl.createEl("h3", { text: t("Auto Completion") });
 
-        new Setting(containerEl)
-            .setName(t("Column delimiter"))
-            .addDropdown((dilimiter) =>
-                dilimiter
-                    .addOption(",", t("Comma"))
-                    .addOption("\t", t("Tab"))
-                    .addOption("|", t("Pipe"))
-                    .setValue(this.plugin.settings.col_delimiter)
-                    .onChange(async (value: string) => {
-                        if (![",", "\t", "|"].includes(value)) {
-                            return;
-                        }
-                        this.plugin.settings.col_delimiter =
-                            value as MyPluginSettings["col_delimiter"];
-                        await this.plugin.saveSettings();
-                    }),
-            );
+        new Setting(containerEl).setName(t("Column delimiter")).addDropdown((dilimiter) =>
+            dilimiter
+                .addOption(",", t("Comma"))
+                .addOption("\t", t("Tab"))
+                .addOption("|", t("Pipe"))
+                .setValue(this.plugin.settings.col_delimiter)
+                .onChange(async (value: string) => {
+                    if (![",", "\t", "|"].includes(value)) {
+                        return;
+                    }
+                    this.plugin.settings.col_delimiter = value as MyPluginSettings["col_delimiter"];
+                    await this.plugin.saveSettings();
+                })
+        );
     }
 
     reviewSettings(containerEl: HTMLElement) {
@@ -791,15 +709,13 @@ export class SettingTab extends PluginSettingTab {
                         this.plugin.settings.review_prons =
                             value as MyPluginSettings["review_prons"];
                         await this.plugin.saveSettings();
-                    }),
+                    })
             );
         new Setting(containerEl).setName(t("Delimiter")).addText((text) =>
-            text
-                .setValue(this.plugin.settings.review_delimiter)
-                .onChange(async (value) => {
-                    this.plugin.settings.review_delimiter = value;
-                    await this.plugin.saveSettings();
-                }),
+            text.setValue(this.plugin.settings.review_delimiter).onChange(async (value) => {
+                this.plugin.settings.review_delimiter = value;
+                await this.plugin.saveSettings();
+            })
         );
     }
 
@@ -808,22 +724,18 @@ export class SettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName(t("Self as Server"))
-            .setDesc(
-                t("Make plugin a server and interact with chrome extension"),
-            )
+            .setDesc(t("Make plugin a server and interact with chrome extension"))
             .addToggle((toggle) =>
-                toggle
-                    .setValue(this.plugin.settings.self_server)
-                    .onChange(async (self_server) => {
-                        this.plugin.settings.self_server = self_server;
-                        if (self_server) {
-                            await this.plugin.startSelfServer();
-                        } else {
-                            await this.plugin.stopSelfServer();
-                        }
-                        await this.plugin.saveSettings();
-                        this.display();
-                    }),
+                toggle.setValue(this.plugin.settings.self_server).onChange(async (self_server) => {
+                    this.plugin.settings.self_server = self_server;
+                    if (self_server) {
+                        await this.plugin.startSelfServer();
+                    } else {
+                        await this.plugin.stopSelfServer();
+                    }
+                    await this.plugin.saveSettings();
+                    this.display();
+                })
             );
 
         new Setting(containerEl)
@@ -842,9 +754,9 @@ export class SettingTab extends PluginSettingTab {
                             }
                         },
                         1000,
-                        true,
-                    ),
-                ),
+                        true
+                    )
+                )
             );
     }
 }

@@ -24,6 +24,10 @@ _Avoid_: Reading state, reading view, reading service
 An active passage through a Reading Document, with a current visible location and a session-specific page size. A Reading Session is temporary; only its confirmed reading position is retained in the Reading Document.
 _Avoid_: Reading state, reader session
 
+**Reading Selection**:
+The captured passage context (the studied expression, its enclosing sentence in the Reading Document, and the document origin) extracted during reading to initiate lookup or learning record intake.
+_Avoid_: Click target, DOM event, word selection
+
 **Learning Record Intake**:
 The acceptance of a new or updated learning record as one complete domain operation, including the resulting publication and reader-visible updates.
 _Avoid_: Expression recording, submission, save

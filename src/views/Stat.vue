@@ -42,10 +42,7 @@ echarts.use([
 ]);
 
 type EChartsOption = echarts.ComposeOption<
-    | GridComponentOption
-    | LineSeriesOption
-    | TooltipComponentOption
-    | TitleComponentOption
+    GridComponentOption | LineSeriesOption | TooltipComponentOption | TitleComponentOption
 >;
 
 const plugin = usePlugin();
@@ -60,10 +57,7 @@ function readCssVar(name: string, fallback: string): string {
         return fallback;
     }
 
-    return (
-        window.getComputedStyle(document.body).getPropertyValue(name).trim() ||
-        fallback
-    );
+    return window.getComputedStyle(document.body).getPropertyValue(name).trim() || fallback;
 }
 
 function makeChartTheme(): EChartsOption {
@@ -159,9 +153,7 @@ onMounted(async () => {
     updateChart();
 });
 
-const last7days = [6, 5, 4, 3, 2, 1, 0].map((i) =>
-    moment().subtract(i, "days").format("M-D"),
-);
+const last7days = [6, 5, 4, 3, 2, 1, 0].map((i) => moment().subtract(i, "days").format("M-D"));
 
 option = {
     title: {
@@ -222,17 +214,11 @@ option = {
 async function updateChart() {
     let data = await plugin.db.countSeven();
     let dayIgnoreWords = data.map((d) => d.today[0]);
-    let dayNoIgnoreWords = data.map((d) =>
-        d.today.slice(1).reduce((a, b) => a + b),
-    );
+    let dayNoIgnoreWords = data.map((d) => d.today.slice(1).reduce((a, b) => a + b));
     let accumAllWords = data.map((d) => d.accumulated.reduce((a, b) => a + b));
 
     sevenDays.setOption({
-        series: [
-            { data: dayIgnoreWords },
-            { data: dayNoIgnoreWords },
-            { data: accumAllWords },
-        ],
+        series: [{ data: dayIgnoreWords }, { data: dayNoIgnoreWords }, { data: accumAllWords }],
     });
 }
 
@@ -262,8 +248,7 @@ onUnmounted(() => {
         padding: var(--langr-space-3) var(--langr-space-4);
         border-bottom: 1px solid var(--langr-border-strong);
         background:
-            linear-gradient(180deg, var(--langr-sheen), transparent),
-            var(--langr-surface-glass);
+            linear-gradient(180deg, var(--langr-sheen), transparent), var(--langr-surface-glass);
     }
 
     .stat-title {

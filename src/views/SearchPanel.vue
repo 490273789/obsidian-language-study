@@ -1,10 +1,6 @@
 <template>
     <div id="langr-search" class="langr-shell" @click="handleClick">
-        <NConfigProvider
-            class="search-provider"
-            :theme="theme"
-            :theme-overrides="themeOverrides"
-        >
+        <NConfigProvider class="search-provider" :theme="theme" :theme-overrides="themeOverrides">
             <div class="search-layout">
                 <div class="search-bar langr-card">
                     <div class="history-controls" :aria-label="t('Search')">
@@ -48,12 +44,7 @@
                             @keydown.enter="handleSearch"
                         />
                     </label>
-                    <NButton
-                        class="search-submit"
-                        size="tiny"
-                        type="primary"
-                        @click="handleSearch"
-                    >
+                    <NButton class="search-submit" size="tiny" type="primary" @click="handleSearch">
                         <span>{{ t("Search") }}</span>
                     </NButton>
                 </div>
@@ -89,13 +80,8 @@
                                 v-show="shows[i]"
                             ></Component>
                         </KeepAlive>
-                        <div class="dict-state langr-state" v-if="loadings[i]">
-                            searching...
-                        </div>
-                        <div
-                            class="dict-state langr-state"
-                            v-else-if="word && !shows[i]"
-                        >
+                        <div class="dict-state langr-state" v-if="loadings[i]">searching...</div>
+                        <div class="dict-state langr-state" v-else-if="word && !shows[i]">
                             No result
                         </div>
                     </section>
@@ -134,9 +120,7 @@ let shows = ref<boolean[]>([]);
 watch(
     () => plugin.store.dictsChange,
     () => {
-        let collection = (
-            Object.keys(plugin.settings.dictionaries) as DictionaryId[]
-        )
+        let collection = (Object.keys(plugin.settings.dictionaries) as DictionaryId[])
             .map((dict) => {
                 return {
                     id: dict,
@@ -166,18 +150,10 @@ watch(
     },
     {
         immediate: true,
-    },
+    }
 );
 
-function loading({
-    id,
-    loading,
-    result,
-}: {
-    id: string;
-    loading: boolean;
-    result: boolean;
-}) {
+function loading({ id, loading, result }: { id: string; loading: boolean; result: boolean }) {
     const index = map[id as DictionaryId];
     if (index === undefined) return;
 
@@ -195,10 +171,7 @@ let historyIndex = ref(-1);
 function switchHistory(direction: "prev" | "next") {
     historyIndex.value = Math.max(
         0,
-        Math.min(
-            historyIndex.value + (direction === "prev" ? -1 : 1),
-            history.length - 1,
-        ),
+        Math.min(historyIndex.value + (direction === "prev" ? -1 : 1), history.length - 1)
     );
     word.value = history[historyIndex.value];
     inputWord.value = history[historyIndex.value];
@@ -286,8 +259,7 @@ useEvent(window, "obsidian-langr-search", onSearch);
         &:focus-within {
             border-color: var(--langr-border-neon);
             box-shadow:
-                inset 0 0 0 1px
-                    color-mix(in srgb, var(--langr-accent) 16%, transparent),
+                inset 0 0 0 1px color-mix(in srgb, var(--langr-accent) 16%, transparent),
                 var(--langr-glow-cyan),
                 var(--langr-shadow);
         }
@@ -329,11 +301,7 @@ useEvent(window, "obsidian-langr-search", onSearch);
             &:hover:not(:disabled),
             &:focus-visible:not(:disabled) {
                 color: var(--langr-accent);
-                background: color-mix(
-                    in srgb,
-                    var(--langr-accent) 9%,
-                    transparent
-                );
+                background: color-mix(in srgb, var(--langr-accent) 9%, transparent);
                 transform: translateY(-1px);
             }
 
@@ -366,13 +334,8 @@ useEvent(window, "obsidian-langr-search", onSearch);
 
             &:focus-within {
                 border-color: var(--langr-accent);
-                background: color-mix(
-                    in srgb,
-                    var(--langr-accent) 6%,
-                    var(--langr-surface-inset)
-                );
-                box-shadow: 0 0 0 1px
-                    color-mix(in srgb, var(--langr-accent) 12%, transparent);
+                background: color-mix(in srgb, var(--langr-accent) 6%, var(--langr-surface-inset));
+                box-shadow: 0 0 0 1px color-mix(in srgb, var(--langr-accent) 12%, transparent);
             }
         }
 
@@ -405,8 +368,7 @@ useEvent(window, "obsidian-langr-search", onSearch);
             border-radius: var(--langr-radius-sm);
             box-shadow:
                 inset 0 1px 0 color-mix(in srgb, white 9%, transparent),
-                0 0 0 1px
-                    color-mix(in srgb, var(--langr-accent) 10%, transparent);
+                0 0 0 1px color-mix(in srgb, var(--langr-accent) 10%, transparent);
         }
     }
 
@@ -432,8 +394,7 @@ useEvent(window, "obsidian-langr-search", onSearch);
         border-radius: var(--langr-radius-sm);
         color: var(--text-muted);
         background: var(--langr-surface-glass);
-        box-shadow: inset 0 0 0 1px
-            color-mix(in srgb, var(--langr-accent) 8%, transparent);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--langr-accent) 8%, transparent);
         cursor: pointer;
         transition:
             border-color 120ms ease,
@@ -445,11 +406,7 @@ useEvent(window, "obsidian-langr-search", onSearch);
         &:hover {
             color: var(--langr-accent);
             border-color: var(--langr-border-hover);
-            background: color-mix(
-                in srgb,
-                var(--langr-accent) 10%,
-                var(--langr-surface-raised)
-            );
+            background: color-mix(in srgb, var(--langr-accent) 10%, var(--langr-surface-raised));
             box-shadow: var(--langr-glow-cyan);
             transform: translateY(-1px);
         }
@@ -457,11 +414,7 @@ useEvent(window, "obsidian-langr-search", onSearch);
         &.active {
             color: var(--langr-accent);
             border-color: var(--langr-border-neon);
-            background: color-mix(
-                in srgb,
-                var(--langr-accent) 8%,
-                var(--langr-surface-raised)
-            );
+            background: color-mix(in srgb, var(--langr-accent) 8%, var(--langr-surface-raised));
             box-shadow: inset 0 -2px 0 var(--langr-accent);
         }
 

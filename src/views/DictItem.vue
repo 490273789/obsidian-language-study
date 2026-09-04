@@ -1,8 +1,5 @@
 <template>
-    <section
-        class="dict-item"
-        :class="{ open: isOpen, expand: isExpand, loading: isLoading }"
-    >
+    <section class="dict-item" :class="{ open: isOpen, expand: isExpand, loading: isLoading }">
         <header class="dict-item-header" @click="onOpen">
             <div :class="['dict-icon', props.id]"></div>
             <span class="dict-name">{{ props.name }}</span>
@@ -73,7 +70,7 @@ watch(
         } else {
             isOpen.value = true;
         }
-    },
+    }
 );
 
 function onOpen() {
@@ -93,8 +90,7 @@ function onExpand() {
 let bgRGB = Platform.isMobileApp
     ? getRGB(".workspace-drawer.mod-left", "background-color")
     : getRGB(".workspace-leaf", "background-color");
-let makeRGBA = (rgb: typeof bgRGB, alpha: number) =>
-    `rgba(${rgb.R},${rgb.G},${rgb.B}, ${alpha})`;
+let makeRGBA = (rgb: typeof bgRGB, alpha: number) => `rgba(${rgb.R},${rgb.G},${rgb.B}, ${alpha})`;
 let bgRGBA1 = ref(makeRGBA(bgRGB, 0));
 let bgRGBA2 = ref(makeRGBA(bgRGB, 0.5));
 let bgRGBA3 = ref(makeRGBA(bgRGB, 1));
@@ -116,7 +112,7 @@ watch(
         bgRGBA1.value = makeRGBA(bgRGB, 0);
         bgRGBA2.value = makeRGBA(bgRGB, 0.5);
         bgRGBA3.value = makeRGBA(bgRGB, 1);
-    },
+    }
 );
 </script>
 
@@ -138,9 +134,7 @@ watch(
         gap: var(--langr-space-2);
         padding: var(--langr-space-2);
         border-bottom: 1px solid var(--langr-border-strong);
-        background:
-            linear-gradient(180deg, var(--langr-sheen), transparent),
-            v-bind(bgRGBA3);
+        background: linear-gradient(180deg, var(--langr-sheen), transparent), v-bind(bgRGBA3);
         min-height: 34px;
         cursor: pointer;
 
@@ -182,11 +176,7 @@ watch(
             &:hover {
                 color: var(--langr-accent);
                 border-color: var(--langr-border-hover);
-                background: color-mix(
-                    in srgb,
-                    var(--langr-accent) 8%,
-                    transparent
-                );
+                background: color-mix(in srgb, var(--langr-accent) 8%, transparent);
             }
 
             .fold-arrow {

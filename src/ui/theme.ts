@@ -6,19 +6,13 @@ import {
     type ComputedRef,
     type ShallowRef,
 } from "vue";
-import {
-    darkTheme,
-    type GlobalTheme,
-    type GlobalThemeOverrides,
-} from "naive-ui";
+import { darkTheme, type GlobalTheme, type GlobalThemeOverrides } from "naive-ui";
 
 const DEFAULT_PRIMARY_COLOR = "#4a6cf7";
 const DEFAULT_PRIMARY_COLOR_HOVER = "#3b5bdb";
 const DEFAULT_PRIMARY_COLOR_PRESSED = "#3350c4";
 
-function useLangrNaiveTheme(
-    isDark: () => boolean,
-): ComputedRef<GlobalTheme | null> {
+function useLangrNaiveTheme(isDark: () => boolean): ComputedRef<GlobalTheme | null> {
     return computed(() => (isDark() ? darkTheme : null));
 }
 
@@ -102,7 +96,7 @@ function normalizeColorForNaive(value: string, fallback: string): string {
     }
 
     const rgbMatch = color.match(
-        /^rgba?\(\s*([+-]?\d*\.?\d+)\s*(?:,|\s+)\s*([+-]?\d*\.?\d+)\s*(?:,|\s+)\s*([+-]?\d*\.?\d+)(?:\s*(?:,|\/)\s*([+-]?\d*\.?\d+))?\s*\)$/i,
+        /^rgba?\(\s*([+-]?\d*\.?\d+)\s*(?:,|\s+)\s*([+-]?\d*\.?\d+)\s*(?:,|\s+)\s*([+-]?\d*\.?\d+)(?:\s*(?:,|\/)\s*([+-]?\d*\.?\d+))?\s*\)$/i
     );
 
     if (!rgbMatch) {
@@ -111,9 +105,7 @@ function normalizeColorForNaive(value: string, fallback: string): string {
 
     const channels = rgbMatch.slice(1, 4).map((channel) => {
         const numeric = Number(channel);
-        return Number.isFinite(numeric)
-            ? Math.min(255, Math.max(0, Math.round(numeric)))
-            : null;
+        return Number.isFinite(numeric) ? Math.min(255, Math.max(0, Math.round(numeric))) : null;
     });
 
     if (channels.some((channel) => channel === null)) {
@@ -156,23 +148,17 @@ function resolveCssColorVar(name: string, fallback: string): string {
 }
 
 function createLangrThemeOverrides(): GlobalThemeOverrides {
-    const primaryColor = resolveCssColorVar(
-        "--langr-accent",
-        DEFAULT_PRIMARY_COLOR,
-    );
+    const primaryColor = resolveCssColorVar("--langr-accent", DEFAULT_PRIMARY_COLOR);
     const primaryColorHover = resolveCssColorVar(
         "--langr-accent-hover",
-        DEFAULT_PRIMARY_COLOR_HOVER,
+        DEFAULT_PRIMARY_COLOR_HOVER
     );
     const primaryColorPressed = resolveCssColorVar(
         "--langr-accent-hot",
-        DEFAULT_PRIMARY_COLOR_PRESSED,
+        DEFAULT_PRIMARY_COLOR_PRESSED
     );
     const surface = resolveCssColorVar("--langr-surface-inset", "#f4f4f5");
-    const surfaceRaised = resolveCssColorVar(
-        "--langr-surface-raised",
-        "#ffffff",
-    );
+    const surfaceRaised = resolveCssColorVar("--langr-surface-raised", "#ffffff");
     const border = resolveCssColorVar("--langr-border-strong", "#d4d4d8");
     const text = resolveCssColorVar("--text-normal", "#1f2328");
     const muted = resolveCssColorVar("--text-muted", "#6b7280");
@@ -254,10 +240,7 @@ function useLangrNaiveThemeOverrides(): ShallowRef<GlobalThemeOverrides> {
     let frameId = 0;
 
     const refresh = () => {
-        if (
-            typeof window !== "undefined" &&
-            typeof window.requestAnimationFrame === "function"
-        ) {
+        if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
             if (frameId !== 0) {
                 window.cancelAnimationFrame(frameId);
             }
@@ -279,10 +262,7 @@ function useLangrNaiveThemeOverrides(): ShallowRef<GlobalThemeOverrides> {
             window.addEventListener("focus", refresh);
         }
 
-        if (
-            typeof MutationObserver === "undefined" ||
-            typeof document === "undefined"
-        ) {
+        if (typeof MutationObserver === "undefined" || typeof document === "undefined") {
             return;
         }
 
@@ -306,10 +286,7 @@ function useLangrNaiveThemeOverrides(): ShallowRef<GlobalThemeOverrides> {
         if (typeof window !== "undefined") {
             window.removeEventListener("focus", refresh);
 
-            if (
-                frameId !== 0 &&
-                typeof window.cancelAnimationFrame === "function"
-            ) {
+            if (frameId !== 0 && typeof window.cancelAnimationFrame === "function") {
                 window.cancelAnimationFrame(frameId);
             }
         }

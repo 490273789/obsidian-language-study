@@ -4,54 +4,50 @@ import { TextParser } from "@/views/parser";
 import type { ArticleWords, WordsPhrase } from "@/db/interface";
 
 function makeParser() {
-    const getStoredWords = vi.fn(
-        async (payload: ArticleWords): Promise<WordsPhrase> => {
-            if (payload.article.includes("new york")) {
-                return {
-                    words: payload.words
-                        .filter((word) => word === "alpha" || word === "beta")
-                        .map((word) => ({
-                            text: word,
-                            status:
-                                word === "beta" ? (0 as const) : (1 as const),
-                        })),
-                    phrases: [
-                        {
-                            text: "new york",
-                            status: 2,
-                            offset: payload.article.indexOf("new york"),
-                        },
-                    ],
-                };
-            }
-            if (payload.article.includes("gamma delta")) {
-                await new Promise((resolve) => setTimeout(resolve, 5));
-                return {
-                    words: [],
-                    phrases: [
-                        {
-                            text: "gamma delta",
-                            status: 4,
-                            offset: payload.article.indexOf("gamma delta"),
-                        },
-                    ],
-                };
-            }
-            if (payload.words.length > 0) {
-                return {
-                    words: payload.words
-                        .filter((word) => word === "alpha" || word === "beta")
-                        .map((word) => ({
-                            text: word,
-                            status:
-                                word === "beta" ? (0 as const) : (1 as const),
-                        })),
-                    phrases: [],
-                };
-            }
-            return { words: [], phrases: [] };
-        },
-    );
+    const getStoredWords = vi.fn(async (payload: ArticleWords): Promise<WordsPhrase> => {
+        if (payload.article.includes("new york")) {
+            return {
+                words: payload.words
+                    .filter((word) => word === "alpha" || word === "beta")
+                    .map((word) => ({
+                        text: word,
+                        status: word === "beta" ? (0 as const) : (1 as const),
+                    })),
+                phrases: [
+                    {
+                        text: "new york",
+                        status: 2,
+                        offset: payload.article.indexOf("new york"),
+                    },
+                ],
+            };
+        }
+        if (payload.article.includes("gamma delta")) {
+            await new Promise((resolve) => setTimeout(resolve, 5));
+            return {
+                words: [],
+                phrases: [
+                    {
+                        text: "gamma delta",
+                        status: 4,
+                        offset: payload.article.indexOf("gamma delta"),
+                    },
+                ],
+            };
+        }
+        if (payload.words.length > 0) {
+            return {
+                words: payload.words
+                    .filter((word) => word === "alpha" || word === "beta")
+                    .map((word) => ({
+                        text: word,
+                        status: word === "beta" ? (0 as const) : (1 as const),
+                    })),
+                phrases: [],
+            };
+        }
+        return { words: [], phrases: [] };
+    });
 
     const getExpressionsSimple = vi.fn(async (expressions: string[]) =>
         expressions.map((expression) => ({
@@ -63,7 +59,7 @@ function makeParser() {
             note_num: 0,
             sen_num: 0,
             date: 0,
-        })),
+        }))
     );
 
     return {
@@ -102,24 +98,14 @@ describe("TextParser (adapter)", () => {
     it("counts unknown, learned, and ignored words", async () => {
         const { parser } = makeParser();
 
-        await expect(parser.countWords("Alpha beta gamma.")).resolves.toEqual([
-            1, 1, 1,
-        ]);
+        await expect(parser.countWords("Alpha beta gamma.")).resolves.toEqual([1, 1, 1]);
     });
 
     it("returns only positive-status expressions for collected words and phrases", async () => {
         const { parser, getExpressionsSimple } = makeParser();
-        const result = await parser.getWordsPhrases(
-            "Alpha meets new york and beta.",
-        );
+        const result = await parser.getWordsPhrases("Alpha meets new york and beta.");
 
-        expect(getExpressionsSimple).toHaveBeenCalledWith([
-            "new york",
-            "alpha",
-        ]);
-        expect(result.map((item) => item.expression)).toEqual([
-            "new york",
-            "alpha",
-        ]);
+        expect(getExpressionsSimple).toHaveBeenCalledWith(["new york", "alpha"]);
+        expect(result.map((item) => item.expression)).toEqual(["new york", "alpha"]);
     });
 });
