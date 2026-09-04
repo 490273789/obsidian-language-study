@@ -1,6 +1,6 @@
 {
     "name": "obsidian-language-study",
-    "version": "0.1.1",
+    "version": "1.0.0",
     "description": "阅读、查词、复习、使用、统计全部合一的语言学习 Obsidian 插件",
     "main": "main.js",
     "packageManager": "pnpm@11.5.2",
