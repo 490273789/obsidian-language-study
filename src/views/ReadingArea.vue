@@ -271,31 +271,16 @@ function retryRender() {
 
 // 设置阅读文字样式
 
-// 添加无视单词
+// 添加无视单词（完成当页阅读）
 async function addIgnores() {
     if (!canFinishReading.value) {
         return;
     }
     finishLoading.value = true;
-    let ignores = contentEl.querySelectorAll(".word.new") as unknown as HTMLElement[];
-    let ignore_words: Set<string> = new Set();
-    ignores.forEach((el) => {
-        ignore_words.add(el.textContent.toLowerCase());
-    });
     try {
-        await plugin.db.postIgnoreWords([...ignore_words]);
+        await readingSession.act({ type: "finishPage" });
         emitLangrRefreshStat();
         refreshCount();
-
-        const confirmed = sessionState.value.confirmed;
-        if (confirmed && confirmed.range.endLine < sessionState.value.totalLines) {
-            await readingSession.act({
-                type: "navigate",
-                page: confirmed.page + 1,
-            });
-        } else {
-            await readingSession.act({ type: "refresh" });
-        }
     } finally {
         finishLoading.value = false;
     }

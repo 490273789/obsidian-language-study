@@ -103,6 +103,9 @@ export class ReadingView extends TextFileView {
             renderer: {
                 render: (text) => this.plugin.parser.parse(text),
             },
+            ignoreStore: {
+                postIgnoreWords: (words) => this.plugin.db.postIgnoreWords(words),
+            },
         });
         this.session = session;
         await session.initialize();

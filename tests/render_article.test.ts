@@ -9,17 +9,17 @@ import {
 
 describe("renderArticle (pure)", () => {
     it("escapes source text before rendering html", () => {
-        const html = renderArticle(`<script>alert(1)</script>`, {
+        const result = renderArticle(`<script>alert(1)</script>`, {
             phrases: [],
             wordStatuses: new Map(),
         });
 
-        expect(html).toContain("&lt;");
-        expect(html).not.toContain("<script>");
+        expect(result.html).toContain("&lt;");
+        expect(result.html).not.toContain("<script>");
     });
 
-    it("renders stored words and phrases with status classes", () => {
-        const html = renderArticle("alpha visits new york.", {
+    it("renders stored words and phrases with status classes and collects new words", () => {
+        const result = renderArticle("alpha visits new york.", {
             phrases: [{ text: "new york", status: 2, offset: 13 }],
             wordStatuses: new Map([
                 ["alpha", 1],
@@ -27,18 +27,20 @@ describe("renderArticle (pure)", () => {
             ]),
         });
 
-        expect(html).toContain(`class="word learning"`);
-        expect(html).toContain(`class="phrase familiar"`);
+        expect(result.html).toContain(`class="word learning"`);
+        expect(result.html).toContain(`class="phrase familiar"`);
+        expect(result.newWords).toEqual(["visits", "new", "york"]);
     });
 
     it("does not wrap phrase text when the stored offset does not align to parser nodes", () => {
-        const html = renderArticle("new yorker arrived.", {
+        const result = renderArticle("new yorker arrived.", {
             phrases: [{ text: "new york", status: 2, offset: 0 }],
             wordStatuses: new Map(),
         });
 
-        expect(html).not.toContain(`class="phrase`);
-        expect(html).toContain(`class="word new"`);
+        expect(result.html).not.toContain(`class="phrase`);
+        expect(result.html).toContain(`class="word new"`);
+        expect(result.newWords).toEqual(["new", "yorker", "arrived"]);
     });
 
     it("collects unique lowercased words, filtering numbers and CJK", () => {

@@ -1,4 +1,5 @@
 import type { SafeHtml } from "@/utils/safeHtml";
+import type { RenderArticleResult } from "@/views/renderArticle";
 
 type ReadingSessionStatus = "initializing" | "rendering" | "ready" | "renderFailed" | "closed";
 
@@ -19,6 +20,7 @@ type ConfirmedReadingPage = ReadingSessionSelection &
     Readonly<{
         range: ReadingPageRange;
         renderedText: SafeHtml;
+        newWords: readonly string[];
     }>;
 
 type ReadingSessionError = "render_failed";
@@ -36,7 +38,8 @@ type ReadingSessionAction =
     | Readonly<{ type: "navigate"; page: number }>
     | Readonly<{ type: "resize"; pageSize: number }>
     | Readonly<{ type: "refresh" }>
-    | Readonly<{ type: "retry" }>;
+    | Readonly<{ type: "retry" }>
+    | Readonly<{ type: "finishPage" }>;
 
 type ReadingSessionDocument = Readonly<{
     getLastPosition(): Promise<number>;
@@ -45,7 +48,11 @@ type ReadingSessionDocument = Readonly<{
 }>;
 
 type ReadingSessionRenderer = Readonly<{
-    render(text: string): Promise<SafeHtml>;
+    render(text: string): Promise<RenderArticleResult>;
+}>;
+
+type ReadingSessionIgnoreStore = Readonly<{
+    postIgnoreWords(words: string[]): Promise<void>;
 }>;
 
 type ReadingSessionDependencies = Readonly<{
@@ -53,6 +60,7 @@ type ReadingSessionDependencies = Readonly<{
     defaultPageSize: string;
     document: ReadingSessionDocument;
     renderer: ReadingSessionRenderer;
+    ignoreStore?: ReadingSessionIgnoreStore;
 }>;
 
 type ReadingSessionCloseResult = Readonly<{
@@ -113,6 +121,7 @@ class ReadingSession {
     private readonly defaultPageSize: string;
     private readonly document: ReadingSessionDocument;
     private readonly renderer: ReadingSessionRenderer;
+    private readonly ignoreStore?: ReadingSessionIgnoreStore;
     private readonly listeners = new Set<ReadingSessionListener>();
     private readonly activeRenders = new Set<Promise<unknown>>();
 
@@ -130,6 +139,7 @@ class ReadingSession {
         this.defaultPageSize = dependencies.defaultPageSize;
         this.document = dependencies.document;
         this.renderer = dependencies.renderer;
+        this.ignoreStore = dependencies.ignoreStore;
         this.state = {
             status: "initializing",
             desired: { page: 1, pageSize: normalizePageSize(this.defaultPageSize) },
@@ -155,6 +165,7 @@ class ReadingSession {
                 ? {
                       ...this.state.confirmed,
                       range: { ...this.state.confirmed.range },
+                      newWords: [...this.state.confirmed.newWords],
                   }
                 : null,
         };
@@ -195,6 +206,23 @@ class ReadingSession {
                     return this.snapshot();
                 }
                 return this.renderDesired(this.state.desired, this.retryNeedsPersistence);
+            case "finishPage": {
+                const confirmed = this.state.confirmed;
+                if (!confirmed) {
+                    return this.snapshot();
+                }
+                if (confirmed.newWords.length > 0 && this.ignoreStore) {
+                    await this.ignoreStore.postIgnoreWords([...confirmed.newWords]);
+                }
+                if (confirmed.range.endLine < this.articleLines.length) {
+                    const desired = clampSelection(
+                        { page: confirmed.page + 1, pageSize: confirmed.pageSize },
+                        this.articleLines.length
+                    );
+                    return this.renderDesired(desired, true);
+                }
+                return this.renderDesired(this.state.desired, false);
+            }
         }
     }
 
@@ -257,9 +285,9 @@ class ReadingSession {
 
         const render = Promise.resolve().then(() => this.renderer.render(pageText));
         this.activeRenders.add(render);
-        let renderedText: SafeHtml;
+        let renderResult: RenderArticleResult;
         try {
-            renderedText = await render;
+            renderResult = await render;
         } catch {
             if (requestId === this.requestId && this.state.status !== "closed") {
                 this.state = { ...this.state, status: "renderFailed", error: "render_failed" };
@@ -283,7 +311,12 @@ class ReadingSession {
         this.state = {
             ...this.state,
             status: "ready",
-            confirmed: { ...desired, range, renderedText },
+            confirmed: {
+                ...desired,
+                range,
+                renderedText: renderResult.html,
+                newWords: renderResult.newWords,
+            },
             progress: shouldSave ? "unsaved" : this.state.progress,
             error: null,
         };

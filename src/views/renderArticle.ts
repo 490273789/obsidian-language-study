@@ -76,18 +76,28 @@ function selectPositiveExpressions(wordsPhrases: WordsPhrase): string[] {
     return payload;
 }
 
-// 纯渲染：text + 已解析的 context → SafeHtml，无副作用、无 Obsidian 依赖
-function renderArticle(text: string, context: ArticleRenderContext): SafeHtml {
+type RenderArticleResult = Readonly<{
+    html: SafeHtml;
+    newWords: readonly string[];
+}>;
+
+// 纯渲染：text + 已解析的 context → RenderArticleResult，无副作用、无 Obsidian 依赖
+function renderArticle(text: string, context: ArticleRenderContext): RenderArticleResult {
     const phrases = [...context.phrases].sort((a, b) => a.offset - b.offset);
     const ast = processor.parse(text) as Root;
     wrapPhrases(ast, phrases);
 
+    const newWords = new Set<string>();
     const parseContext: ParseContext = {
         phrases,
         wordStatuses: context.wordStatuses,
     };
 
-    return unsafeMarkSafeHtml(toHTMLString(ast, parseContext));
+    const htmlString = toHTMLString(ast, parseContext, newWords);
+    return {
+        html: unsafeMarkSafeHtml(htmlString),
+        newWords: [...newWords],
+    };
 }
 
 function wrapPhrases(tree: Root, phrases: Phrase[]): void {
@@ -130,43 +140,47 @@ function wrapPhrases(tree: Root, phrases: Phrase[]): void {
     });
 }
 
-function toHTMLString(node: AnyNode, context: ParseContext): string {
+function toHTMLString(node: AnyNode, context: ParseContext, newWords: Set<string>): string {
     if (hasValue(node)) {
         return escapeHtml(node.value);
     }
     if (Array.isArray(node)) {
-        return node.map((n) => toHTMLString(n, context)).join("");
+        return node.map((n) => toHTMLString(n, context, newWords)).join("");
     }
     if (hasChildren(node)) {
         switch (node.type as string) {
             case "WordNode": {
                 let text = toString(node.children);
                 let textLower = text.toLowerCase();
-                let status = context.wordStatuses.has(textLower)
-                    ? STATUS_MAP[context.wordStatuses.get(textLower)!]
-                    : "new";
+                let isWord = isWordLike(text);
+                let isNew = !context.wordStatuses.has(textLower);
+                let status = isNew ? "new" : STATUS_MAP[context.wordStatuses.get(textLower)!];
 
-                return isWordLike(text)
+                if (isWord && isNew) {
+                    newWords.add(textLower);
+                }
+
+                return isWord
                     ? `<span class="word ${status}">${escapeHtml(text)}</span>`
                     : `<span class="other">${escapeHtml(text)}</span>`;
             }
             case "PhraseNode": {
                 const phraseNode = node as PhraseNode;
                 let childText = toString(phraseNode.children);
-                let text = toHTMLString(phraseNode.children as Content[], context);
+                let text = toHTMLString(phraseNode.children as Content[], context, newWords);
                 let phrase = context.phrases.find((p) => p.text === childText.toLowerCase());
                 let status = phrase ? STATUS_MAP[phrase.status] : "new";
 
                 return `<span class="phrase ${status}">${text}</span>`;
             }
             case "SentenceNode": {
-                return `<span class="stns">${toHTMLString(node.children, context)}</span>`;
+                return `<span class="stns">${toHTMLString(node.children, context, newWords)}</span>`;
             }
             case "ParagraphNode": {
-                return `<p>${toHTMLString(node.children, context)}</p>`;
+                return `<p>${toHTMLString(node.children, context, newWords)}</p>`;
             }
             default: {
-                return `<div class="article">${toHTMLString(node.children, context)}</div>`;
+                return `<div class="article">${toHTMLString(node.children, context, newWords)}</div>`;
             }
         }
     }
@@ -174,4 +188,4 @@ function toHTMLString(node: AnyNode, context: ParseContext): string {
 }
 
 export { countWordStatuses, collectArticleWords, renderArticle, selectPositiveExpressions };
-export type { ArticleRenderContext };
+export type { ArticleRenderContext, RenderArticleResult };

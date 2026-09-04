@@ -23,7 +23,11 @@ function makeHarness({
         position = next;
     });
     const publishWordsSection = vi.fn(async () => "published" as const);
-    const render = vi.fn(async (text: string) => unsafeMarkSafeHtml(`<p>${text}</p>`));
+    const postIgnoreWords = vi.fn(async (_words: string[]) => {});
+    const render = vi.fn(async (text: string) => ({
+        html: unsafeMarkSafeHtml(`<p>${text}</p>`),
+        newWords: text ? text.split(/\s+/).filter(Boolean) : [],
+    }));
     const dependencies: ReadingSessionDependencies = {
         articleLines,
         defaultPageSize,
@@ -33,12 +37,14 @@ function makeHarness({
             publishWordsSection,
         },
         renderer: { render },
+        ignoreStore: { postIgnoreWords },
     };
     const session = new ReadingSession(dependencies);
 
     return {
         dependencies,
         publishWordsSection,
+        postIgnoreWords,
         render,
         session,
         setPosition,
@@ -90,8 +96,14 @@ describe("Reading Session", () => {
     it("lets the latest desired page win and discards a stale render", async () => {
         const harness = makeHarness();
         await harness.session.initialize();
-        const pageTwo = deferred<ReturnType<typeof unsafeMarkSafeHtml>>();
-        const pageThree = deferred<ReturnType<typeof unsafeMarkSafeHtml>>();
+        const pageTwo = deferred<{
+            html: ReturnType<typeof unsafeMarkSafeHtml>;
+            newWords: string[];
+        }>();
+        const pageThree = deferred<{
+            html: ReturnType<typeof unsafeMarkSafeHtml>;
+            newWords: string[];
+        }>();
         harness.render.mockImplementationOnce(() => pageTwo.promise);
         harness.render.mockImplementationOnce(() => pageThree.promise);
 
@@ -103,9 +115,15 @@ describe("Reading Session", () => {
             confirmed: { page: 1 },
         });
 
-        pageThree.resolve(unsafeMarkSafeHtml("page three"));
+        pageThree.resolve({
+            html: unsafeMarkSafeHtml("page three"),
+            newWords: ["page", "three"],
+        });
         await thirdPageResult;
-        pageTwo.resolve(unsafeMarkSafeHtml("stale page two"));
+        pageTwo.resolve({
+            html: unsafeMarkSafeHtml("stale page two"),
+            newWords: ["stale", "page", "two"],
+        });
         await secondPageResult;
 
         expect(harness.session.snapshot()).toMatchObject({
@@ -133,7 +151,10 @@ describe("Reading Session", () => {
             error: "render_failed",
         });
 
-        harness.render.mockResolvedValueOnce(unsafeMarkSafeHtml("retried page two"));
+        harness.render.mockResolvedValueOnce({
+            html: unsafeMarkSafeHtml("retried page two"),
+            newWords: ["retried", "page", "two"],
+        });
         await harness.session.act({ type: "retry" });
 
         expect(harness.session.snapshot()).toMatchObject({
@@ -233,12 +254,18 @@ describe("Reading Session", () => {
     it("invalidates a pending render and waits for it before closing", async () => {
         const harness = makeHarness();
         await harness.session.initialize();
-        const pending = deferred<ReturnType<typeof unsafeMarkSafeHtml>>();
+        const pending = deferred<{
+            html: ReturnType<typeof unsafeMarkSafeHtml>;
+            newWords: string[];
+        }>();
         harness.render.mockImplementationOnce(() => pending.promise);
         const navigation = harness.session.act({ type: "navigate", page: 2 });
 
         const closing = harness.session.close();
-        pending.resolve(unsafeMarkSafeHtml("late page"));
+        pending.resolve({
+            html: unsafeMarkSafeHtml("late page"),
+            newWords: ["late", "page"],
+        });
 
         await navigation;
         await expect(closing).resolves.toEqual({ progress: "notNeeded", words: "published" });
@@ -247,5 +274,61 @@ describe("Reading Session", () => {
             confirmed: { page: 1 },
         });
         expect(harness.setPosition).not.toHaveBeenCalled();
+    });
+
+    describe("finishPage action", () => {
+        it("posts newWords to ignoreStore and navigates to next page when not on last page", async () => {
+            const harness = makeHarness({
+                articleLines: ["alpha", "beta", "gamma", "delta"],
+                defaultPageSize: "2",
+            });
+            await harness.session.initialize();
+
+            expect(harness.session.snapshot().confirmed?.newWords).toEqual(["alpha", "beta"]);
+
+            await harness.session.act({ type: "finishPage" });
+
+            expect(harness.postIgnoreWords).toHaveBeenCalledWith(["alpha", "beta"]);
+            expect(harness.session.snapshot()).toMatchObject({
+                status: "ready",
+                desired: { page: 2, pageSize: 2 },
+                confirmed: {
+                    page: 2,
+                    newWords: ["gamma", "delta"],
+                },
+            });
+            expect(harness.setPosition).toHaveBeenCalledWith("3");
+        });
+
+        it("posts newWords and refreshes current page when on last page", async () => {
+            const harness = makeHarness({
+                articleLines: ["alpha", "beta"],
+                defaultPageSize: "2",
+            });
+            await harness.session.initialize();
+
+            expect(harness.session.snapshot().confirmed?.page).toBe(1);
+
+            await harness.session.act({ type: "finishPage" });
+
+            expect(harness.postIgnoreWords).toHaveBeenCalledWith(["alpha", "beta"]);
+            expect(harness.session.snapshot()).toMatchObject({
+                status: "ready",
+                desired: { page: 1, pageSize: 2 },
+                confirmed: { page: 1 },
+            });
+        });
+
+        it("does not call postIgnoreWords if current page has no new words", async () => {
+            const harness = makeHarness({
+                articleLines: ["", ""],
+                defaultPageSize: "2",
+            });
+            await harness.session.initialize();
+
+            await harness.session.act({ type: "finishPage" });
+
+            expect(harness.postIgnoreWords).not.toHaveBeenCalled();
+        });
     });
 });

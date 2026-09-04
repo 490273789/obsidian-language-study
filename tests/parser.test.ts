@@ -72,10 +72,10 @@ function makeParser() {
 describe("TextParser (adapter)", () => {
     it("renders article with a single merged getStoredWords call", async () => {
         const { parser, getStoredWords } = makeParser();
-        const html = await parser.parse("alpha visits new york.");
+        const result = await parser.parse("alpha visits new york.");
 
-        expect(html).toContain(`class="word learning"`);
-        expect(html).toContain(`class="phrase familiar"`);
+        expect(result.html).toContain(`class="word learning"`);
+        expect(result.html).toContain(`class="phrase familiar"`);
         expect(getStoredWords).toHaveBeenCalledTimes(1);
         expect(getStoredWords).toHaveBeenCalledWith({
             article: "alpha visits new york.",
@@ -90,9 +90,9 @@ describe("TextParser (adapter)", () => {
             parser.parse("gamma delta appears."),
         ]);
 
-        expect(first).toContain(`class="word learning"`);
-        expect(first).not.toContain(`class="phrase learned"`);
-        expect(second).toContain(`class="phrase learned"`);
+        expect(first.html).toContain(`class="word learning"`);
+        expect(first.html).not.toContain(`class="phrase learned"`);
+        expect(second.html).toContain(`class="phrase learned"`);
     });
 
     it("counts unknown, learned, and ignored words", async () => {

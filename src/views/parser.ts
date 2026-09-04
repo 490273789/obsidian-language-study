@@ -4,7 +4,6 @@ import type {
     ExpressionStatus,
     WordsPhrase,
 } from "@/db/interface";
-import type { SafeHtml } from "@/utils/safeHtml";
 
 import {
     countWordStatuses,
@@ -12,7 +11,7 @@ import {
     renderArticle,
     selectPositiveExpressions,
 } from "./renderArticle";
-import type { ArticleRenderContext } from "./renderArticle";
+import type { ArticleRenderContext, RenderArticleResult } from "./renderArticle";
 
 type ParserQueryStore = Readonly<{
     getStoredWords(payload: ArticleWords): Promise<WordsPhrase>;
@@ -22,7 +21,7 @@ type ParserQueryStore = Readonly<{
 export class TextParser {
     constructor(private readonly db: ParserQueryStore) {}
 
-    async parse(data: string): Promise<SafeHtml> {
+    async parse(data: string): Promise<RenderArticleResult> {
         const text = data.trim();
         const context = await this.buildRenderContext(text);
         return renderArticle(text, context);
