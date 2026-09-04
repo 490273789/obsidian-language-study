@@ -7,12 +7,14 @@ type MomentLike = {
     startOf(unit: string): MomentLike;
     subtract(value: number, unit: string): MomentLike;
     unix(): number;
+    valueOf(): number;
 };
 
 type MomentFactory = {
-    (): MomentLike;
+    (input?: unknown): MomentLike;
     unix(timestamp: number): MomentLike;
     utc(input?: unknown): MomentLike;
 };
 
+export type { MomentLike, MomentFactory };
 export const moment = obsidianMoment as unknown as MomentFactory;

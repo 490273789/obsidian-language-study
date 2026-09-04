@@ -7,10 +7,12 @@ import {
     ExpressionInfoSimple,
     CountInfo,
     WordCount,
+    DailyLearningStat,
 } from "./interface";
 
 import DbProvider from "./base";
 import { buildDaySpans } from "./spans";
+import { buildDailyTimeWindows, convertLegacyWordCounts } from "@/stats/aggregations";
 import { moment } from "@/utils/moment";
 import { isLearningRecord, LearningRecordStoreError } from "@/learningRecord/intake";
 import type { LearningRecordCandidate, LearningRecordCommitReceipt } from "@/learningRecord/intake";
@@ -270,7 +272,40 @@ export class WebDb extends DbProvider {
         }
     }
 
-    // 获取包括今天在内的7天内每一天的新单词量和累计单词量
+    // 获取每日学习记录统计台账
+    async getDailyLearningStats(
+        windowDays = 7,
+        now?: number | string | Date
+    ): Promise<readonly DailyLearningStat[]> {
+        const windows = buildDailyTimeWindows(windowDays, now);
+        const spans = windows.map((w) => ({ from: w.from, to: w.to }));
+
+        const request: RequestUrlParam = {
+            url: `${this.proto}://${this.host}:${this.port}${this.prefix}/count_time`,
+            method: "POST",
+            body: JSON.stringify(spans),
+            contentType: "application/json",
+            headers: this.baseHeaders,
+        };
+
+        try {
+            const res = await requestUrl(request);
+            const counts: WordCount[] = res.json ?? [];
+            return convertLegacyWordCounts(counts, windows);
+        } catch (e) {
+            console.warn("Error getting daily learning stats: " + e);
+            return windows.map((w) => ({
+                dateLabel: w.dateLabel,
+                timestamp: w.to,
+                dayIgnore: 0,
+                dayLearned: 0,
+                accumulated: 0,
+                statusBreakdown: [0, 0, 0, 0, 0],
+            }));
+        }
+    }
+
+    // 获取包括今天在内的7天内每一天的新单词量和累计单词量（兼容旧调用）
     async countSeven(): Promise<WordCount[]> {
         const spans = buildDaySpans();
 

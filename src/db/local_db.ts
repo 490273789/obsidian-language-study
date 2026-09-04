@@ -14,10 +14,12 @@ import {
     CountInfo,
     WordCount,
     ExpressionStatus,
+    DailyLearningStat,
+    LearningRecordTimeItem,
 } from "./interface";
 import DbProvider from "./base";
 import WordDB from "./idb";
-import { buildDaySpans } from "./spans";
+import { buildDailyTimeWindows, aggregateDailyLearningStats } from "@/stats/aggregations";
 import type Plugin from "@/plugin";
 import { moment } from "@/utils/moment";
 import { LearningRecordStoreError } from "@/learningRecord/intake";
@@ -315,36 +317,39 @@ export class LocalDb extends DbProvider {
         };
     }
 
-    async countSeven(): Promise<WordCount[]> {
-        const spans = buildDaySpans();
-
-        let res: WordCount[] = [];
-
-        // 对每一天计算
-        for (let span of spans) {
-            // 当日
-            let today = new Array(5).fill(0);
-            await this.idb.expressions
-                .filter((expr) => {
-                    return expr.t == "WORD" && expr.date >= span.from && expr.date <= span.to;
-                })
-                .each((expr) => {
-                    today[expr.status]++;
-                });
-            // 累计
-            let accumulated = new Array(5).fill(0);
-            await this.idb.expressions
-                .filter((expr) => {
-                    return expr.t == "WORD" && expr.date <= span.to;
-                })
-                .each((expr) => {
-                    accumulated[expr.status]++;
-                });
-
-            res.push({ today, accumulated });
+    async getDailyLearningStats(
+        windowDays = 7,
+        now?: number | string | Date
+    ): Promise<readonly DailyLearningStat[]> {
+        const windows = buildDailyTimeWindows(windowDays, now);
+        if (windows.length === 0) {
+            return [];
         }
 
-        return res;
+        const items: LearningRecordTimeItem[] = [];
+        await this.idb.expressions
+            .filter((expr) => expr.t === "WORD")
+            .each((expr) => {
+                items.push({
+                    date: expr.date,
+                    status: expr.status,
+                    type: expr.t,
+                });
+            });
+
+        return aggregateDailyLearningStats(items, windows);
+    }
+
+    async countSeven(): Promise<WordCount[]> {
+        const stats = await this.getDailyLearningStats(7);
+        return stats.map((s) => {
+            // 为向后兼容旧的 WordCount 结构（5个状态的数组）
+            const today = [...s.statusBreakdown];
+            return {
+                today,
+                accumulated: [0, 0, 0, 0, s.accumulated],
+            };
+        });
     }
 
     async importDB(file: File) {

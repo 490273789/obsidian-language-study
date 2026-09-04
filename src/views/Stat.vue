@@ -15,7 +15,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from "vue";
 import { t } from "@/lang/helper";
-import { moment } from "@/utils/moment";
 import { usePlugin, useView } from "@/ui/context";
 
 import * as echarts from "echarts/core";
@@ -153,8 +152,6 @@ onMounted(async () => {
     updateChart();
 });
 
-const last7days = [6, 5, 4, 3, 2, 1, 0].map((i) => moment().subtract(i, "days").format("M-D"));
-
 option = {
     title: {
         text: "Words",
@@ -165,7 +162,7 @@ option = {
     xAxis: {
         type: "category",
         boundaryGap: false,
-        data: last7days,
+        data: [],
     },
     yAxis: {
         type: "value",
@@ -212,12 +209,16 @@ option = {
 };
 
 async function updateChart() {
-    let data = await plugin.db.countSeven();
-    let dayIgnoreWords = data.map((d) => d.today[0]);
-    let dayNoIgnoreWords = data.map((d) => d.today.slice(1).reduce((a, b) => a + b));
-    let accumAllWords = data.map((d) => d.accumulated.reduce((a, b) => a + b));
+    const stats = await plugin.db.getDailyLearningStats(7);
+    const dateLabels = stats.map((d) => d.dateLabel);
+    const dayIgnoreWords = stats.map((d) => d.dayIgnore);
+    const dayNoIgnoreWords = stats.map((d) => d.dayLearned);
+    const accumAllWords = stats.map((d) => d.accumulated);
 
     sevenDays.setOption({
+        xAxis: {
+            data: dateLabels,
+        },
         series: [{ data: dayIgnoreWords }, { data: dayNoIgnoreWords }, { data: accumAllWords }],
     });
 }

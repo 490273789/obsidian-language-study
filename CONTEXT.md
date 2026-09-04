@@ -43,3 +43,7 @@ _Avoid_: Expression info, word data, vocabulary entry
 **Lookup Provider**:
 An external reference or translation source integrated behind the lookup seam to provide definitions, audio, grammatical notes, or machine translation for expressions and sentences.
 _Avoid_: Dictionary engine, dict API, translator service
+
+**Learning Record Statistics**:
+The chronological and category-level aggregations derived from Learning Records over specified time windows (e.g., daily counts, ignored vs. studied progression, accumulated total). Calculated by pure aggregation functions decoupled from persistence storage engines.
+_Avoid_: Chart data, countSeven, DB metrics

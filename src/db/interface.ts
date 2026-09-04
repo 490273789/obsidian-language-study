@@ -64,6 +64,21 @@ interface WordCount {
     accumulated: number[];
 }
 
+interface DailyLearningStat {
+    dateLabel: string;
+    timestamp: number;
+    dayIgnore: number;
+    dayLearned: number;
+    accumulated: number;
+    statusBreakdown: readonly number[];
+}
+
+interface LearningRecordTimeItem {
+    date: number;
+    status: ExpressionStatus;
+    type?: ExpressionType;
+}
+
 export type {
     ExpressionStatus,
     ExpressionType,
@@ -77,4 +92,6 @@ export type {
     CountInfo,
     WordCount,
     Span,
+    DailyLearningStat,
+    LearningRecordTimeItem,
 };

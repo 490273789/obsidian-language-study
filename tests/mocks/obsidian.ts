@@ -99,8 +99,29 @@ function stringifyYaml(value: unknown): string {
 
 const DAY_MS = 86_400_000;
 
-function createMoment(base?: number) {
-    const value = base ?? Date.now();
+function parseBase(base?: unknown): number {
+    if (typeof base === "number") {
+        return base;
+    }
+    if (typeof base === "string") {
+        return Date.parse(base);
+    }
+    if (base instanceof Date) {
+        return base.getTime();
+    }
+    if (
+        typeof base === "object" &&
+        base !== null &&
+        "unix" in base &&
+        typeof (base as { unix: unknown }).unix === "function"
+    ) {
+        return (base as { unix: () => number }).unix() * 1000;
+    }
+    return Date.now();
+}
+
+function createMoment(base?: unknown) {
+    const value = parseBase(base);
     return {
         unix: () => Math.floor(value / 1000),
         subtract: (amount: number, unit: string) =>
@@ -109,13 +130,20 @@ function createMoment(base?: number) {
         add: (amount: number, unit: string) =>
             createMoment(value + amount * (unit === "days" ? DAY_MS : 0)),
         endOf: () => createMoment(Math.floor(value / DAY_MS) * DAY_MS + DAY_MS - 1000),
-        format: () => "",
+        valueOf: () => value,
+        format: (formatStr?: string) => {
+            const date = new Date(value);
+            if (formatStr === "M-D") {
+                return `${date.getUTCMonth() + 1}-${date.getUTCDate()}`;
+            }
+            return "";
+        },
     };
 }
 
-const moment = Object.assign(() => createMoment(), {
-    utc: () => createMoment(),
-    unix: () => createMoment(),
+const moment = Object.assign((base?: unknown) => createMoment(base), {
+    utc: (base?: unknown) => createMoment(base),
+    unix: (timestamp: number) => createMoment(timestamp * 1000),
 });
 
 export {

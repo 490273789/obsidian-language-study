@@ -6,6 +6,7 @@ import {
     ExpressionInfoSimple,
     CountInfo,
     WordCount,
+    DailyLearningStat,
 } from "./interface";
 import type { LearningRecordCandidate, LearningRecordCommitReceipt } from "@/learningRecord/intake";
 
@@ -34,8 +35,13 @@ abstract class DbProvider {
     abstract tryGetSen(text: string): Promise<Sentence | null>;
     // 获取各类单词的个数
     abstract getCount(): Promise<CountInfo>;
-    // 获取7天内的统计信息
+    // 获取7天内的统计信息（兼容旧调用）
     abstract countSeven(): Promise<WordCount[]>;
+    // 获取每日学习记录统计台账
+    abstract getDailyLearningStats(
+        windowDays?: number,
+        now?: number | string | Date
+    ): Promise<readonly DailyLearningStat[]>;
 }
 
 export default DbProvider;
