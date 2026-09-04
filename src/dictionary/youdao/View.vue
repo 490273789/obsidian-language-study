@@ -27,55 +27,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from "vue";
+import { ref, computed } from "vue";
 
 import Collins from "./YDCollins.vue";
-import { search, YoudaoResultLex } from "./engine";
-import { useLoading } from "@dict/uses";
+import type { YoudaoResult, YoudaoResultLex } from "./engine";
 import { playAudio } from "@/utils/helpers";
 import { EMPTY_SAFE_HTML } from "@/utils/safeHtml";
 
-// import Plugin from "../plugin"
-// const plugin: Plugin = getCurrentInstance().appContext.config.globalProperties.plugin
-
 const props = defineProps<{
-    word: string;
+    result?: YoudaoResult | null;
 }>();
 
-const emits = defineEmits<{
-    (event: "loading", status: { id: string; loading: boolean; result: boolean }): void;
-}>();
-
-let word = ref("");
-let meaningHTML = ref(EMPTY_SAFE_HTML);
-let translationHTML = ref(EMPTY_SAFE_HTML);
-let prons = ref<Array<{ phsym: string; url: string }>>([]);
-let curPanel = ref("柯林斯");
-let collins = ref([{}]);
-let discriminationHTML = ref(EMPTY_SAFE_HTML);
-let wordGroupHTML = ref(EMPTY_SAFE_HTML);
-let relWordHTML = ref(EMPTY_SAFE_HTML);
-
-async function onSearch(): Promise<boolean> {
-    let res = await search(props.word);
-    if (!res) {
-        return false;
+const lex = computed<YoudaoResultLex | null>(() => {
+    if (props.result && props.result.type === "lex") {
+        return props.result as YoudaoResultLex;
     }
-    let result = res.result as YoudaoResultLex;
-    word.value = result.title;
-    meaningHTML.value = result.basic ?? EMPTY_SAFE_HTML;
-    translationHTML.value = result.translation ?? EMPTY_SAFE_HTML;
-    prons.value = result.prons;
-    collins.value = result.collins;
-    discriminationHTML.value = result.discrimination ?? EMPTY_SAFE_HTML;
-    wordGroupHTML.value = result.wordGroup ?? EMPTY_SAFE_HTML;
-    relWordHTML.value = result.relWord ?? EMPTY_SAFE_HTML;
+    return null;
+});
 
-    await nextTick();
-    return true;
-}
+const word = computed(() => lex.value?.title ?? "");
+const meaningHTML = computed(() => lex.value?.basic ?? EMPTY_SAFE_HTML);
+const translationHTML = computed(() => lex.value?.translation ?? EMPTY_SAFE_HTML);
+const prons = computed(() => lex.value?.prons ?? []);
+const collins = computed(() => lex.value?.collins ?? []);
+const discriminationHTML = computed(() => lex.value?.discrimination ?? EMPTY_SAFE_HTML);
+const wordGroupHTML = computed(() => lex.value?.wordGroup ?? EMPTY_SAFE_HTML);
+const relWordHTML = computed(() => lex.value?.relWord ?? EMPTY_SAFE_HTML);
 
-useLoading(() => props.word, "youdao", onSearch, emits);
+const curPanel = ref("柯林斯");
 </script>
 
 <style lang="scss">

@@ -1,30 +1,66 @@
-import { t } from "@/lang/helper";
+import type { Component } from "vue";
+
+import type { DictionaryAdapter } from "./interface";
+import { DictionaryHub } from "./hub";
+import { youdaoAdapter, cambridgeAdapter, deeplAdapter, hjdictAdapter } from "./adapters";
 import Youdao from "./youdao/View.vue";
 import Cambridge from "./cambridge/View.vue";
 import HJdict from "./hjdict/View.vue";
 import DeepL from "./deepl/View.vue";
 
-const dicts = {
+export type DictionaryEntry = {
+    readonly adapter: DictionaryAdapter;
+    readonly name: string;
+    readonly description: string;
+    readonly Cp: Component;
+};
+
+export const dicts = {
     youdao: {
-        name: t("Youdao"),
-        description: `${t("English")} <=> ${t("Chinese")}`,
+        adapter: youdaoAdapter,
+        get name() {
+            return youdaoAdapter.name;
+        },
+        get description() {
+            return youdaoAdapter.description;
+        },
         Cp: Youdao,
     },
     cambridge: {
-        name: t("Cambridge"),
-        description: `${t("English")} => ${t("Chinese")}`,
+        adapter: cambridgeAdapter,
+        get name() {
+            return cambridgeAdapter.name;
+        },
+        get description() {
+            return cambridgeAdapter.description;
+        },
         Cp: Cambridge,
     },
     hjdict: {
-        name: t("Hujiang"),
-        description: `${t("English")},${t("Japanese")}, ${t("Korean")}, ${t("Spanish")}, ${t("French")}, ${t("Deutsch")} <=> ${t("Chinese")}`,
+        adapter: hjdictAdapter,
+        get name() {
+            return hjdictAdapter.name;
+        },
+        get description() {
+            return hjdictAdapter.description;
+        },
         Cp: HJdict,
     },
     deepl: {
-        name: "DeepL",
-        description: `All <=> ${t("Chinese")}`,
+        adapter: deeplAdapter,
+        get name() {
+            return deeplAdapter.name;
+        },
+        get description() {
+            return deeplAdapter.description;
+        },
         Cp: DeepL,
     },
 };
 
-export { dicts };
+export const defaultDictionaryHub = new DictionaryHub([
+    youdaoAdapter,
+    cambridgeAdapter,
+    hjdictAdapter,
+    deeplAdapter,
+]);

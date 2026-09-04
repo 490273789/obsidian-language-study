@@ -1,60 +1,46 @@
 <template>
-    <div id="cambridge">
-        <section v-for="entry in result" :key="entry.id" :id="entry.id" @click="">
+    <div id="cambridge" ref="cambridgeEl">
+        <section v-for="entry in entries" :key="entry.id" :id="entry.id">
             <div v-html="entry.html"></div>
         </section>
     </div>
 </template>
 
 <script setup lang="ts">
-import { Notice } from "obsidian";
-import { ref, watch, onMounted, onUnmounted, nextTick } from "vue";
-import { CambridgeResult, search } from "./engine";
-import { useLoading } from "@dict/uses";
+import { computed, ref, onMounted, onUnmounted } from "vue";
+import type { CambridgeResult } from "./engine";
 
 const props = defineProps<{
-    word: string;
+    result?: CambridgeResult | null;
 }>();
 
-const emits = defineEmits<{
-    (event: "loading", status: { id: string; loading: boolean; result: boolean }): void;
-}>();
+const cambridgeEl = ref<HTMLElement | null>(null);
 
-let result = ref<CambridgeResult>([]);
+const entries = computed<CambridgeResult>(() => props.result ?? []);
 
-async function onSearch(): Promise<boolean> {
-    let res = await search(props.word);
-    if (!res) return false;
-
-    result.value = res.result;
-    await nextTick();
-    return true;
+function handleClick(evt: MouseEvent) {
+    const target = evt.target as HTMLElement | null;
+    if (!target) return;
+    if (
+        (target.tagName === "HEADER" && target.hasClass("ca_h")) ||
+        target.matchParent("header.ca_h")
+    ) {
+        const section = target.matchParent("section");
+        if (!section) return;
+        if (section.hasClass("expand")) {
+            section.removeClass("expand");
+        } else {
+            section.addClass("expand");
+        }
+    }
 }
 
-useLoading(() => props.word, "cambridge", onSearch, emits);
-
 onMounted(() => {
-    let cam = document.querySelector("#cambridge");
-    if (!cam) return;
-    // 管理“更多范例”的展开和折叠
-    cam.addEventListener("click", (evt) => {
-        let target = evt.target as HTMLElement;
-        // console.log(target)
-        if (
-            (target.tagName === "HEADER" && target.hasClass("ca_h")) ||
-            target.matchParent("header.ca_h")
-        ) {
-            let section = target.matchParent("section");
-            if (!section) {
-                return;
-            }
-            if (section.hasClass("expand")) {
-                section.removeClass("expand");
-            } else {
-                section.addClass("expand");
-            }
-        }
-    });
+    cambridgeEl.value?.addEventListener("click", handleClick);
+});
+
+onUnmounted(() => {
+    cambridgeEl.value?.removeEventListener("click", handleClick);
 });
 </script>
 

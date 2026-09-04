@@ -1,37 +1,24 @@
 <template>
     <div id="hjdict">
-        <div v-for="en in entries" v-html="en"></div>
+        <div v-for="(en, index) in entries" :key="index" v-html="en"></div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { search } from "./engine";
-import { useLoading } from "@dict/uses";
-import { usePlugin } from "@/ui/context";
+import { computed } from "vue";
+import type { HjdictResult } from "./engine";
 import type { SafeHtml } from "@/utils/safeHtml";
 
-let plugin = usePlugin();
-
 const props = defineProps<{
-    word: string;
-}>();
-const emits = defineEmits<{
-    (event: "loading", status: { id: string; loading: boolean; result: boolean }): void;
+    result?: HjdictResult | null;
 }>();
 
-let entries = ref<SafeHtml[]>([]);
-async function onSearch(): Promise<boolean> {
-    let res = await search(props.word, { lang: plugin.settings.foreign });
-    if (res.result.type === "lex") {
-        entries.value = res.result.entries;
-        return true;
-    } else {
-        return false;
+const entries = computed<SafeHtml[]>(() => {
+    if (props.result && props.result.type === "lex") {
+        return props.result.entries;
     }
-}
-
-useLoading(() => props.word, "hjdict", onSearch, emits);
+    return [];
+});
 </script>
 
 <style lang="scss">

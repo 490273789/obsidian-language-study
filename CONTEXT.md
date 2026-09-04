@@ -35,3 +35,7 @@ _Avoid_: Expression recording, submission, save
 **Learning Record**:
 The authoritative record for a studied word or phrase, including its meaning, learning status, tags, notes, and example sentences. Markdown databases, statistics, and reading markers are derived representations of Learning Records.
 _Avoid_: Expression info, word data, vocabulary entry
+
+**Lookup Provider**:
+An external reference or translation source integrated behind the lookup seam to provide definitions, audio, grammatical notes, or machine translation for expressions and sentences.
+_Avoid_: Dictionary engine, dict API, translator service

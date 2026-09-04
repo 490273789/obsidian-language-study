@@ -50,14 +50,15 @@
                 </div>
                 <div class="dict-tabs" v-if="components.length > 0">
                     <button
-                        v-for="(cp, i) in components"
+                        v-for="cp in components"
                         :key="cp.id"
                         type="button"
                         class="dict-tab"
                         :class="{
                             active: activeDictId === cp.id,
-                            loading: loadings[i],
-                            empty: word && !loadings[i] && !shows[i],
+                            loading: loadings[cp.id],
+                            empty:
+                                word && !loadings[cp.id] && receipts[cp.id]?.status !== 'success',
                         }"
                         @click="activeDictId = cp.id"
                     >
@@ -67,22 +68,34 @@
                 </div>
                 <div class="dict-area">
                     <section
-                        v-for="(cp, i) in components"
+                        v-for="cp in components"
                         :key="cp.id"
                         class="dict-panel langr-card"
                         v-show="activeDictId === cp.id"
                     >
-                        <KeepAlive>
-                            <Component
-                                @loading="loading"
-                                :is="cp.type"
-                                :word="word"
-                                v-show="shows[i]"
-                            ></Component>
-                        </KeepAlive>
-                        <div class="dict-state langr-state" v-if="loadings[i]">searching...</div>
-                        <div class="dict-state langr-state" v-else-if="word && !shows[i]">
+                        <div class="dict-state langr-state" v-if="loadings[cp.id]">
+                            searching...
+                        </div>
+                        <template v-else-if="receipts[cp.id]?.status === 'success'">
+                            <KeepAlive>
+                                <Component
+                                    :is="cp.type"
+                                    :word="word"
+                                    :result="receipts[cp.id]?.data"
+                                ></Component>
+                            </KeepAlive>
+                        </template>
+                        <div
+                            class="dict-state langr-state"
+                            v-else-if="word && receipts[cp.id]?.status === 'empty'"
+                        >
                             No result
+                        </div>
+                        <div
+                            class="dict-state langr-state"
+                            v-else-if="word && receipts[cp.id]?.status === 'error'"
+                        >
+                            {{ receipts[cp.id]?.error || "Search error" }}
                         </div>
                     </section>
                 </div>
@@ -97,7 +110,8 @@ import type { Component } from "vue";
 import { NConfigProvider, NButton } from "naive-ui";
 
 import { t } from "@/lang/helper";
-import { dicts } from "@dict/list";
+import { dicts, defaultDictionaryHub } from "@dict/list";
+import type { DictionaryLookupReceipt } from "@dict/interface";
 import { playAudio } from "@/utils/helpers";
 import { usePlugin } from "@/ui/context";
 import { useEvent } from "@/utils/use";
@@ -105,18 +119,18 @@ import { useLangrNaiveTheme, useLangrNaiveThemeOverrides } from "@/ui/theme";
 
 const plugin = usePlugin();
 
+type DictionaryId = keyof typeof dicts;
 type DictComponent = {
-    id: keyof typeof dicts;
+    id: DictionaryId;
     name: string;
     type: Component;
 };
-type DictionaryId = keyof typeof dicts;
 
 let components = shallowRef<DictComponent[]>([]);
 let activeDictId = ref<DictionaryId | null>(null);
-let map: Partial<Record<DictionaryId, number>> = {};
-let loadings = ref<boolean[]>([]);
-let shows = ref<boolean[]>([]);
+let receipts = ref<Partial<Record<DictionaryId, DictionaryLookupReceipt>>>({});
+let loadings = ref<Partial<Record<DictionaryId, boolean>>>({});
+
 watch(
     () => plugin.store.dictsChange,
     () => {
@@ -138,13 +152,8 @@ watch(
                 type: dicts[dict.id].Cp,
             };
         });
-        map = {};
-        collection.forEach((v, i) => {
-            map[v.id] = i;
-        });
-        loadings.value = Array(collection.length).fill(false);
-        shows.value = Array(collection.length).fill(false);
-        if (!activeDictId.value || !(activeDictId.value in map)) {
+        const enabledIds = new Set(collection.map((v) => v.id));
+        if (!activeDictId.value || !enabledIds.has(activeDictId.value)) {
             activeDictId.value = components.value[0]?.id ?? null;
         }
     },
@@ -153,12 +162,32 @@ watch(
     }
 );
 
-function loading({ id, loading, result }: { id: string; loading: boolean; result: boolean }) {
-    const index = map[id as DictionaryId];
-    if (index === undefined) return;
+async function triggerSearch(targetWord: string) {
+    const trimmed = targetWord.trim();
+    if (!trimmed) {
+        receipts.value = {};
+        loadings.value = {};
+        return;
+    }
 
-    loadings.value[index] = loading;
-    shows.value[index] = result;
+    const enabledIds = components.value.map((c) => c.id);
+    const initialLoadings: Partial<Record<DictionaryId, boolean>> = {};
+    for (const id of enabledIds) {
+        initialLoadings[id] = true;
+    }
+    loadings.value = initialLoadings;
+
+    await defaultDictionaryHub.lookupAll(trimmed, enabledIds, (receipt, isCurrent) => {
+        if (!isCurrent) return;
+        receipts.value = {
+            ...receipts.value,
+            [receipt.id as DictionaryId]: receipt,
+        };
+        loadings.value = {
+            ...loadings.value,
+            [receipt.id as DictionaryId]: false,
+        };
+    });
 }
 
 const theme = useLangrNaiveTheme(() => plugin.store.dark);
@@ -187,6 +216,10 @@ function appendHistory() {
 
 let inputWord = ref("");
 let word = ref("");
+watch(word, (newWord) => {
+    void triggerSearch(newWord);
+});
+
 const onSearch = async (evt: CustomEvent) => {
     let text = evt.detail.selection;
     word.value = text;

@@ -1,42 +1,25 @@
 <template>
     <div id="deepl">
-        <p class="origin">
+        <p class="origin" v-if="word">
             <strong>原文: </strong>
             {{ word }}
         </p>
         <p class="trans">
             <strong>结果: </strong>
-            {{ result }}
+            {{ resultText }}
         </p>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { useLoading } from "@dict/uses";
-import { search } from "./engine";
-import { usePlugin } from "@/ui/context";
-
-const plugin = usePlugin();
+import { computed } from "vue";
 
 const props = defineProps<{
-    word: string;
-}>();
-const emits = defineEmits<{
-    (event: "loading", status: { id: string; loading: boolean; result: boolean }): void;
+    word?: string;
+    result?: string | null;
 }>();
 
-let result = ref("");
-
-async function onSearch(): Promise<boolean> {
-    let res = await search(props.word, plugin.settings.foreign);
-    if (!res) return false;
-
-    result.value = res;
-    return true;
-}
-
-useLoading(() => props.word, "deepl", onSearch, emits);
+const resultText = computed(() => props.result ?? "");
 </script>
 
 <style lang="scss">
