@@ -31,6 +31,14 @@ export default {
     "Reading position has not been saved": "Reading position has not been saved",
     "Reading Document words could not be updated": "Reading Document words could not be updated",
 
+    "Finishing Reading": "Finishing reading…",
+    "Reading page": "Reading page",
+    "Reading page could not be completed": "Reading page could not be completed",
+    "Reading completion requires a compatible remote database":
+        "Reading completion requires an upgraded remote database",
+    "Reading page completed, but some updates failed":
+        "Reading page completed, but some updates failed",
+
     // LearnPanelView.ts
     "Learning New Words": "Learning New Words",
 

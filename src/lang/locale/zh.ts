@@ -31,6 +31,12 @@ export default {
     "Reading position has not been saved": "阅读位置尚未保存",
     "Reading Document words could not be updated": "阅读文档的词汇内容更新失败",
 
+    "Finishing Reading": "正在完成阅读…",
+    "Reading page": "阅读页",
+    "Reading page could not be completed": "阅读页完成失败",
+    "Reading completion requires a compatible remote database": "完成阅读需要升级远端数据库",
+    "Reading page completed, but some updates failed": "阅读页已完成，但部分更新失败",
+
     // LearnPanelView.ts
     "Learning New Words": "学习新单词",
 

@@ -1,5 +1,9 @@
 import type { SafeHtml } from "@/utils/safeHtml";
 import type { RenderArticleResult } from "@/views/renderArticle";
+import {
+    ReadingPageCompletionStoreError,
+    type ReadingPageCompletionStoreErrorCode,
+} from "./pageCompletion";
 
 type ReadingSessionStatus = "initializing" | "rendering" | "ready" | "renderFailed" | "closed";
 
@@ -25,6 +29,27 @@ type ConfirmedReadingPage = ReadingSessionSelection &
 
 type ReadingSessionError = "render_failed";
 
+type ReadingPageCompletionState =
+    | Readonly<{ status: "idle" }>
+    | Readonly<{ status: "pending"; page: number; pageSize: number }>
+    | Readonly<{
+          status: "failed";
+          page: number;
+          pageSize: number;
+          error: ReadingPageCompletionStoreErrorCode;
+      }>
+    | Readonly<{
+          status: "completed";
+          page: number;
+          pageSize: number;
+          updates: "updated" | "failed";
+      }>;
+
+type ReadingPageCompletionTarget = Readonly<{
+    page: ConfirmedReadingPage;
+    navigationVersion: number;
+}>;
+
 type ReadingSessionState = Readonly<{
     status: ReadingSessionStatus;
     desired: ReadingSessionSelection;
@@ -32,6 +57,8 @@ type ReadingSessionState = Readonly<{
     totalLines: number;
     progress: ReadingProgressStatus;
     error: ReadingSessionError | null;
+    completion: ReadingPageCompletionState;
+    canFinishPage: boolean;
 }>;
 
 type ReadingSessionAction =
@@ -39,7 +66,8 @@ type ReadingSessionAction =
     | Readonly<{ type: "resize"; pageSize: number }>
     | Readonly<{ type: "refresh" }>
     | Readonly<{ type: "retry" }>
-    | Readonly<{ type: "finishPage" }>;
+    | Readonly<{ type: "finishPage" }>
+    | Readonly<{ type: "retryCompletion" }>;
 
 type ReadingSessionDocument = Readonly<{
     getLastPosition(): Promise<number>;
@@ -61,11 +89,13 @@ type ReadingSessionDependencies = Readonly<{
     document: ReadingSessionDocument;
     renderer: ReadingSessionRenderer;
     ignoreStore?: ReadingSessionIgnoreStore;
+    onPageCompleted?(): Promise<void>;
 }>;
 
 type ReadingSessionCloseResult = Readonly<{
     progress: "saved" | "notNeeded" | "failed";
     words: "published" | "skipped" | "failed";
+    completion: ReadingPageCompletionState;
 }>;
 
 type ReadingSessionListener = (state: ReadingSessionState) => void;
@@ -122,17 +152,21 @@ class ReadingSession {
     private readonly document: ReadingSessionDocument;
     private readonly renderer: ReadingSessionRenderer;
     private readonly ignoreStore?: ReadingSessionIgnoreStore;
+    private readonly onPageCompleted?: () => Promise<void>;
     private readonly listeners = new Set<ReadingSessionListener>();
     private readonly activeRenders = new Set<Promise<unknown>>();
 
-    private state: ReadingSessionState;
+    private state: Omit<ReadingSessionState, "canFinishPage">;
     private requestId = 0;
+    private navigationVersion = 0;
     private confirmedVersion = 0;
     private lastSavedPosition: string | null = null;
     private retryNeedsPersistence = false;
     private progressQueue: Promise<void> = Promise.resolve();
     private initializePromise: Promise<ReadingSessionState> | null = null;
     private closePromise: Promise<ReadingSessionCloseResult> | null = null;
+    private activeCompletion: Promise<ReadingSessionState> | null = null;
+    private completionTarget: ReadingPageCompletionTarget | null = null;
 
     constructor(dependencies: ReadingSessionDependencies) {
         this.articleLines = [...dependencies.articleLines];
@@ -140,6 +174,7 @@ class ReadingSession {
         this.document = dependencies.document;
         this.renderer = dependencies.renderer;
         this.ignoreStore = dependencies.ignoreStore;
+        this.onPageCompleted = dependencies.onPageCompleted;
         this.state = {
             status: "initializing",
             desired: { page: 1, pageSize: normalizePageSize(this.defaultPageSize) },
@@ -147,6 +182,7 @@ class ReadingSession {
             totalLines: this.articleLines.length,
             progress: "saved",
             error: null,
+            completion: { status: "idle" },
         };
     }
 
@@ -160,7 +196,9 @@ class ReadingSession {
     snapshot(): ReadingSessionState {
         return {
             ...this.state,
+            canFinishPage: this.canFinishPage,
             desired: { ...this.state.desired },
+            completion: { ...this.state.completion },
             confirmed: this.state.confirmed
                 ? {
                       ...this.state.confirmed,
@@ -183,6 +221,7 @@ class ReadingSession {
 
         switch (action.type) {
             case "navigate": {
+                this.navigationVersion++;
                 const desired = clampSelection(
                     { page: action.page, pageSize: this.state.desired.pageSize },
                     this.articleLines.length
@@ -190,6 +229,7 @@ class ReadingSession {
                 return this.renderDesired(desired, true);
             }
             case "resize": {
+                this.navigationVersion++;
                 const previous = this.state.desired;
                 const anchor = (previous.page - 1) * previous.pageSize + 1;
                 const pageSize = normalizePageSize(action.pageSize);
@@ -206,23 +246,23 @@ class ReadingSession {
                     return this.snapshot();
                 }
                 return this.renderDesired(this.state.desired, this.retryNeedsPersistence);
-            case "finishPage": {
-                const confirmed = this.state.confirmed;
-                if (!confirmed) {
+            case "finishPage":
+                if (!this.canFinishPage || !this.state.confirmed) {
                     return this.snapshot();
                 }
-                if (confirmed.newWords.length > 0 && this.ignoreStore) {
-                    await this.ignoreStore.postIgnoreWords([...confirmed.newWords]);
+                return this.startCompletion({
+                    page: {
+                        ...this.state.confirmed,
+                        range: { ...this.state.confirmed.range },
+                        newWords: [...this.state.confirmed.newWords],
+                    },
+                    navigationVersion: this.navigationVersion,
+                });
+            case "retryCompletion":
+                if (this.state.completion.status !== "failed" || !this.completionTarget) {
+                    return this.snapshot();
                 }
-                if (confirmed.range.endLine < this.articleLines.length) {
-                    const desired = clampSelection(
-                        { page: confirmed.page + 1, pageSize: confirmed.pageSize },
-                        this.articleLines.length
-                    );
-                    return this.renderDesired(desired, true);
-                }
-                return this.renderDesired(this.state.desired, false);
-            }
+                return this.startCompletion(this.completionTarget);
         }
     }
 
@@ -231,6 +271,99 @@ class ReadingSession {
             this.closePromise = this.doClose();
         }
         return this.closePromise;
+    }
+
+    private get canFinishPage(): boolean {
+        return (
+            this.state.status === "ready" &&
+            this.state.confirmed !== null &&
+            this.state.completion.status !== "pending" &&
+            this.state.completion.status !== "failed"
+        );
+    }
+
+    private startCompletion(target: ReadingPageCompletionTarget): Promise<ReadingSessionState> {
+        if (this.activeCompletion) {
+            return Promise.resolve(this.snapshot());
+        }
+        this.completionTarget = target;
+        this.state = {
+            ...this.state,
+            completion: {
+                status: "pending",
+                page: target.page.page,
+                pageSize: target.page.pageSize,
+            },
+        };
+        // Install the pending work before notifying listeners, which may navigate or close.
+        this.activeCompletion = Promise.resolve()
+            .then(() => this.completePage(target))
+            .finally(() => {
+                this.activeCompletion = null;
+            });
+        this.notify();
+        return this.activeCompletion;
+    }
+
+    private async completePage(target: ReadingPageCompletionTarget): Promise<ReadingSessionState> {
+        const confirmed = target.page;
+        try {
+            if (confirmed.newWords.length > 0) {
+                if (!this.ignoreStore) {
+                    throw new ReadingPageCompletionStoreError("ignore_store_unavailable");
+                }
+                await this.ignoreStore.postIgnoreWords([...confirmed.newWords]);
+            }
+        } catch (error) {
+            this.state = {
+                ...this.state,
+                completion: {
+                    status: "failed",
+                    page: confirmed.page,
+                    pageSize: confirmed.pageSize,
+                    error:
+                        error instanceof ReadingPageCompletionStoreError
+                            ? error.code
+                            : "ignore_store_unavailable",
+                },
+            };
+            this.notify();
+            return this.snapshot();
+        }
+
+        let updates: "updated" | "failed" = "updated";
+        try {
+            await this.onPageCompleted?.();
+        } catch {
+            // The ignore write already committed; a follow-up failure must not resubmit it.
+            updates = "failed";
+        }
+
+        if (this.state.status !== "closed") {
+            if (
+                this.navigationVersion === target.navigationVersion &&
+                confirmed.range.endLine < this.articleLines.length
+            ) {
+                await this.renderDesired(
+                    { page: confirmed.page + 1, pageSize: confirmed.pageSize },
+                    true
+                );
+            } else {
+                await this.renderDesired(this.state.desired, false);
+            }
+        }
+        this.completionTarget = null;
+        this.state = {
+            ...this.state,
+            completion: {
+                status: "completed",
+                page: confirmed.page,
+                pageSize: confirmed.pageSize,
+                updates,
+            },
+        };
+        this.notify();
+        return this.snapshot();
     }
 
     private async doInitialize(): Promise<ReadingSessionState> {
@@ -270,6 +403,10 @@ class ReadingSession {
             return this.snapshot();
         }
 
+        // A refresh superseding navigation must retain its pending progress write.
+        needsPersistence ||=
+            (this.state.status === "rendering" || this.state.status === "renderFailed") &&
+            this.retryNeedsPersistence;
         const desired = clampSelection(desiredInput, this.articleLines.length);
         const range = rangeForSelection(desired, this.articleLines.length);
         const pageText = this.articleLines.slice(range.startLine, range.endLine).join("\n");
@@ -354,21 +491,21 @@ class ReadingSession {
         this.state = { ...this.state, status: "closed", error: null };
         this.notify();
 
-        const wordsPromise = this.document.publishWordsSection().then(
-            (result): ReadingSessionCloseResult["words"] => result,
-            (): ReadingSessionCloseResult["words"] => "failed"
-        );
-
         await Promise.allSettled([
             this.initializePromise ?? Promise.resolve(),
             ...this.activeRenders,
             this.progressQueue,
+            this.activeCompletion ?? Promise.resolve(),
         ]);
 
         const progressPromise = this.retryUnsavedPosition();
+        const wordsPromise = this.document.publishWordsSection().then(
+            (result): ReadingSessionCloseResult["words"] => result,
+            (): ReadingSessionCloseResult["words"] => "failed"
+        );
         const [progress, words] = await Promise.all([progressPromise, wordsPromise]);
         this.listeners.clear();
-        return { progress, words };
+        return { progress, words, completion: { ...this.state.completion } };
     }
 
     private async retryUnsavedPosition(): Promise<ReadingSessionCloseResult["progress"]> {

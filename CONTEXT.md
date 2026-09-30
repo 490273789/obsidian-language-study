@@ -28,6 +28,10 @@ _Avoid_: Reading state, reader session
 The inventory of expressions and their learning statuses appearing on the active page of a Reading Session, used for page rendering and batch review/ignore transitions without DOM inspection.
 _Avoid_: DOM words, page tokens, ignore list
 
+**Reading Page Completion**:
+The acceptance of a confirmed Reading Page Ledger for completion, creating ignore Learning Records only for expressions that remain unrecorded and preserving existing Learning Records. It belongs to the captured page even if the reader subsequently navigates elsewhere.
+_Avoid_: Ignore submission, finish request, page save
+
 **Reading Selection**:
 The captured passage context (the studied expression, its enclosing sentence in the Reading Document, and the document origin) extracted during reading to initiate lookup or learning record intake.
 _Avoid_: Click target, DOM event, word selection

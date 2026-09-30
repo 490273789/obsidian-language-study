@@ -50,12 +50,8 @@ function createLocalDbHarness() {
         idb: {
             async open() {},
             close() {},
-            async transaction(
-                _mode: string,
-                _expressions: unknown,
-                _sentences: unknown,
-                work: () => Promise<unknown>
-            ) {
+            async transaction(_mode: string, ...args: [...unknown[], () => Promise<unknown>]) {
+                const work = args[args.length - 1] as () => Promise<unknown>;
                 return work();
             },
             expressions,

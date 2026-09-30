@@ -24,6 +24,7 @@ import type Plugin from "@/plugin";
 import { moment } from "@/utils/moment";
 import { LearningRecordStoreError } from "@/learningRecord/intake";
 import type { LearningRecordCandidate, LearningRecordCommitReceipt } from "@/learningRecord/intake";
+import { normalizeIgnoreWords, ReadingPageCompletionStoreError } from "@/reading/pageCompletion";
 
 type PhraseAutomaton = {
     search(article: string): Promise<[number, string][]>;
@@ -278,23 +279,38 @@ export class LocalDb extends DbProvider {
     }
 
     async postIgnoreWords(payload: string[]): Promise<void> {
-        await this.idb.expressions.bulkPut(
-            payload.map((expr) => {
-                return {
-                    expression: expr,
-                    meaning: "",
-                    status: 0,
-                    t: "WORD",
-                    notes: [] as string[],
-                    sentences: new Set(),
-                    tags: new Set(),
-                    connections: new Map<string, string>(),
-                    date: moment().unix(),
-                };
-            })
-        );
+        const words = normalizeIgnoreWords(payload);
+        if (words.length === 0) {
+            return;
+        }
+
+        try {
+            await this.idb.transaction("rw", this.idb.expressions, async () => {
+                for (const expression of words) {
+                    const stored = await this.idb.expressions
+                        .where("expression")
+                        .equals(expression)
+                        .first();
+                    if (stored) {
+                        continue;
+                    }
+                    await this.idb.expressions.add({
+                        expression,
+                        meaning: "",
+                        status: 0,
+                        t: "WORD",
+                        notes: [],
+                        sentences: new Set(),
+                        tags: new Set(),
+                        connections: new Map<string, string>(),
+                        date: moment().unix(),
+                    });
+                }
+            });
+        } catch {
+            throw new ReadingPageCompletionStoreError("ignore_store_unavailable");
+        }
         this.invalidatePhraseCache();
-        return;
     }
 
     async tryGetSen(text: string): Promise<Sentence | null> {

@@ -7,6 +7,7 @@ import { t } from "@/lang/helper";
 import { providePlugin, provideView } from "@/ui/context";
 import { ReadingDocument } from "@/reading/readingDocument";
 import { ReadingSession } from "@/reading/readingSession";
+import { emitLangrRefresh, emitLangrRefreshStat } from "@/events";
 
 export const READING_VIEW_TYPE: string = "langr-reading";
 export const READING_ICON: string = "highlight-glyph";
@@ -106,6 +107,10 @@ export class ReadingView extends TextFileView {
             ignoreStore: {
                 postIgnoreWords: (words) => this.plugin.db.postIgnoreWords(words),
             },
+            onPageCompleted: async () => {
+                emitLangrRefreshStat();
+                emitLangrRefresh();
+            },
         });
         this.session = session;
         await session.initialize();
@@ -190,6 +195,20 @@ export class ReadingView extends TextFileView {
         this.vueapp?.unmount();
         this.vueapp = null;
         const result = await this.session?.close();
+        if (result?.completion.status === "failed") {
+            new Notice(
+                t(
+                    result.completion.error === "ignore_store_incompatible"
+                        ? "Reading completion requires a compatible remote database"
+                        : "Reading page could not be completed"
+                )
+            );
+        } else if (
+            result?.completion.status === "completed" &&
+            result.completion.updates === "failed"
+        ) {
+            new Notice(t("Reading page completed, but some updates failed"));
+        }
         if (result?.progress === "failed") {
             console.warn("Reading Session could not save its confirmed position while closing");
             new Notice(t("Reading position has not been saved"));

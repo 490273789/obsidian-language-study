@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { ReadingSession, type ReadingSessionDependencies } from "@/reading/readingSession";
 import { unsafeMarkSafeHtml } from "@/utils/safeHtml";
+import { ReadingPageCompletionStoreError } from "@/reading/pageCompletion";
 
 function deferred<T>() {
     let resolve!: (value: T) => void;
@@ -24,6 +25,7 @@ function makeHarness({
     });
     const publishWordsSection = vi.fn(async () => "published" as const);
     const postIgnoreWords = vi.fn(async (_words: string[]) => {});
+    const onPageCompleted = vi.fn(async () => {});
     const render = vi.fn(async (text: string) => ({
         html: unsafeMarkSafeHtml(`<p>${text}</p>`),
         newWords: text ? text.split(/\s+/).filter(Boolean) : [],
@@ -38,6 +40,7 @@ function makeHarness({
         },
         renderer: { render },
         ignoreStore: { postIgnoreWords },
+        onPageCompleted,
     };
     const session = new ReadingSession(dependencies);
 
@@ -45,6 +48,7 @@ function makeHarness({
         dependencies,
         publishWordsSection,
         postIgnoreWords,
+        onPageCompleted,
         render,
         session,
         setPosition,
@@ -244,8 +248,16 @@ describe("Reading Session", () => {
         const firstClose = harness.session.close();
         const secondClose = harness.session.close();
 
-        await expect(firstClose).resolves.toEqual({ progress: "saved", words: "failed" });
-        await expect(secondClose).resolves.toEqual({ progress: "saved", words: "failed" });
+        await expect(firstClose).resolves.toEqual({
+            progress: "saved",
+            words: "failed",
+            completion: { status: "idle" },
+        });
+        await expect(secondClose).resolves.toEqual({
+            progress: "saved",
+            words: "failed",
+            completion: { status: "idle" },
+        });
         expect(harness.setPosition).toHaveBeenCalledTimes(2);
         expect(harness.publishWordsSection).toHaveBeenCalledTimes(1);
         expect(harness.session.snapshot().status).toBe("closed");
@@ -268,7 +280,11 @@ describe("Reading Session", () => {
         });
 
         await navigation;
-        await expect(closing).resolves.toEqual({ progress: "notNeeded", words: "published" });
+        await expect(closing).resolves.toEqual({
+            progress: "notNeeded",
+            words: "published",
+            completion: { status: "idle" },
+        });
         expect(harness.session.snapshot()).toMatchObject({
             status: "closed",
             confirmed: { page: 1 },
@@ -277,6 +293,220 @@ describe("Reading Session", () => {
     });
 
     describe("finishPage action", () => {
+        it("retains later navigation and ignores duplicate completion on another page", async () => {
+            const harness = makeHarness();
+            await harness.session.initialize();
+            const write = deferred<void>();
+            harness.postIgnoreWords.mockReturnValueOnce(write.promise);
+
+            const finishing = harness.session.act({ type: "finishPage" });
+            await harness.session.act({ type: "navigate", page: 3 });
+            await harness.session.act({ type: "finishPage" });
+            expect(harness.session.snapshot().completion).toMatchObject({
+                status: "pending",
+                page: 1,
+            });
+            expect(harness.postIgnoreWords).toHaveBeenCalledTimes(1);
+            write.resolve();
+            await finishing;
+
+            expect(harness.postIgnoreWords).toHaveBeenCalledWith(["one", "two"]);
+            expect(harness.session.snapshot()).toMatchObject({
+                confirmed: { page: 3 },
+                completion: { status: "completed", page: 1, updates: "updated" },
+            });
+            expect(harness.onPageCompleted).toHaveBeenCalledTimes(1);
+            expect(harness.position).toBe("5");
+        });
+
+        it("retains resizing while completion is pending", async () => {
+            const harness = makeHarness();
+            await harness.session.initialize();
+            const write = deferred<void>();
+            harness.postIgnoreWords.mockReturnValueOnce(write.promise);
+            const finishing = harness.session.act({ type: "finishPage" });
+            await harness.session.act({ type: "resize", pageSize: 4 });
+            write.resolve();
+            await finishing;
+
+            expect(harness.session.snapshot()).toMatchObject({
+                confirmed: { page: 1, pageSize: 4 },
+                completion: { status: "completed", page: 1, pageSize: 2 },
+            });
+        });
+
+        it("does not resume auto-navigation after navigating away and back", async () => {
+            const harness = makeHarness();
+            await harness.session.initialize();
+            const write = deferred<void>();
+            harness.postIgnoreWords.mockReturnValueOnce(write.promise);
+            const finishing = harness.session.act({ type: "finishPage" });
+            await harness.session.act({ type: "navigate", page: 3 });
+            await harness.session.act({ type: "navigate", page: 1 });
+            write.resolve();
+            await finishing;
+            expect(harness.session.snapshot().confirmed?.page).toBe(1);
+        });
+
+        it("still advances after a record refresh on the captured page", async () => {
+            const harness = makeHarness();
+            await harness.session.initialize();
+            const write = deferred<void>();
+            harness.postIgnoreWords.mockReturnValueOnce(write.promise);
+            const finishing = harness.session.act({ type: "finishPage" });
+            await harness.session.act({ type: "refresh" });
+            write.resolve();
+            await finishing;
+            expect(harness.session.snapshot().confirmed?.page).toBe(2);
+        });
+
+        it("preserves progress when completion supersedes a pending navigation render", async () => {
+            const harness = makeHarness();
+            await harness.session.initialize();
+            const write = deferred<void>();
+            const render = deferred<{
+                html: ReturnType<typeof unsafeMarkSafeHtml>;
+                newWords: string[];
+            }>();
+            harness.postIgnoreWords.mockReturnValueOnce(write.promise);
+            const finishing = harness.session.act({ type: "finishPage" });
+            harness.render.mockReturnValueOnce(render.promise);
+            const navigating = harness.session.act({ type: "navigate", page: 3 });
+            await Promise.resolve();
+            write.resolve();
+            await finishing;
+            render.resolve({ html: unsafeMarkSafeHtml("stale"), newWords: [] });
+            await navigating;
+            expect(harness.session.snapshot()).toMatchObject({
+                confirmed: { page: 3 },
+                progress: "saved",
+            });
+            expect(harness.position).toBe("5");
+        });
+
+        it("waits for accepted completion before publishing words on close", async () => {
+            const harness = makeHarness();
+            await harness.session.initialize();
+            const write = deferred<void>();
+            harness.postIgnoreWords.mockReturnValueOnce(write.promise);
+            const finishing = harness.session.act({ type: "finishPage" });
+            const closing = harness.session.close();
+            await Promise.resolve();
+            expect(harness.publishWordsSection).not.toHaveBeenCalled();
+            await harness.session.act({ type: "finishPage" });
+            write.resolve();
+            await finishing;
+            await expect(closing).resolves.toMatchObject({
+                completion: { status: "completed", page: 1 },
+                words: "published",
+            });
+            expect(harness.session.snapshot()).toMatchObject({
+                status: "closed",
+                confirmed: { page: 1 },
+            });
+            expect(harness.postIgnoreWords).toHaveBeenCalledTimes(1);
+            expect(harness.publishWordsSection).toHaveBeenCalledTimes(1);
+        });
+
+        it("reports a closing completion failure while still settling publication", async () => {
+            const harness = makeHarness();
+            await harness.session.initialize();
+            const write = deferred<void>();
+            harness.postIgnoreWords.mockReturnValueOnce(write.promise);
+            const finishing = harness.session.act({ type: "finishPage" });
+            const closing = harness.session.close();
+            write.reject(new ReadingPageCompletionStoreError("ignore_store_incompatible"));
+            await finishing;
+            await expect(closing).resolves.toMatchObject({
+                completion: { status: "failed", error: "ignore_store_incompatible" },
+                words: "published",
+            });
+            expect(harness.onPageCompleted).not.toHaveBeenCalled();
+        });
+
+        it("retries the failed captured page without overriding later navigation", async () => {
+            const harness = makeHarness();
+            await harness.session.initialize();
+            harness.postIgnoreWords.mockRejectedValueOnce(new Error("offline"));
+            await harness.session.act({ type: "finishPage" });
+            expect(harness.session.snapshot()).toMatchObject({
+                confirmed: { page: 1 },
+                completion: { status: "failed", page: 1, error: "ignore_store_unavailable" },
+            });
+            expect(harness.onPageCompleted).not.toHaveBeenCalled();
+            await harness.session.act({ type: "navigate", page: 3 });
+            expect(harness.session.snapshot().canFinishPage).toBe(false);
+            await harness.session.act({ type: "finishPage" });
+            expect(harness.session.snapshot().completion).toMatchObject({
+                status: "failed",
+                page: 1,
+            });
+            expect(harness.postIgnoreWords).toHaveBeenCalledTimes(1);
+            await harness.session.act({ type: "retryCompletion" });
+
+            expect(harness.postIgnoreWords.mock.calls).toEqual([
+                [["one", "two"]],
+                [["one", "two"]],
+            ]);
+            expect(harness.session.snapshot()).toMatchObject({
+                confirmed: { page: 3 },
+                completion: { status: "completed", page: 1 },
+                canFinishPage: true,
+            });
+        });
+
+        it("advances after retry when the reader has not navigated", async () => {
+            const harness = makeHarness();
+            await harness.session.initialize();
+            harness.postIgnoreWords.mockRejectedValueOnce(new Error("offline"));
+            await harness.session.act({ type: "finishPage" });
+            await harness.session.act({ type: "retryCompletion" });
+            expect(harness.session.snapshot().confirmed?.page).toBe(2);
+            expect(harness.onPageCompleted).toHaveBeenCalledTimes(1);
+        });
+
+        it("does not resubmit committed words when follow-up updates fail", async () => {
+            const harness = makeHarness();
+            await harness.session.initialize();
+            harness.onPageCompleted.mockRejectedValueOnce(new Error("updates failed"));
+            await harness.session.act({ type: "finishPage" });
+            await harness.session.act({ type: "retryCompletion" });
+            expect(harness.session.snapshot()).toMatchObject({
+                confirmed: { page: 2 },
+                completion: { status: "completed", updates: "failed" },
+            });
+            expect(harness.postIgnoreWords).toHaveBeenCalledTimes(1);
+        });
+
+        it("does not resubmit committed words when the next page render fails", async () => {
+            const harness = makeHarness();
+            await harness.session.initialize();
+            harness.render.mockRejectedValueOnce(new Error("render failed"));
+            await harness.session.act({ type: "finishPage" });
+            expect(harness.session.snapshot()).toMatchObject({
+                status: "renderFailed",
+                completion: { status: "completed" },
+            });
+            await harness.session.act({ type: "retry" });
+            expect(harness.postIgnoreWords).toHaveBeenCalledTimes(1);
+            expect(harness.session.snapshot().confirmed?.page).toBe(2);
+        });
+
+        it("does not finish while a desired page is still rendering", async () => {
+            const harness = makeHarness();
+            await harness.session.initialize();
+            const render = deferred<{
+                html: ReturnType<typeof unsafeMarkSafeHtml>;
+                newWords: string[];
+            }>();
+            harness.render.mockReturnValueOnce(render.promise);
+            const navigating = harness.session.act({ type: "navigate", page: 2 });
+            await harness.session.act({ type: "finishPage" });
+            expect(harness.postIgnoreWords).not.toHaveBeenCalled();
+            render.resolve({ html: unsafeMarkSafeHtml("two"), newWords: [] });
+            await navigating;
+        });
+
         it("posts newWords to ignoreStore and navigates to next page when not on last page", async () => {
             const harness = makeHarness({
                 articleLines: ["alpha", "beta", "gamma", "delta"],

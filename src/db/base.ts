@@ -29,7 +29,7 @@ abstract class DbProvider {
     ): Promise<LearningRecordCommitReceipt>;
     // 获取所有tag
     abstract getTags(): Promise<string[]>;
-    // 批量发送单词，全部标记为ignore
+    // 原子地为尚未记录的单词创建ignore记录，完整保留已有记录；失败必须拒绝Promise
     abstract postIgnoreWords(payload: string[]): Promise<void>;
     // 查询一个例句是否已经记录过
     abstract tryGetSen(text: string): Promise<Sentence | null>;

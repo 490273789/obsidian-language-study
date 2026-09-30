@@ -16,6 +16,7 @@ import { buildDailyTimeWindows, convertLegacyWordCounts } from "@/stats/aggregat
 import { moment } from "@/utils/moment";
 import { isLearningRecord, LearningRecordStoreError } from "@/learningRecord/intake";
 import type { LearningRecordCandidate, LearningRecordCommitReceipt } from "@/learningRecord/intake";
+import { normalizeIgnoreWords, ReadingPageCompletionStoreError } from "@/reading/pageCompletion";
 
 function committedRecordMatchesCandidate(
     record: LearningRecordCommitReceipt["record"],
@@ -51,6 +52,35 @@ function parseCommitReceipt(
         operation: receipt.operation,
         record: receipt.record,
     };
+}
+
+function hasExactIgnorePartition(value: unknown, words: readonly string[]): boolean {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+        return false;
+    }
+    const receipt = value as Record<string, unknown>;
+    if (
+        receipt.protocol !== "create-ignores-if-absent-v1" ||
+        !Array.isArray(receipt.created) ||
+        !Array.isArray(receipt.existing) ||
+        !receipt.created.every((word) => typeof word === "string") ||
+        !receipt.existing.every((word) => typeof word === "string")
+    ) {
+        return false;
+    }
+
+    const requested = new Set(words);
+    const created = new Set(receipt.created);
+    const existing = new Set(receipt.existing);
+    if (
+        created.size !== receipt.created.length ||
+        existing.size !== receipt.existing.length ||
+        [...created].some((word) => existing.has(word)) ||
+        [...created, ...existing].some((word) => !requested.has(word))
+    ) {
+        return false;
+    }
+    return created.size + existing.size === requested.size;
 }
 
 export class WebDb extends DbProvider {
@@ -215,20 +245,48 @@ export class WebDb extends DbProvider {
         }
     }
 
-    // 发送所有忽略的新词
-    async postIgnoreWords(payload: string[]) {
-        let request: RequestUrlParam = {
-            url: `${this.proto}://${this.host}:${this.port}${this.prefix}/ignores`,
+    // 批量创建尚未记录的忽略词
+    async postIgnoreWords(payload: string[]): Promise<void> {
+        const words = normalizeIgnoreWords(payload);
+        if (words.length === 0) {
+            return;
+        }
+
+        const request: RequestUrlParam = {
+            url: `${this.proto}://${this.host}:${this.port}${this.prefix}/ignores-if-absent`,
             method: "POST",
-            body: JSON.stringify(payload),
+            body: JSON.stringify({ words }),
             contentType: "application/json",
             headers: this.baseHeaders,
+            throw: false,
         };
 
         try {
-            await requestUrl(request);
-        } catch (e) {
-            console.warn("Error sending ignore words" + e);
+            const response = await requestUrl(request);
+            if (response.status === 404 || response.status === 405) {
+                throw new ReadingPageCompletionStoreError("ignore_store_incompatible");
+            }
+            if (
+                !Number.isInteger(response.status) ||
+                response.status < 200 ||
+                response.status >= 300
+            ) {
+                throw new ReadingPageCompletionStoreError("ignore_store_unavailable");
+            }
+            let receipt: unknown;
+            try {
+                receipt = response.json;
+            } catch {
+                throw new ReadingPageCompletionStoreError("ignore_store_incompatible");
+            }
+            if (!hasExactIgnorePartition(receipt, words)) {
+                throw new ReadingPageCompletionStoreError("ignore_store_incompatible");
+            }
+        } catch (error) {
+            if (error instanceof ReadingPageCompletionStoreError) {
+                throw error;
+            }
+            throw new ReadingPageCompletionStoreError("ignore_store_unavailable");
         }
     }
 

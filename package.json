@@ -45,6 +45,7 @@
         "@types/nlcst": "^2.0.3",
         "@types/node": "^26.4.1",
         "@vitejs/plugin-vue": "^6.0.8",
+        "fake-indexeddb": "^6.2.5",
         "happy-dom": "^20.13.2",
         "hash-sum": "^2.0.0",
         "naive-ui": "^2.45.3",

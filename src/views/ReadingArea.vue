@@ -28,7 +28,13 @@
                                 :disabled="!canFinishReading"
                                 @click="addIgnores"
                             >
-                                {{ t("Finish Reading") }}
+                                {{
+                                    t(
+                                        sessionState.completion.status === "pending"
+                                            ? "Finishing Reading"
+                                            : "Finish Reading"
+                                    )
+                                }}
                             </button>
                         </div>
                     </header>
@@ -52,6 +58,36 @@
                             lineHeight: store.lineHeight,
                         }"
                     >
+                        <div
+                            v-if="sessionState.completion.status === 'failed'"
+                            class="reading-session-message is-error"
+                            role="alert"
+                        >
+                            <span>
+                                {{ t("Reading page") }} {{ sessionState.completion.page }}:
+                                {{
+                                    t(
+                                        sessionState.completion.error ===
+                                            "ignore_store_incompatible"
+                                            ? "Reading completion requires a compatible remote database"
+                                            : "Reading page could not be completed"
+                                    )
+                                }}
+                            </span>
+                            <button class="reading-session-retry" @click="retryCompletion">
+                                {{ t("Retry") }}
+                            </button>
+                        </div>
+                        <div
+                            v-if="
+                                sessionState.completion.status === 'completed' &&
+                                sessionState.completion.updates === 'failed'
+                            "
+                            class="reading-session-message is-warning"
+                            role="status"
+                        >
+                            {{ t("Reading page completed, but some updates failed") }}
+                        </div>
                         <div
                             v-if="sessionState.status === 'renderFailed'"
                             class="reading-session-message is-error"
@@ -124,7 +160,6 @@ import store from "@/store";
 import { ReadingView } from "./ReadingView";
 import CountBar from "./CountBar.vue";
 import { useView } from "@/ui/context";
-import { emitLangrRefreshStat } from "@/events";
 import { resolveLocalResourcePath } from "@/utils/platform";
 import { useLangrNaiveTheme, useLangrNaiveThemeOverrides } from "@/ui/theme";
 import { extractReadingSelection } from "@/reading/readingContext";
@@ -257,13 +292,11 @@ const pageSummary = computed(() => {
 });
 const renderedText = computed(() => sessionState.value.confirmed?.renderedText ?? "");
 const isRendering = computed(() => sessionState.value.status === "rendering");
-let finishLoading = ref(false);
-const canFinishReading = computed(
-    () =>
-        sessionState.value.status === "ready" &&
-        sessionState.value.confirmed !== null &&
-        !finishLoading.value
-);
+const canFinishReading = computed(() => sessionState.value.canFinishPage);
+
+function retryCompletion() {
+    void readingSession.act({ type: "retryCompletion" });
+}
 
 function retryRender() {
     void readingSession.act({ type: "retry" });
@@ -273,17 +306,7 @@ function retryRender() {
 
 // 添加无视单词（完成当页阅读）
 async function addIgnores() {
-    if (!canFinishReading.value) {
-        return;
-    }
-    finishLoading.value = true;
-    try {
-        await readingSession.act({ type: "finishPage" });
-        emitLangrRefreshStat();
-        refreshCount();
-    } finally {
-        finishLoading.value = false;
-    }
+    await readingSession.act({ type: "finishPage" });
 }
 
 let reading = ref<HTMLElement | null>(null);
