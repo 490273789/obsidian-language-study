@@ -48,6 +48,9 @@ async function activatePluginView(
     viewType: string,
     side: ViewSide
 ): Promise<void> {
+    if (plugin.isShuttingDown) {
+        return;
+    }
     if (plugin.app.workspace.getLeavesOfType(viewType).length === 0) {
         let leaf: WorkspaceLeaf | null;
         switch (side) {

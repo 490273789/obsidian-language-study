@@ -2,12 +2,20 @@ import { t } from "@/lang/helper";
 import type { ExpressionInfo, ExpressionInfoSimple } from "@/db/interface";
 
 type TextDatabaseTarget = "word" | "review";
-type TextDatabasePublicationStatus = "skipped" | "invalidTarget" | "emptySource" | "published";
-
-type TextDatabasePublicationResult = {
-    target: TextDatabaseTarget;
-    status: TextDatabasePublicationStatus;
-};
+type CompletionReloadResult = { status: "reloaded" | "skipped" | "failed" | "closed" };
+type PublicationFailureStage = "settings" | "target" | "source" | "render" | "write";
+type TextDatabasePublicationResult =
+    | {
+          target: TextDatabaseTarget;
+          status: "skipped" | "invalidTarget" | "emptySource" | "pathConflict" | "closed";
+      }
+    | { target: TextDatabaseTarget; status: "failed"; stage: PublicationFailureStage }
+    | {
+          target: TextDatabaseTarget;
+          status: "published";
+          completionReload?: CompletionReloadResult;
+      };
+type TextDatabasePublicationStatus = TextDatabasePublicationResult["status"];
 
 type TextDatabasePublicationAllResult = {
     word: TextDatabasePublicationResult;
@@ -28,12 +36,13 @@ type ExpressionStore = {
 
 type TextDatabaseVault<FileRef> = {
     getFile(path: string): FileRef | null;
-    read(file: FileRef): Promise<string>;
+    getPath(file: FileRef): string;
+    process(file: FileRef, transform: (text: string) => string): Promise<void | string>;
     write(file: FileRef, text: string): Promise<void>;
 };
 
 type CompletionReloader = {
-    reloadCustomDictionaries(): void;
+    reloadCustomDictionaries(): void | boolean | Promise<void | boolean>;
 };
 
 type TextDatabasePublicationDependencies<FileRef> = {
@@ -44,13 +53,6 @@ type TextDatabasePublicationDependencies<FileRef> = {
 };
 
 const REVIEW_CUTOFF = "1970-01-01T00:00:00Z";
-
-function makeResult(
-    target: TextDatabaseTarget,
-    status: TextDatabasePublicationStatus
-): TextDatabasePublicationResult {
-    return { target, status };
-}
 
 function renderWordDatabase(
     words: ExpressionInfoSimple[],
@@ -92,15 +94,14 @@ function renderWordDatabase(
 }
 
 function parseReviewRecords(text: string): Record<string, string> {
-    const oldRecord: Record<string, string> = {};
-    text.match(/#word(\n.+)+\n(<!--SR.*?-->)/g)
-        ?.map((value) => value.match(/#### (.+)[\s\S]+(<!--SR.*-->)/))
-        ?.forEach((value) => {
-            if (value?.[1] && value[2]) {
-                oldRecord[value[1]] = value[2];
-            }
-        });
-    return oldRecord;
+    // Null-prototype storage also supports valid expressions such as "constructor".
+    const records: Record<string, string> = Object.create(null);
+    for (const block of text.split(/^#word[ \t]*\r?$/m).slice(1)) {
+        const heading = block.match(/^#### ([^\r\n]+)\r?$/m);
+        const comments = block.match(/<!--SR\b[\s\S]*?-->/g);
+        if (heading && comments?.length) records[heading[1]] = comments[comments.length - 1];
+    }
+    return records;
 }
 
 function renderReviewDatabase(
@@ -146,71 +147,177 @@ function renderReviewDatabase(
 }
 
 class TextDatabasePublication<FileRef> {
-    private getSettings: () => TextDatabasePublicationSettings;
-    private expressionStore: ExpressionStore;
-    private vault: TextDatabaseVault<FileRef>;
-    private completionReloader: CompletionReloader;
+    private readonly tails = new Map<string, Promise<void>>();
+    private readonly pending = new Set<Promise<unknown>>();
+    private closed = false;
+    private closePromise: Promise<void> | null = null;
 
-    constructor(dependencies: TextDatabasePublicationDependencies<FileRef>) {
-        this.getSettings = dependencies.getSettings;
-        this.expressionStore = dependencies.expressionStore;
-        this.vault = dependencies.vault;
-        this.completionReloader = dependencies.completionReloader;
-    }
+    constructor(private readonly dependencies: TextDatabasePublicationDependencies<FileRef>) {}
 
     async publishAll(): Promise<TextDatabasePublicationAllResult> {
-        const word = await this.publishWordDatabase();
-        const review = await this.publishReviewDatabase();
+        if (this.closed)
+            return {
+                word: { target: "word", status: "closed" },
+                review: { target: "review", status: "closed" },
+            };
+        let settings: TextDatabasePublicationSettings;
+        try {
+            settings = { ...this.dependencies.getSettings() };
+        } catch {
+            return {
+                word: { target: "word", status: "failed", stage: "settings" },
+                review: { target: "review", status: "failed", stage: "settings" },
+            };
+        }
+        const [word, review] = await Promise.all([
+            this.publish("word", settings),
+            this.publish("review", settings),
+        ]);
         return { word, review };
     }
 
-    async publishWordDatabase(): Promise<TextDatabasePublicationResult> {
-        const settings = this.getSettings();
-        if (!settings.wordDatabasePath) {
-            return makeResult("word", "skipped");
-        }
-
-        const target = this.vault.getFile(settings.wordDatabasePath);
-        if (!target) {
-            return makeResult("word", "invalidTarget");
-        }
-
-        const words = await this.expressionStore.getAllExpressionSimple(false);
-        await this.vault.write(target, renderWordDatabase(words, settings.colDelimiter));
-        this.completionReloader.reloadCustomDictionaries();
-        return makeResult("word", "published");
+    publishWordDatabase(): Promise<TextDatabasePublicationResult> {
+        return this.request("word");
+    }
+    publishReviewDatabase(): Promise<TextDatabasePublicationResult> {
+        return this.request("review");
     }
 
-    async publishReviewDatabase(): Promise<TextDatabasePublicationResult> {
-        const settings = this.getSettings();
-        if (!settings.reviewDatabasePath) {
-            return makeResult("review", "skipped");
-        }
+    retryCompletionReload(): Promise<CompletionReloadResult> {
+        if (this.closed) return Promise.resolve({ status: "closed" });
+        return this.enqueue(["target:word"], () => this.reloadCompletion());
+    }
 
-        const target = this.vault.getFile(settings.reviewDatabasePath);
-        if (!target) {
-            return makeResult("review", "invalidTarget");
-        }
+    close(): Promise<void> {
+        this.closed = true;
+        this.closePromise ??= Promise.allSettled([...this.pending]).then(() => undefined);
+        return this.closePromise;
+    }
 
-        const existingText = await this.vault.read(target);
-        const oldRecord = parseReviewRecords(existingText);
-        const expressions = await this.expressionStore.getExpressionAfter(REVIEW_CUTOFF);
-        if (expressions.length === 0) {
-            return makeResult("review", "emptySource");
+    private request(target: TextDatabaseTarget): Promise<TextDatabasePublicationResult> {
+        if (this.closed) return Promise.resolve({ target, status: "closed" });
+        let settings: TextDatabasePublicationSettings;
+        try {
+            settings = { ...this.dependencies.getSettings() };
+        } catch {
+            return Promise.resolve({ target, status: "failed", stage: "settings" });
         }
+        return this.publish(target, settings);
+    }
 
-        expressions.sort((a, b) => a.expression.localeCompare(b.expression));
-        await this.vault.write(
-            target,
-            renderReviewDatabase(expressions, settings.reviewDelimiter, oldRecord)
+    private publish(
+        target: TextDatabaseTarget,
+        settings: TextDatabasePublicationSettings
+    ): Promise<TextDatabasePublicationResult> {
+        const path = target === "word" ? settings.wordDatabasePath : settings.reviewDatabasePath;
+        const otherPath =
+            target === "word" ? settings.reviewDatabasePath : settings.wordDatabasePath;
+        if (!path) return Promise.resolve({ target, status: "skipped" });
+        if (path === otherPath) return Promise.resolve({ target, status: "pathConflict" });
+        let canonicalPath: string;
+        try {
+            const file = this.dependencies.vault.getFile(path);
+            if (!file) return Promise.resolve({ target, status: "invalidTarget" });
+            canonicalPath = this.dependencies.vault.getPath(file);
+            const other = otherPath ? this.dependencies.vault.getFile(otherPath) : null;
+            if (other && canonicalPath === this.dependencies.vault.getPath(other)) {
+                return Promise.resolve({ target, status: "pathConflict" });
+            }
+        } catch {
+            return Promise.resolve({ target, status: "failed", stage: "target" });
+        }
+        // Register every predecessor at acceptance, so roles changing paths cannot race.
+        return this.enqueue([`target:${target}`, `file:${canonicalPath}`], () =>
+            this.execute(target, path, canonicalPath, settings)
         );
-        return makeResult("review", "published");
+    }
+
+    private enqueue<Result>(keys: string[], operation: () => Promise<Result>): Promise<Result> {
+        const predecessors = keys.map((key) => this.tails.get(key) ?? Promise.resolve());
+        const result = Promise.all(predecessors).then(operation);
+        const tail = result.then(
+            () => undefined,
+            () => undefined
+        );
+        keys.forEach((key) => this.tails.set(key, tail));
+        this.pending.add(result);
+        void tail.then(() => {
+            this.pending.delete(result);
+            keys.forEach((key) => {
+                if (this.tails.get(key) === tail) this.tails.delete(key);
+            });
+        });
+        return result;
+    }
+
+    private async execute(
+        target: TextDatabaseTarget,
+        path: string,
+        canonicalPath: string,
+        settings: TextDatabasePublicationSettings
+    ): Promise<TextDatabasePublicationResult> {
+        let stage: PublicationFailureStage = "target";
+        const getTarget = () => {
+            const file = this.dependencies.vault.getFile(path);
+            return file && this.dependencies.vault.getPath(file) === canonicalPath ? file : null;
+        };
+        try {
+            if (!getTarget()) return { target, status: "invalidTarget" };
+            stage = "source";
+            if (target === "word") {
+                const words = await this.dependencies.expressionStore.getAllExpressionSimple(false);
+                stage = "render";
+                const text = renderWordDatabase(words, settings.colDelimiter);
+                stage = "target";
+                const file = getTarget();
+                if (!file) return { target, status: "invalidTarget" };
+                stage = "write";
+                await this.dependencies.vault.write(file, text);
+                const completionReload = await this.reloadCompletion();
+                return { target, status: "published", completionReload };
+            }
+            const expressions =
+                await this.dependencies.expressionStore.getExpressionAfter(REVIEW_CUTOFF);
+            if (expressions.length === 0) return { target, status: "emptySource" };
+            stage = "render";
+            const ordered = [...expressions].sort((a, b) =>
+                a.expression.localeCompare(b.expression)
+            );
+            stage = "target";
+            const file = getTarget();
+            if (!file) return { target, status: "invalidTarget" };
+            stage = "write";
+            await this.dependencies.vault.process(file, (currentText) => {
+                stage = "render";
+                const text = renderReviewDatabase(
+                    ordered,
+                    settings.reviewDelimiter,
+                    parseReviewRecords(currentText)
+                );
+                stage = "write";
+                return text;
+            });
+            return { target, status: "published" };
+        } catch {
+            return { target, status: "failed", stage };
+        }
+    }
+
+    private async reloadCompletion(): Promise<CompletionReloadResult> {
+        try {
+            const executed = await this.dependencies.completionReloader.reloadCustomDictionaries();
+            return { status: executed === false ? "skipped" : "reloaded" };
+        } catch {
+            return { status: "failed" };
+        }
     }
 }
 
 export { TextDatabasePublication, parseReviewRecords, renderReviewDatabase, renderWordDatabase };
 export type {
     CompletionReloader,
+    CompletionReloadResult,
+    PublicationFailureStage,
     ExpressionStore,
     TextDatabasePublicationAllResult,
     TextDatabasePublicationDependencies,

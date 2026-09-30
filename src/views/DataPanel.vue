@@ -46,6 +46,7 @@
 <script setup lang="ts">
 import { h, ref, reactive, watch, watchEffect, Suspense, defineAsyncComponent } from "vue";
 import { NConfigProvider, NDataTable, NTag, NInput } from "naive-ui";
+import { Notice } from "obsidian";
 import { t } from "@/lang/helper";
 import { moment } from "@/utils/moment";
 import { usePlugin } from "@/ui/context";
@@ -80,22 +81,37 @@ let tags = ref<string[]>([]);
 let checkedTags = ref<boolean[]>([]);
 let selectedTags = ref<string[]>([]);
 
-watchEffect(async () => {
-    let rawData = await plugin.db.getAllExpressionSimple(false);
-    data.value = rawData.map((entry, i): Row => {
-        return {
-            expr: entry.expression,
-            status: statusMap[entry.status],
-            meaning: entry.meaning,
-            tags: entry.tags,
-            noteNum: entry.note_num,
-            senNum: entry.sen_num,
-            date: moment.unix(entry.date).format("YYYY-MM-DD"),
-        };
+watchEffect(async (onCleanup) => {
+    let current = true;
+    onCleanup(() => {
+        current = false;
     });
-    tags.value = await plugin.db.getTags();
-    checkedTags.value = Array.from({ length: tags.value.length }, () => false);
-    loading.value = false;
+    loading.value = true;
+    const db = plugin.db;
+    try {
+        const [rawData, rawTags] = await Promise.all([
+            db.getAllExpressionSimple(false),
+            db.getTags(),
+        ]);
+        if (!current) return;
+        data.value = rawData.map((entry): Row => {
+            return {
+                expr: entry.expression,
+                status: statusMap[entry.status],
+                meaning: entry.meaning,
+                tags: entry.tags,
+                noteNum: entry.note_num,
+                senNum: entry.sen_num,
+                date: moment.unix(entry.date).format("YYYY-MM-DD"),
+            };
+        });
+        tags.value = rawTags;
+        checkedTags.value = Array.from({ length: rawTags.length }, () => false);
+    } catch {
+        if (current) new Notice(t("Learning Records could not be loaded"));
+    } finally {
+        if (current) loading.value = false;
+    }
 });
 watchEffect(() => {
     let selected = tags.value.filter((tag, i) => checkedTags.value[i]);

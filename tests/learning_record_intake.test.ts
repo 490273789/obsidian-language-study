@@ -10,14 +10,12 @@ function makeHarness(automaticPublicationEnabled = true) {
     const commitWhole = vi.fn<LearningRecordIntakeDependencies["recordStore"]["commitWhole"]>();
     const updateReadingDocument = vi.fn(async () => {});
     const updateStatistics = vi.fn(async () => {});
-    const publishWordDatabase = vi.fn(async () => ({
-        target: "word" as const,
-        status: "published" as const,
-    }));
-    const publishReviewDatabase = vi.fn(async () => ({
-        target: "review" as const,
-        status: "published" as const,
-    }));
+    const publishWordDatabase = vi
+        .fn<LearningRecordIntakeDependencies["textDatabasePublication"]["publishWordDatabase"]>()
+        .mockResolvedValue({ target: "word", status: "published" });
+    const publishReviewDatabase = vi
+        .fn<LearningRecordIntakeDependencies["textDatabasePublication"]["publishReviewDatabase"]>()
+        .mockResolvedValue({ target: "review", status: "published" });
 
     const intake = new LearningRecordIntakeModule({
         recordStore: { commitWhole },
@@ -266,5 +264,105 @@ describe("Learning Record Intake", () => {
         await Promise.all([first, second]);
 
         expect(committedExpressions).toEqual(["alpha", "beta"]);
+    });
+    it("keeps publication failure stages and reload warnings after an authoritative commit", async () => {
+        const harness = makeHarness();
+        harness.commitWhole.mockImplementation(async (candidate, date) => ({
+            operation: "created",
+            record: { ...candidate, firstAcceptedAt: date },
+        }));
+        const candidate = {
+            expression: "alpha",
+            meaning: "first",
+            status: 1,
+            type: "WORD",
+            tags: [],
+            notes: [],
+            sentences: [],
+        };
+        harness.publishWordDatabase.mockResolvedValueOnce({
+            target: "word",
+            status: "failed",
+            stage: "source",
+        });
+        const failed = await harness.intake.accept(candidate);
+        expect(failed).toMatchObject({
+            status: "committed",
+            publication: {
+                wordDatabase: { status: "failed", code: "publication_failed", stage: "source" },
+                reviewDatabase: { status: "published" },
+            },
+        });
+        harness.publishWordDatabase.mockResolvedValueOnce({
+            target: "word",
+            status: "published",
+            completionReload: { status: "failed" },
+        });
+        const warning = await harness.intake.accept(candidate);
+        expect(warning).toMatchObject({
+            status: "committed",
+            publication: {
+                wordDatabase: { status: "published", completionReload: { status: "failed" } },
+            },
+        });
+        harness.publishWordDatabase.mockResolvedValueOnce({
+            target: "word",
+            status: "pathConflict",
+        });
+        expect(await harness.intake.accept(candidate)).toMatchObject({
+            status: "committed",
+            publication: {
+                wordDatabase: { status: "pathConflict" },
+                reviewDatabase: { status: "published" },
+            },
+        });
+        expect(harness.commitWhole).toHaveBeenCalledTimes(3);
+    });
+
+    it("stops new intake while draining all accepted commits and publication follow-ups", async () => {
+        const harness = makeHarness();
+        let release!: () => void;
+        const blocker = new Promise<void>((resolve) => {
+            release = resolve;
+        });
+        harness.commitWhole.mockImplementation(async (candidate, date) => ({
+            operation: "created",
+            record: { ...candidate, firstAcceptedAt: date },
+        }));
+        harness.publishWordDatabase.mockImplementationOnce(async () => {
+            await blocker;
+            return { target: "word", status: "published" };
+        });
+        const candidate = {
+            expression: "alpha",
+            meaning: "first",
+            status: 1,
+            type: "WORD",
+            tags: [],
+            notes: [],
+            sentences: [],
+        };
+        const first = harness.intake.accept(candidate);
+        const second = harness.intake.accept({ ...candidate, expression: "beta" });
+        const closed = harness.intake.close();
+        expect(harness.intake.close()).toBe(closed);
+        let drained = false;
+        void closed.then(() => {
+            drained = true;
+        });
+        await expect(harness.intake.accept({ ...candidate, expression: "gamma" })).resolves.toEqual(
+            { status: "notCommitted", code: "record_store_unavailable" }
+        );
+        await vi.waitFor(() => expect(harness.publishWordDatabase).toHaveBeenCalledTimes(1));
+        expect(drained).toBe(false);
+        expect(harness.commitWhole).toHaveBeenCalledTimes(1);
+        release();
+        await Promise.all([first, second, closed]);
+        expect(harness.commitWhole.mock.calls.map(([record]) => record.expression)).toEqual([
+            "alpha",
+            "beta",
+        ]);
+        expect(harness.publishWordDatabase).toHaveBeenCalledTimes(2);
+        expect(drained).toBe(true);
     });
 });

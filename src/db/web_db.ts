@@ -30,7 +30,7 @@ function isSentence(value: unknown): value is Sentence {
     );
 }
 
-function isExpressionInfo(value: unknown, expression: string): value is ExpressionInfo {
+function hasExpressionFields(value: unknown): value is Record<string, unknown> {
     if (typeof value !== "object" || value === null || Array.isArray(value)) {
         return false;
     }
@@ -38,7 +38,6 @@ function isExpressionInfo(value: unknown, expression: string): value is Expressi
     return (
         typeof info.expression === "string" &&
         info.expression.trim().length > 0 &&
-        info.expression.trim().toLowerCase() === expression &&
         typeof info.meaning === "string" &&
         typeof info.status === "number" &&
         Number.isInteger(info.status) &&
@@ -46,11 +45,30 @@ function isExpressionInfo(value: unknown, expression: string): value is Expressi
         info.status <= 4 &&
         (info.t === "WORD" || info.t === "PHRASE") &&
         Array.isArray(info.tags) &&
-        info.tags.every((tag) => typeof tag === "string") &&
-        Array.isArray(info.notes) &&
-        info.notes.every((note) => typeof note === "string") &&
-        Array.isArray(info.sentences) &&
-        info.sentences.every(isSentence)
+        info.tags.every((tag) => typeof tag === "string")
+    );
+}
+
+function isExpressionInfo(value: unknown): value is ExpressionInfo {
+    return (
+        hasExpressionFields(value) &&
+        Array.isArray(value.notes) &&
+        value.notes.every((note) => typeof note === "string") &&
+        Array.isArray(value.sentences) &&
+        value.sentences.every(isSentence)
+    );
+}
+
+function isDomainCount(value: unknown): value is number {
+    return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
+function isExpressionInfoSimple(value: unknown): value is ExpressionInfoSimple {
+    return (
+        hasExpressionFields(value) &&
+        isDomainCount(value.note_num) &&
+        isDomainCount(value.sen_num) &&
+        isDomainCount(value.date)
     );
 }
 
@@ -186,7 +204,10 @@ export class WebDb extends DbProvider {
         };
 
         const value = await requestLookup(request);
-        if (value === null || isExpressionInfo(value, expression)) {
+        if (
+            value === null ||
+            (isExpressionInfo(value) && value.expression.trim().toLowerCase() === expression)
+        ) {
             return value;
         }
         throw new Error("Invalid Learning Record lookup response");
@@ -221,13 +242,11 @@ export class WebDb extends DbProvider {
             contentType: "application/json",
             headers: this.baseHeaders,
         };
-        try {
-            let response = await requestUrl(request);
-            return response.json;
-        } catch (e) {
-            console.warn("Error getting exprs after time from server" + e);
-            return [];
+        const value = await requestLookup(request);
+        if (Array.isArray(value) && value.every(isExpressionInfo)) {
+            return value;
         }
+        throw new Error("Invalid Learning Record source response");
     }
 
     // 通过status查询单词/词组,获取简略信息
@@ -240,14 +259,11 @@ export class WebDb extends DbProvider {
             headers: this.baseHeaders,
         };
 
-        try {
-            let response = await requestUrl(request);
-
-            return response.json;
-        } catch (e) {
-            console.warn("Error while getting all simple data from server." + e);
-            return [];
+        const value = await requestLookup(request);
+        if (Array.isArray(value) && value.every(isExpressionInfoSimple)) {
+            return value;
         }
+        throw new Error("Invalid Learning Record source response");
     }
 
     async commitWhole(

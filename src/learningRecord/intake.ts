@@ -2,6 +2,8 @@ import type { ExpressionStatus, ExpressionType, Sentence } from "@/db/interface"
 import type {
     TextDatabasePublicationResult,
     TextDatabasePublicationStatus,
+    CompletionReloadResult,
+    PublicationFailureStage,
 } from "@/textDatabase/publication";
 
 type LearningRecordCandidate = Readonly<{
@@ -35,8 +37,11 @@ type RecordStoreFailureCode = "record_store_unavailable" | "record_store_incompa
 type FollowUpOutcome = { status: "updated" } | { status: "failed"; code: "update_failed" };
 
 type PublicationTargetOutcome =
-    | { status: TextDatabasePublicationStatus }
-    | { status: "failed"; code: "publication_failed" };
+    | {
+          status: Exclude<TextDatabasePublicationStatus, "failed">;
+          completionReload?: CompletionReloadResult;
+      }
+    | { status: "failed"; code: "publication_failed"; stage?: PublicationFailureStage };
 
 type PublicationOutcome =
     | { status: "disabled" }
@@ -211,6 +216,12 @@ async function settlePublication(
 ): Promise<PublicationTargetOutcome> {
     try {
         const result = await publish();
+        if (result.status === "failed") {
+            return { status: "failed", code: "publication_failed", stage: result.stage };
+        }
+        if (result.status === "published" && result.completionReload) {
+            return { status: "published", completionReload: { ...result.completionReload } };
+        }
         return { status: result.status };
     } catch {
         return { status: "failed", code: "publication_failed" };
@@ -219,10 +230,20 @@ async function settlePublication(
 
 class LearningRecordIntakeModule {
     private queue: Promise<void> = Promise.resolve();
+    private closed = false;
+    private closePromise: Promise<void> | null = null;
 
     constructor(private readonly dependencies: LearningRecordIntakeDependencies) {}
 
+    close(): Promise<void> {
+        this.closed = true;
+        this.closePromise ??= this.queue;
+        return this.closePromise;
+    }
+
     accept(candidate: unknown): Promise<LearningRecordIntakeResult> {
+        if (this.closed)
+            return Promise.resolve({ status: "notCommitted", code: "record_store_unavailable" });
         const snapshot = snapshotInput(candidate);
         const result = this.queue.then(() => this.execute(snapshot));
         this.queue = result.then(

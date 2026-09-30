@@ -307,6 +307,7 @@ import {
 import type { ExpressionInfo, Sentence } from "@/db/interface";
 import { LearningRecordDraftModule } from "@/learningRecord/draft";
 import type { DraftSentence } from "@/learningRecord/draft";
+import type { PublicationTargetOutcome } from "@/learningRecord/intake";
 import { t } from "@/lang/helper";
 import { useEvent } from "@/utils/use";
 import { defaultDictionaryHub } from "@/dictionary/list";
@@ -523,8 +524,8 @@ async function submit() {
             result.readerUpdate.status === "failed" ||
             result.statisticsUpdate.status === "failed" ||
             (result.publication.status === "attempted" &&
-                (result.publication.wordDatabase.status === "failed" ||
-                    result.publication.reviewDatabase.status === "failed"));
+                (publicationNeedsAttention(result.publication.wordDatabase) ||
+                    publicationNeedsAttention(result.publication.reviewDatabase)));
         if (hasFollowUpFailure) {
             new Notice(t("Learning Record saved, but some updates failed"));
         }
@@ -535,6 +536,16 @@ async function submit() {
     } finally {
         submitLoading.value = false;
     }
+}
+
+function publicationNeedsAttention(result: PublicationTargetOutcome): boolean {
+    return (
+        result.status === "failed" ||
+        result.status === "invalidTarget" ||
+        result.status === "pathConflict" ||
+        result.status === "closed" ||
+        (result.status === "published" && result.completionReload?.status === "failed")
+    );
 }
 
 useEvent(window, "obsidian-langr-search", (evt) => {

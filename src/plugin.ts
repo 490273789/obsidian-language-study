@@ -13,7 +13,7 @@ import { createApp, App as VueApp } from "vue";
 
 import "./main.css";
 import { SEARCH_PANEL_VIEW } from "./views/SearchPanelView";
-import { READING_VIEW_TYPE, READING_ICON } from "./views/ReadingView";
+import { READING_VIEW_TYPE, READING_ICON, ReadingView } from "./views/ReadingView";
 import { LEARN_PANEL_VIEW } from "./views/LearnPanelView";
 // import { PDFView, PDF_FILE_EXTENSION, VIEW_TYPE_PDF } from "./views/PDFView";
 
@@ -28,6 +28,7 @@ import {
     TextDatabasePublication,
     type TextDatabasePublicationAllResult,
     type TextDatabasePublicationResult,
+    type CompletionReloadResult,
 } from "./textDatabase/publication";
 
 import { MyPluginSettings, normalizeSettings, SettingTab } from "./settings";
@@ -61,6 +62,11 @@ export default class LanguageLearner extends Plugin {
     markdownButtons: Record<string, HTMLElement | null> = {};
     declare frontManager: FrontMatterManager;
     store: typeof store = store;
+    private shuttingDown = false;
+    private shutdown: Promise<void> | null = null;
+    private readingViews = new Set<ReadingView>();
+    private serverStarting: Promise<void> | null = null;
+    private serverStopping: Promise<void> | null = null;
 
     async onload() {
         // 读取设置
@@ -120,17 +126,61 @@ export default class LanguageLearner extends Plugin {
         this.vueApp.mount(this.appEl);
     }
 
-    async onunload() {
-        detachPluginViews(this);
+    onunload(): Promise<void> {
+        if (this.shutdown) {
+            return this.shutdown;
+        }
+        this.shuttingDown = true;
+        this.shutdown = this.closeResources();
+        return this.shutdown;
+    }
 
-        this.db.close();
-        await this.stopSelfServer();
-        // if (await app.vault.adapter.exists(".obsidian/plugins/obsidian-language-learner/pdf/web/viewer.html")) {
-        //     this.registerExtensions([PDF_FILE_EXTENSION], "pdf");
-        // }
+    get isShuttingDown(): boolean {
+        return this.shuttingDown;
+    }
 
-        this.vueApp?.unmount();
-        this.appEl?.remove();
+    registerReadingView(view: ReadingView): void {
+        if (this.shuttingDown) {
+            void view.onClose().catch((error) => {
+                console.warn("Language Learner could not close a late reading view", error);
+            });
+            return;
+        }
+        this.readingViews.add(view);
+    }
+
+    unregisterReadingView(view: ReadingView): void {
+        this.readingViews.delete(view);
+    }
+
+    private async closeResources(): Promise<void> {
+        const settle = async (operation: () => unknown): Promise<void> => {
+            try {
+                await operation();
+            } catch (error) {
+                console.warn("Language Learner resource shutdown failed", error);
+            }
+        };
+        // Keep publication and the DB available to already accepted work.
+        const intake = settle(() => this.learningRecordIntake?.close());
+        const server = settle(() => this.stopSelfServer());
+        const views = new Set(this.readingViews);
+        try {
+            for (const leaf of this.app.workspace.getLeavesOfType(READING_VIEW_TYPE)) {
+                if (leaf.view instanceof ReadingView) {
+                    views.add(leaf.view);
+                }
+            }
+        } catch (error) {
+            console.warn("Language Learner could not collect reading views", error);
+        }
+        const reading = [...views].map((view) => settle(() => view.onClose()));
+        await settle(() => detachPluginViews(this));
+        await Promise.all([intake, server, ...reading]);
+        await settle(() => this.textDatabasePublication?.close());
+        await settle(() => this.db?.close());
+        await settle(() => this.vueApp?.unmount());
+        await settle(() => this.appEl?.remove());
         this.appEl = null;
         this.vueApp = null;
     }
@@ -142,7 +192,22 @@ export default class LanguageLearner extends Plugin {
         };
     }
 
-    async startSelfServer(): Promise<void> {
+    startSelfServer(): Promise<void> {
+        if (this.shuttingDown) {
+            return Promise.resolve();
+        }
+        if (this.serverStopping) {
+            return this.serverStopping.then(() => this.startSelfServer());
+        }
+        if (!this.serverStarting) {
+            this.serverStarting = this.startServer().finally(() => {
+                this.serverStarting = null;
+            });
+        }
+        return this.serverStarting;
+    }
+
+    private async startServer(): Promise<void> {
         if (!Platform.isDesktopApp) {
             this.settings.self_server = false;
             await this.saveSettings();
@@ -153,16 +218,33 @@ export default class LanguageLearner extends Plugin {
             return;
         }
         const { default: Server } = await import("./api/server");
+        if (this.shuttingDown || this.serverStopping) {
+            return;
+        }
         this.server = new Server(this, this.settings.self_port);
         await this.server.start();
     }
 
-    async stopSelfServer(): Promise<void> {
-        if (!this.server) {
+    stopSelfServer(): Promise<void> {
+        if (!this.serverStopping) {
+            this.serverStopping = this.stopServer().finally(() => {
+                this.serverStopping = null;
+            });
+        }
+        return this.serverStopping;
+    }
+
+    private async stopServer(): Promise<void> {
+        // An accepted start may still be importing Node or waiting for listen().
+        await this.serverStarting?.catch(() => undefined);
+        const server = this.server;
+        if (!server) {
             return;
         }
-        await this.server.close();
-        this.server = null;
+        await server.close();
+        if (this.server === server) {
+            this.server = null;
+        }
     }
 
     // async replacePDF() {
@@ -219,6 +301,9 @@ export default class LanguageLearner extends Plugin {
     }
 
     async setReadingView(leaf: WorkspaceLeaf) {
+        if (this.shuttingDown) {
+            return;
+        }
         await leaf.setViewState({
             type: READING_VIEW_TYPE,
             state: leaf.view.getState(),
@@ -243,12 +328,13 @@ export default class LanguageLearner extends Plugin {
                     const file = this.app.vault.getAbstractFileByPath(path);
                     return file && !("children" in file) ? (file as TFile) : null;
                 },
-                read: (file) => this.app.vault.read(file),
+                getPath: (file) => file.path,
+                process: (file, transform) => this.app.vault.process(file, transform),
                 write: (file, text) => this.app.vault.modify(file, text),
             },
             completionReloader: {
                 reloadCustomDictionaries: () => {
-                    (this.app as any).commands.executeCommandById(
+                    return (this.app as any).commands.executeCommandById(
                         "various-complements:reload-custom-dictionaries"
                     );
                 },
@@ -278,17 +364,38 @@ export default class LanguageLearner extends Plugin {
     }
 
     reportTextDatabasePublicationResult(result: TextDatabasePublicationResult): void {
-        if (result.status !== "invalidTarget") {
-            return;
+        if (result.status === "invalidTarget") {
+            new Notice(
+                t(
+                    result.target === "word"
+                        ? "Invalid word database path"
+                        : "Invalid review database path"
+                )
+            );
+        } else if (result.status === "pathConflict") {
+            new Notice(t("Word and review databases must use different files"));
+        } else if (result.status === "failed") {
+            new Notice(
+                t(
+                    result.target === "word"
+                        ? "Word database publication failed"
+                        : "Review database publication failed"
+                )
+            );
+        } else if (result.status === "published" && result.completionReload?.status === "failed") {
+            new Notice(
+                t("Word database published, but completion dictionaries could not be reloaded")
+            );
         }
-        new Notice(
-            result.target === "word"
-                ? "Invalid refresh database path"
-                : "Invalid word database path"
-        );
     }
 
     async refreshTextDB(): Promise<TextDatabasePublicationAllResult> {
+        if (this.shuttingDown) {
+            return {
+                word: { target: "word", status: "closed" },
+                review: { target: "review", status: "closed" },
+            };
+        }
         const result = await this.textDatabasePublication.publishAll();
         this.reportTextDatabasePublicationResult(result.word);
         this.reportTextDatabasePublicationResult(result.review);
@@ -296,14 +403,31 @@ export default class LanguageLearner extends Plugin {
     }
 
     refreshWordDb = async (): Promise<TextDatabasePublicationResult> => {
+        if (this.shuttingDown) {
+            return { target: "word", status: "closed" };
+        }
         const result = await this.textDatabasePublication.publishWordDatabase();
         this.reportTextDatabasePublicationResult(result);
         return result;
     };
 
     refreshReviewDb = async (): Promise<TextDatabasePublicationResult> => {
+        if (this.shuttingDown) {
+            return { target: "review", status: "closed" };
+        }
         const result = await this.textDatabasePublication.publishReviewDatabase();
         this.reportTextDatabasePublicationResult(result);
+        return result;
+    };
+
+    retryCompletionReload = async (): Promise<CompletionReloadResult> => {
+        if (this.shuttingDown) {
+            return { status: "closed" };
+        }
+        const result = await this.textDatabasePublication.retryCompletionReload();
+        if (result.status === "failed") {
+            new Notice(t("Completion dictionaries could not be reloaded"));
+        }
         return result;
     };
 
@@ -391,7 +515,7 @@ export default class LanguageLearner extends Plugin {
         context?: ReadingSelection,
         evtPosition?: Position
     ): Promise<void> {
-        if (!word) return;
+        if (this.shuttingDown || !word) return;
 
         if (!this.settings.popup_search) {
             await this.activateView(SEARCH_PANEL_VIEW, "left");

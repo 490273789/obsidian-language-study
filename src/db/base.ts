@@ -19,9 +19,9 @@ abstract class DbProvider {
     abstract getExpression(expression: string): Promise<ExpressionInfo | null>;
     //获取一批单词的简略信息
     abstract getExpressionsSimple(expressions: string[]): Promise<ExpressionInfoSimple[]>;
-    // 某一时间之后添加的全部单词
+    // 某一时间之后添加的全部单词；[]仅表示确认无记录，读取或响应验证失败必须拒绝Promise
     abstract getExpressionAfter(time: string): Promise<ExpressionInfo[]>;
-    // 获取全部单词的简略信息
+    // 获取全部单词的简略信息；[]仅表示确认无记录，读取或响应验证失败必须拒绝Promise
     abstract getAllExpressionSimple(ignores?: boolean): Promise<ExpressionInfoSimple[]>;
     abstract commitWhole(
         candidate: LearningRecordCandidate,

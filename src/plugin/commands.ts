@@ -18,6 +18,12 @@ function registerPluginCommands(plugin: LanguageLearner): void {
     });
 
     plugin.addCommand({
+        id: "langr-retry-completion-reload",
+        name: t("Retry completion dictionary reload"),
+        callback: plugin.retryCompletionReload,
+    });
+
+    plugin.addCommand({
         id: "langr-search-word-select",
         name: t("Translate Select"),
         callback: () => {

@@ -10,6 +10,18 @@ export default {
     "Refresh Word Database": "刷新单词数据库",
     "Refresh Review Database": "刷新复习数据库",
 
+    "Retry completion dictionary reload": "重试加载补全词典",
+    "Invalid word database path": "单词数据库路径无效",
+    "Invalid review database path": "复习数据库路径无效",
+    "Word and review databases must use different files": "单词数据库和复习数据库必须使用不同文件",
+    "Word database publication failed": "单词数据库发布失败",
+    "Review database publication failed": "复习数据库发布失败",
+    "Word database published, but completion dictionaries could not be reloaded":
+        "单词数据库已发布，但补全词典重新加载失败",
+    "Completion dictionaries could not be reloaded": "补全词典重新加载失败",
+    "Learning Records could not be loaded": "学习记录加载失败",
+    "Learning Records could not be exported": "学习记录导出失败",
+
     // DataPanelView.ts
     "Data Panel": "单词列表",
 

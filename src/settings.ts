@@ -510,30 +510,42 @@ export class SettingTab extends PluginSettingTab {
             .setName(t("Get all non-ignores"))
             .addButton((button) =>
                 button.setButtonText(t("Export Word")).onClick(async () => {
-                    let words = await this.plugin.db.getAllExpressionSimple(true);
-                    let ignores = words
-                        .filter((w) => w.status !== 0 && w.t !== "PHRASE")
-                        .map((w) => w.expression);
-                    await navigator.clipboard.writeText(ignores.join("\n"));
-                    new Notice(t("Copied to clipboard"));
+                    try {
+                        let words = await this.plugin.db.getAllExpressionSimple(true);
+                        let ignores = words
+                            .filter((w) => w.status !== 0 && w.t !== "PHRASE")
+                            .map((w) => w.expression);
+                        await navigator.clipboard.writeText(ignores.join("\n"));
+                        new Notice(t("Copied to clipboard"));
+                    } catch {
+                        new Notice(t("Learning Records could not be exported"));
+                    }
                 })
             )
             .addButton((button) =>
                 button.setButtonText(t("Export Word and Phrase")).onClick(async () => {
-                    let words = await this.plugin.db.getAllExpressionSimple(true);
-                    let ignores = words.filter((w) => w.status !== 0).map((w) => w.expression);
-                    await navigator.clipboard.writeText(ignores.join("\n"));
-                    new Notice(t("Copied to clipboard"));
+                    try {
+                        let words = await this.plugin.db.getAllExpressionSimple(true);
+                        let ignores = words.filter((w) => w.status !== 0).map((w) => w.expression);
+                        await navigator.clipboard.writeText(ignores.join("\n"));
+                        new Notice(t("Copied to clipboard"));
+                    } catch {
+                        new Notice(t("Learning Records could not be exported"));
+                    }
                 })
             );
 
         // 获取所有无视单词
         new Setting(containerEl).setName(t("Get all ignores")).addButton((button) =>
             button.setButtonText(t("Export")).onClick(async () => {
-                let words = await this.plugin.db.getAllExpressionSimple(true);
-                let ignores = words.filter((w) => w.status === 0).map((w) => w.expression);
-                await navigator.clipboard.writeText(ignores.join("\n"));
-                new Notice(t("Copied to clipboard"));
+                try {
+                    let words = await this.plugin.db.getAllExpressionSimple(true);
+                    let ignores = words.filter((w) => w.status === 0).map((w) => w.expression);
+                    await navigator.clipboard.writeText(ignores.join("\n"));
+                    new Notice(t("Copied to clipboard"));
+                } catch {
+                    new Notice(t("Learning Records could not be exported"));
+                }
             })
         );
 

@@ -10,6 +10,18 @@ export default {
     "Refresh Word Database": "重新整理單字資料庫",
     "Refresh Review Database": "重新整理復習資料庫",
 
+    "Retry completion dictionary reload": "重試載入補全詞典",
+    "Invalid word database path": "單字資料庫路徑無效",
+    "Invalid review database path": "複習資料庫路徑無效",
+    "Word and review databases must use different files": "單字資料庫和複習資料庫必須使用不同檔案",
+    "Word database publication failed": "單字資料庫發佈失敗",
+    "Review database publication failed": "複習資料庫發佈失敗",
+    "Word database published, but completion dictionaries could not be reloaded":
+        "單字資料庫已發佈，但補全詞典重新載入失敗",
+    "Completion dictionaries could not be reloaded": "補全詞典重新載入失敗",
+    "Learning Records could not be loaded": "學習記錄載入失敗",
+    "Learning Records could not be exported": "學習記錄匯出失敗",
+
     // DataPanelView.ts
     "Data Panel": "單字列表",
 

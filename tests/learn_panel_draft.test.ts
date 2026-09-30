@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
     getSentence: vi.fn(),
     translate: vi.fn(),
     accept: vi.fn(),
+    notice: vi.fn(),
     settings: {
         use_machine_trans: true,
         dictionaries: {
@@ -13,6 +14,14 @@ const mocks = vi.hoisted(() => ({
             youdao: { enable: true, priority: 3 },
             deepl: { enable: true, priority: 1 },
         },
+    },
+}));
+vi.mock("obsidian", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("obsidian")>()),
+    Notice: class {
+        constructor(message: string) {
+            mocks.notice(message);
+        }
     },
 }));
 vi.mock("@/ui/context", () => ({
@@ -235,6 +244,37 @@ describe("LearnPanel draft adapter", () => {
         intake.resolve({ status: "notCommitted" });
         await flush();
     });
+
+    it.each(["pathConflict", "invalidTarget", "closed", "reloadFailed"])(
+        "reports publication issue %s after saving without resubmitting",
+        async (status) => {
+            select("alpha");
+            await flush();
+            edit("A short definition", "First meaning");
+            await flush();
+            mocks.accept.mockResolvedValueOnce({
+                status: "committed",
+                record: { expression: "alpha" },
+                readerUpdate: { status: "updated" },
+                statisticsUpdate: { status: "updated" },
+                publication: {
+                    status: "attempted",
+                    wordDatabase:
+                        status === "reloadFailed"
+                            ? { status: "published", completionReload: { status: "failed" } }
+                            : { status },
+                    reviewDatabase: { status: "published" },
+                },
+            });
+            submitButton().click();
+            await flush();
+            expect(mocks.notice).toHaveBeenCalledWith(
+                "Learning Record saved, but some updates failed"
+            );
+            expect(mocks.accept).toHaveBeenCalledTimes(1);
+            expect(input("A word or a phrase").value).toBe("alpha");
+        }
+    );
 
     it("submits a fixed snapshot while translation is pending and leaves a newer selection intact", async () => {
         const translation = deferred<{ status: "success"; translation: string }>();

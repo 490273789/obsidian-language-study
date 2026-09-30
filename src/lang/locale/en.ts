@@ -10,6 +10,20 @@ export default {
     "Refresh Word Database": "Refresh Word Database",
     "Refresh Review Database": "Refresh Review Database",
 
+    "Retry completion dictionary reload": "Retry completion dictionary reload",
+    "Invalid word database path": "Invalid word database path",
+    "Invalid review database path": "Invalid review database path",
+    "Word and review databases must use different files":
+        "Word and review databases must use different files",
+    "Word database publication failed": "Word database publication failed",
+    "Review database publication failed": "Review database publication failed",
+    "Word database published, but completion dictionaries could not be reloaded":
+        "Word database published, but completion dictionaries could not be reloaded",
+    "Completion dictionaries could not be reloaded":
+        "Completion dictionaries could not be reloaded",
+    "Learning Records could not be loaded": "Learning Records could not be loaded",
+    "Learning Records could not be exported": "Learning Records could not be exported",
+
     // DataPanelView.ts
     "Data Panel": "Data Panel",
 

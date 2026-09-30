@@ -21,12 +21,14 @@ export class ReadingView extends TextFileView {
     document: ReadingDocument | null = null;
     session: ReadingSession | null = null;
     private closed = false;
+    private closing: Promise<void> | null = null;
     private initialization: Promise<void> | null = null;
 
     constructor(leaf: WorkspaceLeaf, plugin: LanguageLearner) {
         super(leaf);
         this.plugin = plugin;
         this.firstInit = true;
+        plugin.registerReadingView(this);
     }
 
     getIcon() {
@@ -38,6 +40,9 @@ export class ReadingView extends TextFileView {
     }
 
     async setViewData(data: string, _clear?: boolean) {
+        if (this.closed || this.plugin.isShuttingDown) {
+            return;
+        }
         if (this.firstInit) {
             this.firstInit = false;
             this.initialization = this.initializeReadingSession(data);
@@ -181,6 +186,9 @@ export class ReadingView extends TextFileView {
     }
 
     async onOpen() {
+        if (this.closed || this.plugin.isShuttingDown) {
+            return;
+        }
         addEventListener("obsidian-langr-refresh", this.refresh as EventListener);
         this.initHeaderButtons();
 
@@ -189,12 +197,32 @@ export class ReadingView extends TextFileView {
         // })
     }
 
-    async onClose() {
-        this.closed = true;
+    onClose(): Promise<void> {
+        if (!this.closing) {
+            this.closed = true;
+            this.closing = this.closeReadingSession().finally(() => {
+                this.plugin.unregisterReadingView(this);
+            });
+        }
+        return this.closing;
+    }
+
+    private async closeReadingSession(): Promise<void> {
         removeEventListener("obsidian-langr-refresh", this.refresh as EventListener);
-        this.vueapp?.unmount();
+        // Start session closure synchronously so navigation cannot accept new work.
+        const session = this.session;
+        const closingSession = session?.close();
+        try {
+            this.vueapp?.unmount();
+        } catch (error) {
+            console.warn("Reading View could not unmount", error);
+        }
         this.vueapp = null;
-        const result = await this.session?.close();
+        const [, closedSession] = await Promise.all([
+            this.initialization?.catch(() => undefined),
+            closingSession,
+        ]);
+        const result = session ? closedSession : await this.session?.close();
         if (result?.completion.status === "failed") {
             new Notice(
                 t(
