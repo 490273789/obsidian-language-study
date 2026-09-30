@@ -1,5 +1,6 @@
 <template>
     <div class="word-more">
+        <p v-if="lookupFailed">{{ t("Learning Record lookup failed") }}</p>
         <div class="word-notes" v-if="notes.length > 0">
             <h2>Notes:</h2>
             <p v-for="n in notes">{{ n }}</p>
@@ -18,6 +19,8 @@
 <script setup lang="ts">
 import { usePlugin } from "@/ui/context";
 import { highlightExpression } from "@/utils/safeHtml";
+import { t } from "@/lang/helper";
+import type { ExpressionInfo } from "@/db/interface";
 
 const plugin = usePlugin();
 
@@ -25,7 +28,13 @@ const props = defineProps<{
     word: string;
 }>();
 
-let expressionInfo = await plugin.db.getExpression(props.word);
+let expressionInfo: ExpressionInfo | null = null;
+let lookupFailed = false;
+try {
+    expressionInfo = await plugin.db.getExpression(props.word);
+} catch {
+    lookupFailed = true;
+}
 let sentences = expressionInfo?.sentences ?? [];
 let notes = expressionInfo?.notes ?? [];
 </script>

@@ -36,6 +36,10 @@ _Avoid_: Ignore submission, finish request, page save
 The captured passage context (the studied expression, its enclosing sentence in the Reading Document, and the document origin) extracted during reading to initiate lookup or learning record intake.
 _Avoid_: Click target, DOM event, word selection
 
+**Learning Record Draft**:
+An editable proposal for a new or updated Learning Record, prepared from a Reading Selection or an existing Learning Record. Its contents become authoritative only when committed through Learning Record Intake.
+_Avoid_: Learning form, preparation result, expression model
+
 **Learning Record Intake**:
 The acceptance of a new or updated learning record as one complete domain operation, including the resulting publication and reader-visible updates.
 _Avoid_: Expression recording, submission, save

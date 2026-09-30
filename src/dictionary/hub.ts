@@ -11,6 +11,11 @@ export type LookupAllResult = Readonly<{
     receipts: Record<string, DictionaryLookupReceipt>;
 }>;
 
+export type TranslationResult =
+    | { status: "success"; translation: string }
+    | { status: "unavailable" }
+    | { status: "skipped" };
+
 export class DictionaryHub {
     private readonly adapters = new Map<string, DictionaryAdapter>();
     private currentQueryId = 0;
@@ -91,35 +96,52 @@ export class DictionaryHub {
         };
     }
 
+    async translateSentenceWithProviders(
+        sentence: string,
+        orderedIds: readonly string[]
+    ): Promise<TranslationResult> {
+        const trimmed = sentence.trim();
+        if (!trimmed) {
+            return { status: "skipped" };
+        }
+        let attempted = false;
+        for (const id of new Set(orderedIds)) {
+            const adapter = this.adapters.get(id);
+            if (!adapter?.translate) {
+                continue;
+            }
+            attempted = true;
+            try {
+                const translation = await adapter.translate(trimmed);
+                if (translation.trim()) {
+                    return { status: "success", translation };
+                }
+            } catch {
+                continue;
+            }
+        }
+        return { status: attempted ? "unavailable" : "skipped" };
+    }
+
     async translateSentence(sentence: string, preferredProviderId?: string): Promise<string> {
         const trimmed = sentence.trim();
         if (!trimmed) {
             return "";
         }
-
-        if (preferredProviderId) {
-            const preferred = this.adapters.get(preferredProviderId);
-            if (preferred?.translate) {
+        const orderedIds = preferredProviderId
+            ? [preferredProviderId, ...this.adapters.keys()]
+            : [...this.adapters.keys()];
+        for (const id of new Set(orderedIds)) {
+            const adapter = this.adapters.get(id);
+            if (adapter?.translate) {
                 try {
-                    const res = await preferred.translate(trimmed);
-                    if (res) return res;
-                } catch {
-                    // Fall back to other providers
-                }
-            }
-        }
-
-        for (const adapter of this.adapters.values()) {
-            if (adapter.translate) {
-                try {
-                    const res = await adapter.translate(trimmed);
-                    if (res) return res;
+                    const translation = await adapter.translate(trimmed);
+                    if (translation) return translation;
                 } catch {
                     continue;
                 }
             }
         }
-
         return "";
     }
 }

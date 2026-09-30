@@ -2,6 +2,24 @@
     <div id="langr-learn-panel" class="langr-shell">
         <NConfigProvider class="learn-provider" :theme="theme" :theme-overrides="themeOverrides">
             <div class="learn-panel-scroll">
+                <div v-if="draftState.preparation === 'loading'" class="langr-subtle" role="status">
+                    {{ t("Preparing Learning Record") }}
+                </div>
+                <div v-if="draftState.preparation === 'failed'" class="langr-card" role="alert">
+                    <p>{{ t("Learning Record lookup failed") }}</p>
+                    <NButton size="small" @click="draft.retry('preparation')">{{
+                        t("Retry")
+                    }}</NButton>
+                </div>
+                <div v-if="draftState.translation === 'pending'" class="langr-subtle" role="status">
+                    {{ t("Translating sentence") }}
+                </div>
+                <div v-if="draftState.translation === 'failed'" class="langr-card" role="status">
+                    <p>{{ t("Sentence translation failed; you can still submit") }}</p>
+                    <NButton size="small" @click="draft.retry('translation')">{{
+                        t("Retry")
+                    }}</NButton>
+                </div>
                 <NForm
                     class="learn-form"
                     :model="model"
@@ -23,15 +41,19 @@
                         </header>
                         <NFormItem :label="t('Expression')" path="expression">
                             <NInput
+                                :disabled="!draftState.canEdit"
                                 size="small"
-                                v-model:value="model.expression"
+                                :value="model.expression"
+                                @update:value="editRecord({ expression: $event })"
                                 :placeholder="t('A word or a phrase')"
                             />
                         </NFormItem>
                         <NFormItem :label="t('Meaning')" path="meaning">
                             <NInput
+                                :disabled="!draftState.canEdit"
                                 size="small"
-                                v-model:value="model.meaning"
+                                :value="model.meaning"
+                                @update:value="editRecord({ meaning: $event })"
                                 :placeholder="t('A short definition')"
                                 type="textarea"
                                 autosize
@@ -39,15 +61,21 @@
                         </NFormItem>
                         <div class="learn-choice-stack">
                             <NFormItem :label="t('Type')" path="t">
-                                <NRadioGroup v-model:value="model.t">
+                                <NRadioGroup
+                                    :disabled="!draftState.canEdit"
+                                    :value="model.t"
+                                    @update:value="editType"
+                                >
                                     <NRadio value="WORD">{{ t("Word") }}</NRadio>
                                     <NRadio value="PHRASE">{{ t("Phrase") }}</NRadio>
                                 </NRadioGroup>
                             </NFormItem>
                             <NFormItem :label="t('Status')" path="status">
                                 <NRadioGroup
+                                    :disabled="!draftState.canEdit"
                                     class="learn-status-group"
-                                    v-model:value="model.status"
+                                    :value="model.status"
+                                    @update:value="editStatus"
                                     size="small"
                                 >
                                     <NRadioButton v-for="(s, i) in status" :key="i" :value="i">
@@ -58,8 +86,10 @@
                         </div>
                         <NFormItem :label="t('Tags')" path="tags">
                             <NSelect
+                                :disabled="!draftState.canEdit"
                                 size="small"
-                                v-model:value="model.tags"
+                                :value="model.tags"
+                                @update:value="editTags"
                                 filterable
                                 multiple
                                 tag
@@ -79,7 +109,10 @@
                         </header>
                         <NFormItem :show-label="false" path="notes">
                             <NDynamicInput
-                                v-model:value="model.notes"
+                                :disabled="!draftState.canEdit"
+                                :value="model.notes"
+                                @update:value="editNotes"
+                                :on-create="() => ''"
                                 :create-button-props="{ size: 'small' }"
                             >
                                 <template #create-button-default>
@@ -87,10 +120,12 @@
                                 </template>
                                 <template #="{ index }">
                                     <NInput
+                                        :disabled="!draftState.canEdit"
                                         size="small"
                                         type="textarea"
                                         :placeholder="t('Write a new note')"
-                                        v-model:value="model.notes[index]"
+                                        :value="model.notes[index]"
+                                        @update:value="editNote(index, $event)"
                                     />
                                 </template>
                             </NDynamicInput>
@@ -104,8 +139,11 @@
                             </div>
                         </header>
                         <NDynamicInput
+                            :disabled="!draftState.canEdit"
                             class="sentence-input"
-                            v-model:value="model.sentences"
+                            :value="model.sentences"
+                            @update:value="replaceSentences"
+                            key-field="draftId"
                             :create-button-props="{ size: 'small' }"
                             :on-create="onCreateSentence"
                         >
@@ -120,9 +158,15 @@
                                         :rule="sourceRule"
                                     >
                                         <NInput
+                                            :disabled="!draftState.canEdit"
                                             size="small"
                                             type="textarea"
-                                            v-model:value="model.sentences[index].text"
+                                            :value="model.sentences[index].text"
+                                            @update:value="
+                                                editSentence(model.sentences[index].draftId, {
+                                                    text: $event,
+                                                })
+                                            "
                                             :placeholder="t('Origin sentence')"
                                             :autosize="{
                                                 minRows: 1,
@@ -136,9 +180,15 @@
                                         :path="`sentences[${index}].trans`"
                                     >
                                         <NInput
+                                            :disabled="!draftState.canEdit"
                                             size="small"
                                             type="textarea"
-                                            v-model:value="model.sentences[index].trans"
+                                            :value="model.sentences[index].trans"
+                                            @update:value="
+                                                editSentence(model.sentences[index].draftId, {
+                                                    trans: $event,
+                                                })
+                                            "
                                             :placeholder="t('Translation (Optional)')"
                                             :autosize="{
                                                 minRows: 1,
@@ -152,9 +202,15 @@
                                         :path="`sentences[${index}].origin`"
                                     >
                                         <NInput
+                                            :disabled="!draftState.canEdit"
                                             size="small"
                                             type="textarea"
-                                            v-model:value="model.sentences[index].origin"
+                                            :value="model.sentences[index].origin"
+                                            @update:value="
+                                                editSentence(model.sentences[index].draftId, {
+                                                    origin: $event,
+                                                })
+                                            "
                                             :placeholder="t('Origin (Optional)')"
                                             :autosize="{
                                                 minRows: 1,
@@ -176,6 +232,7 @@
                         attr-type="submit"
                         @click="submit"
                         :loading="submitLoading"
+                        :disabled="!draftState.canSubmit || submitLoading"
                     >
                         <NIconWrapper
                             v-if="successing"
@@ -230,7 +287,7 @@
 
 <script setup lang="ts">
 import { Notice } from "obsidian";
-import { ref } from "vue";
+import { computed, onBeforeUnmount, ref, shallowRef } from "vue";
 import {
     NIcon,
     NIconWrapper,
@@ -247,32 +304,86 @@ import {
     NConfigProvider,
 } from "naive-ui";
 
-import { ExpressionInfo, ExpressionType, Sentence } from "@/db/interface";
+import type { ExpressionInfo, Sentence } from "@/db/interface";
+import { LearningRecordDraftModule } from "@/learningRecord/draft";
+import type { DraftSentence } from "@/learningRecord/draft";
 import { t } from "@/lang/helper";
 import { useEvent } from "@/utils/use";
-import { LearnPanelView } from "./LearnPanelView";
-import type { ReadingSelection } from "@/reading/readingContext";
-import { translateSentence } from "@/dictionary/translation";
+import { defaultDictionaryHub } from "@/dictionary/list";
 import store from "@/store";
-import { usePlugin, useView } from "@/ui/context";
+import { usePlugin } from "@/ui/context";
 import { useLangrNaiveTheme, useLangrNaiveThemeOverrides } from "@/ui/theme";
 
-const view = useView<LearnPanelView>();
 const plugin = usePlugin();
 
 const theme = useLangrNaiveTheme(() => store.dark);
 const themeOverrides = useLangrNaiveThemeOverrides();
 
-//表单数据
-let model = ref<ExpressionInfo>({
-    expression: "",
-    meaning: "",
-    status: 0,
-    t: "WORD",
-    tags: [],
-    notes: [],
-    sentences: [],
+const draft = new LearningRecordDraftModule({
+    getExpression: (expression) => plugin.db.getExpression(expression),
+    getSentence: (text) => plugin.db.tryGetSen(text),
+    translate: (text) => {
+        if (!plugin.settings.use_machine_trans) return Promise.resolve({ status: "skipped" });
+        const providerIds = Object.entries(plugin.settings.dictionaries)
+            .filter(([, settings]) => settings.enable)
+            .sort(([, a], [, b]) => a.priority - b.priority)
+            .map(([id]) => id);
+        return defaultDictionaryHub.translateSentenceWithProviders(text, providerIds);
+    },
+    onChange: (state) => {
+        draftState.value = state;
+        successing.value = false;
+        failing.value = false;
+    },
 });
+const draftState = shallowRef(draft.getState());
+const model = computed(() => draftState.value.record);
+onBeforeUnmount(() => draft.close());
+
+function editRecord(patch: Partial<Omit<ExpressionInfo, "sentences">>) {
+    draft.edit({ kind: "record", patch });
+}
+function editType(value: unknown) {
+    if (value === "WORD" || value === "PHRASE") editRecord({ t: value });
+}
+function editStatus(value: unknown) {
+    if (value === 0 || value === 1 || value === 2 || value === 3 || value === 4) {
+        editRecord({ status: value });
+    }
+}
+function editTags(value: (string | number)[]) {
+    editRecord({ tags: value.filter((entry): entry is string => typeof entry === "string") });
+}
+function editNote(index: number, value: string) {
+    const notes = [...model.value.notes];
+    notes[index] = value;
+    editRecord({ notes });
+}
+function editNotes(values: readonly unknown[]) {
+    if (values.every((value): value is string => typeof value === "string")) {
+        editRecord({ notes: [...values] });
+    }
+}
+function editSentence(id: number, patch: Partial<Sentence>) {
+    draft.edit({ kind: "sentence", id, patch });
+}
+function replaceSentences(values: readonly unknown[]) {
+    if (values.every(isDraftSentence)) draft.edit({ kind: "sentences", sentences: values });
+}
+function isDraftSentence(value: unknown): value is DraftSentence {
+    return (
+        typeof value === "object" &&
+        value !== null &&
+        "draftId" in value &&
+        typeof value.draftId === "number" &&
+        "text" in value &&
+        typeof value.text === "string" &&
+        "trans" in value &&
+        typeof value.trans === "string" &&
+        "origin" in value &&
+        typeof value.origin === "string"
+    );
+}
 
 // 表单检查规则
 let rules = {
@@ -304,6 +415,7 @@ let sourceRule = {
 
 function onCreateSentence() {
     return {
+        draftId: 0,
         text: "",
         trans: "",
         origin: "",
@@ -361,6 +473,11 @@ async function fail() {
 let submitLoading = ref(false);
 
 async function submit() {
+    if (submitLoading.value) return;
+    const candidate = draft.snapshotForIntake();
+    if (!candidate) return;
+    const submittedRevision = draftState.value.revision;
+    const isCurrent = () => draftState.value.revision === submittedRevision;
     // 表单内容检查
     if (!model.value.expression) {
         new Notice(t("Expression is empty!"));
@@ -370,22 +487,14 @@ async function submit() {
         new Notice(t("Meaning is empty!"));
         return;
     }
-    if (model.value.expression.trim().split(" ").length > 1 && model.value.t === "WORD") {
+    if (model.value.expression.trim().split(/\s+/).length > 1 && model.value.t === "WORD") {
         new Notice(t("It looks more like a PHRASE than a WORD"));
         return;
     }
 
     submitLoading.value = true;
     try {
-        const result = await plugin.learningRecordIntake.accept({
-            expression: model.value.expression,
-            meaning: model.value.meaning,
-            status: model.value.status,
-            type: model.value.t,
-            tags: model.value.tags,
-            notes: model.value.notes,
-            sentences: model.value.sentences,
-        });
+        const result = await plugin.learningRecordIntake.accept(candidate);
 
         if (result.status === "rejected") {
             const firstIssue = result.issues[0];
@@ -398,18 +507,18 @@ async function submit() {
             } else {
                 new Notice(t("Learning Record is invalid"));
             }
-            void fail();
+            if (isCurrent()) void fail();
             return;
         }
 
         if (result.status === "notCommitted") {
             new Notice(t("Submit failed"));
-            void fail();
+            if (isCurrent()) void fail();
             return;
         }
 
-        model.value.expression = result.record.expression;
-        void success();
+        if (isCurrent()) void success();
+        else new Notice(`${t("Learning Record saved")}: ${result.record.expression}`);
         const hasFollowUpFailure =
             result.readerUpdate.status === "failed" ||
             result.statisticsUpdate.status === "failed" ||
@@ -422,88 +531,14 @@ async function submit() {
     } catch (error) {
         console.error("Learning Record Intake failed unexpectedly", error);
         new Notice(t("Submit failed"));
-        void fail();
+        if (isCurrent()) void fail();
     } finally {
         submitLoading.value = false;
     }
 }
 
-// 查询词汇时自动填充新词表单
-useEvent(window, "obsidian-langr-search", async (evt: CustomEvent) => {
-    let selection = evt.detail.selection as string;
-    let expr = await plugin.db.getExpression(selection);
-
-    let exprType: ExpressionType = "WORD";
-    if (selection.trim().contains(" ")) {
-        exprType = "PHRASE";
-    }
-
-    const context = evt.detail.context as ReadingSelection | undefined;
-
-    let sentenceText = "";
-    let storedSen: Sentence | null = null;
-    let defaultOrigin = "";
-    let filledTrans = "";
-
-    if (context) {
-        sentenceText = context.sentenceText;
-        defaultOrigin = context.origin;
-        storedSen = await plugin.db.tryGetSen(sentenceText);
-
-        if (plugin.settings.use_machine_trans && sentenceText) {
-            filledTrans = await translateSentence(sentenceText);
-        }
-    }
-
-    if (expr) {
-        if (sentenceText) {
-            if (!storedSen) {
-                expr.sentences = expr.sentences.concat({
-                    text: sentenceText,
-                    trans: filledTrans,
-                    origin: defaultOrigin,
-                });
-            } else {
-                let added = expr.sentences.find((sen) => sen.text === sentenceText);
-                if (!added) {
-                    expr.sentences = expr.sentences.concat(storedSen);
-                }
-            }
-        }
-        model.value = expr;
-        return;
-    } else {
-        if (!context) {
-            model.value = {
-                expression: selection,
-                meaning: "",
-                status: 1,
-                t: exprType,
-                tags: [],
-                notes: [],
-                sentences: [],
-            };
-            return;
-        }
-
-        model.value = {
-            expression: selection,
-            meaning: "",
-            status: 1,
-            t: exprType,
-            tags: [],
-            notes: [],
-            sentences: storedSen
-                ? [storedSen]
-                : [
-                      {
-                          text: sentenceText,
-                          trans: filledTrans,
-                          origin: defaultOrigin,
-                      },
-                  ],
-        };
-    }
+useEvent(window, "obsidian-langr-search", (evt) => {
+    void draft.select(evt.detail.selection, evt.detail.context);
 });
 </script>
 

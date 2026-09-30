@@ -74,6 +74,12 @@ export default {
     "Learning Record is invalid": "Learning Record is invalid",
     "Learning Record saved, but some updates failed":
         "Learning Record saved, but some updates failed",
+    "Preparing Learning Record": "Preparing Learning Record",
+    "Learning Record lookup failed": "Learning Record lookup failed",
+    "Translating sentence": "Translating sentence",
+    "Sentence translation failed; you can still submit":
+        "Sentence translation failed; you can still submit",
+    "Learning Record saved": "Learning Record saved",
     "Submit failed": "Submit failed",
     Submit: "Submit",
 

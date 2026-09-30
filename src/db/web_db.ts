@@ -18,6 +18,51 @@ import { isLearningRecord, LearningRecordStoreError } from "@/learningRecord/int
 import type { LearningRecordCandidate, LearningRecordCommitReceipt } from "@/learningRecord/intake";
 import { normalizeIgnoreWords, ReadingPageCompletionStoreError } from "@/reading/pageCompletion";
 
+function isSentence(value: unknown): value is Sentence {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+        return false;
+    }
+    const sentence = value as Record<string, unknown>;
+    return (
+        typeof sentence.text === "string" &&
+        typeof sentence.trans === "string" &&
+        typeof sentence.origin === "string"
+    );
+}
+
+function isExpressionInfo(value: unknown, expression: string): value is ExpressionInfo {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+        return false;
+    }
+    const info = value as Record<string, unknown>;
+    return (
+        typeof info.expression === "string" &&
+        info.expression.trim().length > 0 &&
+        info.expression.trim().toLowerCase() === expression &&
+        typeof info.meaning === "string" &&
+        typeof info.status === "number" &&
+        Number.isInteger(info.status) &&
+        info.status >= 0 &&
+        info.status <= 4 &&
+        (info.t === "WORD" || info.t === "PHRASE") &&
+        Array.isArray(info.tags) &&
+        info.tags.every((tag) => typeof tag === "string") &&
+        Array.isArray(info.notes) &&
+        info.notes.every((note) => typeof note === "string") &&
+        Array.isArray(info.sentences) &&
+        info.sentences.every(isSentence)
+    );
+}
+
+async function requestLookup(request: RequestUrlParam): Promise<unknown> {
+    const response = await requestUrl({ ...request, throw: false });
+    if (!Number.isInteger(response.status) || response.status < 200 || response.status >= 300) {
+        throw new Error("Learning Record lookup failed");
+    }
+    // Accessing json may reject invalid JSON; never reinterpret that failure as absence.
+    return response.json;
+}
+
 function committedRecordMatchesCandidate(
     record: LearningRecordCommitReceipt["record"],
     candidate: LearningRecordCandidate
@@ -131,21 +176,20 @@ export class WebDb extends DbProvider {
 
     // 获取单词/词组的详细信息
     async getExpression(expression: string): Promise<ExpressionInfo | null> {
+        expression = expression.trim().toLowerCase();
         let request: RequestUrlParam = {
             url: `${this.proto}://${this.host}:${this.port}${this.prefix}/word`,
             method: "POST",
-            body: JSON.stringify(expression.toLowerCase()),
+            body: JSON.stringify(expression),
             contentType: "application/json",
             headers: this.baseHeaders,
         };
 
-        try {
-            let response = await requestUrl(request);
-            return response.json;
-        } catch (e) {
-            console.warn("Error while getting data from server." + e);
-            return null;
+        const value = await requestLookup(request);
+        if (value === null || isExpressionInfo(value, expression)) {
+            return value;
         }
+        throw new Error("Invalid Learning Record lookup response");
     }
 
     async getExpressionsSimple(expressions: string[]): Promise<ExpressionInfoSimple[]> {
@@ -300,13 +344,11 @@ export class WebDb extends DbProvider {
             headers: this.baseHeaders,
         };
 
-        try {
-            let res = await requestUrl(request);
-            return res.json;
-        } catch (e) {
-            console.warn("Error trying to get sentence" + e);
-            return null;
+        const value = await requestLookup(request);
+        if (value === null || (isSentence(value) && value.text === text)) {
+            return value;
         }
+        throw new Error("Invalid sentence lookup response");
     }
 
     // 统计部分

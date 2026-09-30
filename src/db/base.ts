@@ -15,7 +15,7 @@ abstract class DbProvider {
     abstract close(): void;
     // 在文章中寻找之前记录过的单词和词组
     abstract getStoredWords(payload: ArticleWords): Promise<WordsPhrase>;
-    // 查询单个单词/词组的全部信息
+    // 查询单个单词/词组的全部信息；null仅表示确认不存在，读取或响应验证失败必须拒绝Promise
     abstract getExpression(expression: string): Promise<ExpressionInfo | null>;
     //获取一批单词的简略信息
     abstract getExpressionsSimple(expressions: string[]): Promise<ExpressionInfoSimple[]>;
@@ -31,7 +31,7 @@ abstract class DbProvider {
     abstract getTags(): Promise<string[]>;
     // 原子地为尚未记录的单词创建ignore记录，完整保留已有记录；失败必须拒绝Promise
     abstract postIgnoreWords(payload: string[]): Promise<void>;
-    // 查询一个例句是否已经记录过
+    // 查询一个例句是否已经记录过；null仅表示确认不存在，读取或响应验证失败必须拒绝Promise
     abstract tryGetSen(text: string): Promise<Sentence | null>;
     // 获取各类单词的个数
     abstract getCount(): Promise<CountInfo>;

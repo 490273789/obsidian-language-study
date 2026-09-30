@@ -72,6 +72,11 @@ export default {
     "Meaning is empty": "含義不應為空",
     "Learning Record is invalid": "學習記錄無效",
     "Learning Record saved, but some updates failed": "學習記錄已保存，但部分更新失敗",
+    "Preparing Learning Record": "正在準備學習記錄",
+    "Learning Record lookup failed": "學習記錄讀取失敗",
+    "Translating sentence": "正在翻譯例句",
+    "Sentence translation failed; you can still submit": "例句翻譯失敗，仍可提交",
+    "Learning Record saved": "學習記錄已儲存",
     "Submit failed": "提交失敗",
     Submit: "提交",
 

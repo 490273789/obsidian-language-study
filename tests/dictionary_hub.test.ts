@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { DictionaryHub } from "@/dictionary/hub";
 import type { DictionaryAdapter, DictionaryLookupReceipt } from "@/dictionary/interface";
@@ -129,5 +129,74 @@ describe("DictionaryHub", () => {
 
         // Returns empty string for empty input
         expect(await hub.translateSentence("   ")).toBe("");
+    });
+
+    it("tries only listed capable providers once in order and continues after errors or empty results", async () => {
+        const calls: string[] = [];
+        const adapter = (id: string, result: string, fails = false) =>
+            createMockAdapter(id, 0, null, async (text) => {
+                calls.push(`${id}:${text}`);
+                if (fails) throw new Error("offline");
+                return result;
+            });
+        const hub = new DictionaryHub([
+            adapter("outside", "outside result"),
+            adapter("empty", "   "),
+            adapter("failed", "", true),
+            adapter("success", "translated"),
+            createMockAdapter("lookupOnly"),
+        ]);
+
+        await expect(
+            hub.translateSentenceWithProviders(" Hello ", [
+                "missing",
+                "lookupOnly",
+                "failed",
+                "failed",
+                "empty",
+                "success",
+            ])
+        ).resolves.toEqual({ status: "success", translation: "translated" });
+        expect(calls).toEqual(["failed:Hello", "empty:Hello", "success:Hello"]);
+    });
+
+    it("reports unavailable after eligible providers fail without falling back outside the list", async () => {
+        const outside = vi.fn(async () => "outside result");
+        const hub = new DictionaryHub([
+            createMockAdapter("outside", 0, null, outside),
+            createMockAdapter("empty", 0, null, async () => ""),
+            createMockAdapter("failed", 0, null, async () => {
+                throw new Error("offline");
+            }),
+        ]);
+        await expect(
+            hub.translateSentenceWithProviders("Hello", ["empty", "failed"])
+        ).resolves.toEqual({ status: "unavailable" });
+        expect(outside).not.toHaveBeenCalled();
+    });
+
+    it("skips empty input or a list without registered translators", async () => {
+        const translate = vi.fn(async () => "translated");
+        const hub = new DictionaryHub([
+            createMockAdapter("translator", 0, null, translate),
+            createMockAdapter("lookupOnly"),
+        ]);
+        await expect(hub.translateSentenceWithProviders("  ", ["translator"])).resolves.toEqual({
+            status: "skipped",
+        });
+        await expect(
+            hub.translateSentenceWithProviders("Hello", ["missing", "lookupOnly"])
+        ).resolves.toEqual({ status: "skipped" });
+        expect(translate).not.toHaveBeenCalled();
+    });
+
+    it("does not retry the preferred provider during public translation fallback", async () => {
+        const preferred = vi.fn(async () => "");
+        const hub = new DictionaryHub([
+            createMockAdapter("preferred", 0, null, preferred),
+            createMockAdapter("fallback", 0, null, async () => "translated"),
+        ]);
+        expect(await hub.translateSentence("Hello", "preferred")).toBe("translated");
+        expect(preferred).toHaveBeenCalledTimes(1);
     });
 });
