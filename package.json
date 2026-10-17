@@ -25,10 +25,10 @@
     "author": "Shawn",
     "license": "MIT",
     "dependencies": {
-        "@vueuse/core": "^14.4.0",
+        "@vueuse/core": "^15.0.0",
         "ac-auto": "^2.0.0",
-        "dexie": "^4.4.5",
-        "dexie-export-import": "^4.4.0",
+        "dexie": "^4.4.6",
+        "dexie-export-import": "^4.4.1",
         "downloadjs": "^1.4.7",
         "echarts": "^6.1.0",
         "monkey-around": "^3.0.0",
@@ -38,25 +38,25 @@
         "unified": "^11.0.5",
         "unist-util-modify-children": "^4.0.0",
         "unist-util-visit": "^5.1.0",
-        "vue": "^3.5.42"
+        "vue": "^3.5.44"
     },
     "devDependencies": {
         "@types/downloadjs": "^1.4.6",
         "@types/nlcst": "^2.0.3",
-        "@types/node": "^26.4.1",
-        "@vitejs/plugin-vue": "^6.0.8",
+        "@types/node": "^26.6.5",
+        "@vitejs/plugin-vue": "^6.0.10",
         "fake-indexeddb": "^6.2.5",
-        "happy-dom": "^20.13.2",
+        "happy-dom": "^21.0.3",
         "hash-sum": "^2.0.0",
         "naive-ui": "^2.45.3",
-        "obsidian": "1.13.1",
-        "oxfmt": "^0.66.0",
-        "oxlint": "^1.81.0",
-        "sass": "^1.103.1",
+        "obsidian": "1.14.4",
+        "oxfmt": "^0.73.0",
+        "oxlint": "^1.88.0",
+        "sass": "^1.105.2",
         "tslib": "2.8.1",
-        "typescript": "6.0.3",
-        "vite": "^8.2.2",
-        "vitest": "^4.1.11",
-        "vue-tsc": "^3.3.11"
+        "typescript": "7.0.2",
+        "vite": "^8.3.4",
+        "vitest": "^5.0.5",
+        "vue-tsc": "^3.3.13"
     }
 }
