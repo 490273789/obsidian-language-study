@@ -5,13 +5,11 @@ import {
     Sentence,
     ExpressionInfo,
     ExpressionInfoSimple,
-    CountInfo,
     WordCount,
     DailyLearningStat,
 } from "./interface";
 
 import DbProvider from "./base";
-import { buildDaySpans } from "./spans";
 import { buildDailyTimeWindows, convertLegacyWordCounts } from "@/stats/aggregations";
 import { moment } from "@/utils/moment";
 import { isLearningRecord, LearningRecordStoreError } from "@/learningRecord/intake";
@@ -367,27 +365,6 @@ export class WebDb extends DbProvider {
         throw new Error("Invalid sentence lookup response");
     }
 
-    // 统计部分
-    // 获取各种类型的单词/词组类型
-    async getCount(): Promise<CountInfo> {
-        let request: RequestUrlParam = {
-            url: `${this.proto}://${this.host}:${this.port}${this.prefix}/count_all`,
-            method: "GET",
-            headers: this.baseHeaders,
-        };
-        try {
-            let response = await requestUrl(request);
-            let wordsCount: CountInfo = response.json;
-            return wordsCount;
-        } catch (e) {
-            console.warn("Error getting words count" + e);
-            return {
-                word_count: [0, 0, 0, 0, 0],
-                phrase_count: [0, 0, 0, 0, 0],
-            };
-        }
-    }
-
     // 获取每日学习记录统计台账
     async getDailyLearningStats(
         windowDays = 7,
@@ -419,27 +396,6 @@ export class WebDb extends DbProvider {
                 statusBreakdown: [0, 0, 0, 0, 0],
                 accumulatedBreakdown: [0, 0, 0, 0, 0],
             }));
-        }
-    }
-
-    // 获取包括今天在内的7天内每一天的新单词量和累计单词量（兼容旧调用）
-    async countSeven(): Promise<WordCount[]> {
-        const spans = buildDaySpans();
-
-        let request: RequestUrlParam = {
-            url: `${this.proto}://${this.host}:${this.port}${this.prefix}/count_time`,
-            method: "POST",
-            body: JSON.stringify(spans),
-            contentType: "application/json",
-            headers: this.baseHeaders,
-        };
-
-        try {
-            let res = await requestUrl(request);
-            return res.json;
-        } catch (e) {
-            console.warn("Error getting seven-day counts" + e);
-            return [];
         }
     }
 }

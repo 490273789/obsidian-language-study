@@ -4,8 +4,6 @@ import {
     Sentence,
     ExpressionInfo,
     ExpressionInfoSimple,
-    CountInfo,
-    WordCount,
     DailyLearningStat,
 } from "./interface";
 import type { LearningRecordCandidate, LearningRecordCommitReceipt } from "@/learningRecord/intake";
@@ -33,10 +31,6 @@ abstract class DbProvider {
     abstract postIgnoreWords(payload: string[]): Promise<void>;
     // 查询一个例句是否已经记录过；null仅表示确认不存在，读取或响应验证失败必须拒绝Promise
     abstract tryGetSen(text: string): Promise<Sentence | null>;
-    // 获取各类单词的个数
-    abstract getCount(): Promise<CountInfo>;
-    // 获取7天内的统计信息（兼容旧调用）
-    abstract countSeven(): Promise<WordCount[]>;
     // 获取每日学习记录统计台账
     abstract getDailyLearningStats(
         windowDays?: number,

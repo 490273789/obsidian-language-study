@@ -58,29 +58,6 @@ describe("Database Learning Record Statistics Adapters", () => {
             expect(stats[1].accumulated).toBe(3); // 1 存量 + 2 当天 WORD
             expect(stats[1].accumulatedBreakdown).toEqual([1, 1, 0, 1, 0]);
         });
-
-        it("countSeven delegates to getDailyLearningStats and maps legacy WordCount structure with 5-element arrays", async () => {
-            const db = Object.create(LocalDb.prototype) as LocalDb;
-            vi.spyOn(db, "getDailyLearningStats").mockResolvedValue([
-                {
-                    dateLabel: "9-3",
-                    timestamp: 123456,
-                    dayIgnore: 1,
-                    dayLearned: 2,
-                    accumulated: 5,
-                    statusBreakdown: [1, 2, 0, 0, 0],
-                    accumulatedBreakdown: [2, 3, 0, 0, 0],
-                },
-            ]);
-
-            const counts = await db.countSeven();
-            expect(counts).toEqual([
-                {
-                    today: [1, 2, 0, 0, 0],
-                    accumulated: [2, 3, 0, 0, 0],
-                },
-            ]);
-        });
     });
 
     describe("WebDb stats adapter", () => {

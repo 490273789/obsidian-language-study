@@ -49,16 +49,6 @@ interface ExpressionInfoSimple {
     date: number;
 }
 
-interface CountInfo {
-    word_count: number[];
-    phrase_count: number[];
-}
-
-interface Span {
-    from: number;
-    to: number;
-}
-
 interface WordCount {
     today: number[];
     accumulated: number[];
@@ -90,9 +80,7 @@ export type {
     Sentence,
     ExpressionInfo,
     ExpressionInfoSimple,
-    CountInfo,
     WordCount,
-    Span,
     DailyLearningStat,
     LearningRecordTimeItem,
 };

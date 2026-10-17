@@ -11,8 +11,6 @@ import {
     Sentence,
     ExpressionInfo,
     ExpressionInfoSimple,
-    CountInfo,
-    WordCount,
     ExpressionStatus,
     DailyLearningStat,
     LearningRecordTimeItem,
@@ -318,21 +316,6 @@ export class LocalDb extends DbProvider {
         return stored ?? null;
     }
 
-    async getCount(): Promise<CountInfo> {
-        let counts: { WORD: number[]; PHRASE: number[] } = {
-            WORD: new Array(5).fill(0),
-            PHRASE: new Array(5).fill(0),
-        };
-        await this.idb.expressions.each((expr) => {
-            counts[expr.t as "WORD" | "PHRASE"][expr.status]++;
-        });
-
-        return {
-            word_count: counts.WORD,
-            phrase_count: counts.PHRASE,
-        };
-    }
-
     async getDailyLearningStats(
         windowDays = 7,
         now?: number | string | Date
@@ -354,14 +337,6 @@ export class LocalDb extends DbProvider {
             });
 
         return aggregateDailyLearningStats(items, windows);
-    }
-
-    async countSeven(): Promise<WordCount[]> {
-        const stats = await this.getDailyLearningStats(7);
-        return stats.map((s) => ({
-            today: [...s.statusBreakdown],
-            accumulated: [...s.accumulatedBreakdown],
-        }));
     }
 
     async importDB(file: File) {
