@@ -5,7 +5,14 @@ import { search as youdaoSearch, type YoudaoResult } from "@dict/youdao/engine";
 import { search as cambridgeSearch, type CambridgeResult } from "@dict/cambridge/engine";
 import { search as deeplSearch } from "@dict/deepl/engine";
 import { search as hjdictSearch, type HjdictResult } from "@dict/hjdict/engine";
-import { translateSentence } from "./translation";
+
+function parseYoudaoTranslationHtml(html: string): string {
+    if (!html) {
+        return "";
+    }
+    const paragraphs = html.match(/<p>([^<>]+)<\/p>/g);
+    return paragraphs?.[1]?.match(/<p>(.*)<\/p>/)?.[1]?.trim() ?? "";
+}
 
 export const youdaoAdapter: DictionaryAdapter<YoudaoResult> = {
     id: "youdao",
@@ -39,7 +46,22 @@ export const youdaoAdapter: DictionaryAdapter<YoudaoResult> = {
         }
     },
     async translate(sentence: string): Promise<string> {
-        return translateSentence(sentence, youdaoSearch);
+        const query = sentence.trim();
+        if (!query) {
+            return "";
+        }
+        try {
+            const res = (await youdaoSearch(query)) as
+                | { result?: { translation?: string } }
+                | null
+                | undefined;
+            if (res && res.result && typeof res.result.translation === "string") {
+                return parseYoudaoTranslationHtml(res.result.translation);
+            }
+            return "";
+        } catch {
+            return "";
+        }
     },
 };
 

@@ -139,7 +139,7 @@ watch(
                 return {
                     id: dict,
                     priority: plugin.settings.dictionaries[dict].priority,
-                    name: dicts[dict].name,
+                    name: dicts[dict].adapter.name,
                 };
             })
             .filter((dict) => plugin.settings.dictionaries[dict.id].enable);

@@ -200,3 +200,44 @@ describe("DictionaryHub", () => {
         expect(preferred).toHaveBeenCalledTimes(1);
     });
 });
+
+describe("youdaoAdapter sentence translation", () => {
+    it("extracts translation from engine result html", async () => {
+        const { youdaoAdapter } = await import("@/dictionary/adapters");
+        const youdaoEngine = await import("@dict/youdao/engine");
+
+        vi.spyOn(youdaoEngine, "search").mockResolvedValueOnce({
+            result: {
+                translation: "<p>Architecture depth is high.</p><p>架构深度非常高。</p>",
+            } as any,
+        });
+
+        const res = await youdaoAdapter.translate!("Architecture depth is high.");
+        expect(res).toBe("架构深度非常高。");
+    });
+
+    it("handles whitespace or incomplete paragraph html gracefully", async () => {
+        const { youdaoAdapter } = await import("@/dictionary/adapters");
+        const youdaoEngine = await import("@dict/youdao/engine");
+
+        expect(await youdaoAdapter.translate!("   ")).toBe("");
+
+        vi.spyOn(youdaoEngine, "search").mockResolvedValueOnce({
+            result: {
+                translation: "<p>Only one paragraph</p>",
+            } as any,
+        });
+        expect(await youdaoAdapter.translate!("Test")).toBe("");
+    });
+
+    it("returns empty string when engine throws or returns empty payload", async () => {
+        const { youdaoAdapter } = await import("@/dictionary/adapters");
+        const youdaoEngine = await import("@dict/youdao/engine");
+
+        vi.spyOn(youdaoEngine, "search").mockRejectedValueOnce(new Error("Network error"));
+        expect(await youdaoAdapter.translate!("Test")).toBe("");
+
+        vi.spyOn(youdaoEngine, "search").mockResolvedValueOnce(null as any);
+        expect(await youdaoAdapter.translate!("Test")).toBe("");
+    });
+});

@@ -124,24 +124,10 @@ export class DictionaryHub {
     }
 
     async translateSentence(sentence: string, preferredProviderId?: string): Promise<string> {
-        const trimmed = sentence.trim();
-        if (!trimmed) {
-            return "";
-        }
         const orderedIds = preferredProviderId
             ? [preferredProviderId, ...this.adapters.keys()]
             : [...this.adapters.keys()];
-        for (const id of new Set(orderedIds)) {
-            const adapter = this.adapters.get(id);
-            if (adapter?.translate) {
-                try {
-                    const translation = await adapter.translate(trimmed);
-                    if (translation) return translation;
-                } catch {
-                    continue;
-                }
-            }
-        }
-        return "";
+        const result = await this.translateSentenceWithProviders(sentence, orderedIds);
+        return result.status === "success" ? result.translation : "";
     }
 }

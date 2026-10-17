@@ -428,7 +428,7 @@ export class SettingTab extends PluginSettingTab {
         };
 
         (Object.keys(dicts) as DictionaryId[]).forEach((dict) => {
-            createDictSetting(dict, dicts[dict].name, dicts[dict].description);
+            createDictSetting(dict, dicts[dict].adapter.name, dicts[dict].adapter.description);
         });
 
         new Setting(containerEl).setName(t("Dictionary Height")).addText((text) =>
