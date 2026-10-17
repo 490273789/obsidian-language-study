@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { TextParser } from "@/views/parser";
+import { ReadingArticleParser } from "@/reading/articleParser";
 import type { ArticleWords, WordsPhrase } from "@/db/interface";
 
 function makeParser() {
@@ -63,24 +63,42 @@ function makeParser() {
     );
 
     return {
-        parser: new TextParser({ getStoredWords, getExpressionsSimple }),
+        parser: new ReadingArticleParser({ getStoredWords, getExpressionsSimple }),
         getStoredWords,
         getExpressionsSimple,
     };
 }
 
-describe("TextParser (adapter)", () => {
-    it("renders article with a single merged getStoredWords call", async () => {
+describe("ReadingArticleParser", () => {
+    it("renders article in a single AST pass with a single getStoredWords call", async () => {
         const { parser, getStoredWords } = makeParser();
         const result = await parser.parse("alpha visits new york.");
 
         expect(result.html).toContain(`class="word learning"`);
         expect(result.html).toContain(`class="phrase familiar"`);
+        expect(result.newWords).toEqual(["visits", "new", "york"]);
         expect(getStoredWords).toHaveBeenCalledTimes(1);
         expect(getStoredWords).toHaveBeenCalledWith({
             article: "alpha visits new york.",
             words: ["alpha", "visits", "new", "york"],
         });
+    });
+
+    it("escapes user-controlled HTML tags before generating SafeHtml", async () => {
+        const { parser } = makeParser();
+        const result = await parser.parse(`<script>alert(1)</script>`);
+
+        expect(result.html).toContain("&lt;");
+        expect(result.html).not.toContain("<script>");
+    });
+
+    it("does not wrap phrase text when the stored offset does not align to parser nodes", async () => {
+        const { parser } = makeParser();
+        const result = await parser.parse("new yorker arrived.");
+
+        expect(result.html).not.toContain(`class="phrase`);
+        expect(result.html).toContain(`class="word new"`);
+        expect(result.newWords).toEqual(["new", "yorker", "arrived"]);
     });
 
     it("keeps concurrent parses isolated", async () => {
@@ -95,10 +113,10 @@ describe("TextParser (adapter)", () => {
         expect(second.html).toContain(`class="phrase learned"`);
     });
 
-    it("counts unknown, learned, and ignored words", async () => {
+    it("counts unknown, learned, and ignored words, filtering numbers and non-Latin characters", async () => {
         const { parser } = makeParser();
 
-        await expect(parser.countWords("Alpha beta gamma.")).resolves.toEqual([1, 1, 1]);
+        await expect(parser.countWords("Alpha beta gamma 123 你好.")).resolves.toEqual([1, 1, 1]);
     });
 
     it("returns only positive-status expressions for collected words and phrases", async () => {

@@ -109,6 +109,7 @@ export class ReadingView extends TextFileView {
             renderer: {
                 render: (text) => this.plugin.parser.parse(text),
             },
+            wordCounter: (text) => this.plugin.parser.countWords(text),
             ignoreStore: {
                 postIgnoreWords: (words) => this.plugin.db.postIgnoreWords(words),
             },

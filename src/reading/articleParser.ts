@@ -1,10 +1,17 @@
 import { unified } from "unified";
 import retextEnglish from "retext-english";
-import { Root, Content, Literal, Parent, Sentence } from "nlcst";
+import type { Root, Content, Literal, Parent, Sentence } from "nlcst";
 import { visit } from "unist-util-visit";
 import { toString } from "nlcst-to-string";
 
-import type { ExpressionStatus, Phrase, Word, WordsPhrase } from "@/db/interface";
+import type {
+    ArticleWords,
+    ExpressionInfoSimple,
+    ExpressionStatus,
+    Phrase,
+    Word,
+    WordsPhrase,
+} from "@/db/interface";
 import { escapeHtml, unsafeMarkSafeHtml } from "@/utils/safeHtml";
 import type { SafeHtml } from "@/utils/safeHtml";
 
@@ -14,9 +21,14 @@ const processor = unified().use(retextEnglish);
 type AnyNode = Root | Content | Content[];
 type PhraseNode = Parent & { type: "PhraseNode" };
 
-type ArticleRenderContext = Readonly<{
-    phrases: readonly Phrase[];
-    wordStatuses: ReadonlyMap<string, ExpressionStatus>;
+export type RenderArticleResult = Readonly<{
+    html: SafeHtml;
+    newWords: readonly string[];
+}>;
+
+export type ArticleParserStore = Readonly<{
+    getStoredWords(payload: ArticleWords): Promise<WordsPhrase>;
+    getExpressionsSimple(expressions: string[]): Promise<ExpressionInfoSimple[]>;
 }>;
 
 type ParseContext = {
@@ -36,9 +48,7 @@ function isWordLike(text: string): boolean {
     return !/[0-9\u4e00-\u9fa5]/.test(text);
 }
 
-// 从文章中收集所有单词（小写、去重、过滤数字与中文）
-function collectArticleWords(text: string): string[] {
-    const ast = processor.parse(text) as Root;
+function collectWordsFromAst(ast: Root): string[] {
     const wordSet = new Set<string>();
     visit(ast, "WordNode", (word) => {
         const wordText = toString(word).toLowerCase();
@@ -49,7 +59,6 @@ function collectArticleWords(text: string): string[] {
     return [...wordSet];
 }
 
-// 根据已存储单词的状态，统计 [未知, 已学, 忽略]
 function countWordStatuses(
     words: readonly string[],
     storedWords: readonly Word[]
@@ -64,7 +73,6 @@ function countWordStatuses(
     return [unknown, learn, ignore];
 }
 
-// 筛选状态为正的表达式，词组在前、单词在后
 function selectPositiveExpressions(wordsPhrases: WordsPhrase): string[] {
     const payload: string[] = [];
     wordsPhrases.phrases.forEach((phrase) => {
@@ -74,30 +82,6 @@ function selectPositiveExpressions(wordsPhrases: WordsPhrase): string[] {
         if (word.status > 0) payload.push(word.text);
     });
     return payload;
-}
-
-type RenderArticleResult = Readonly<{
-    html: SafeHtml;
-    newWords: readonly string[];
-}>;
-
-// 纯渲染：text + 已解析的 context → RenderArticleResult，无副作用、无 Obsidian 依赖
-function renderArticle(text: string, context: ArticleRenderContext): RenderArticleResult {
-    const phrases = [...context.phrases].sort((a, b) => a.offset - b.offset);
-    const ast = processor.parse(text) as Root;
-    wrapPhrases(ast, phrases);
-
-    const newWords = new Set<string>();
-    const parseContext: ParseContext = {
-        phrases,
-        wordStatuses: context.wordStatuses,
-    };
-
-    const htmlString = toHTMLString(ast, parseContext, newWords);
-    return {
-        html: unsafeMarkSafeHtml(htmlString),
-        newWords: [...newWords],
-    };
 }
 
 function wrapPhrases(tree: Root, phrases: Phrase[]): void {
@@ -150,11 +134,11 @@ function toHTMLString(node: AnyNode, context: ParseContext, newWords: Set<string
     if (hasChildren(node)) {
         switch (node.type as string) {
             case "WordNode": {
-                let text = toString(node.children);
-                let textLower = text.toLowerCase();
-                let isWord = isWordLike(text);
-                let isNew = !context.wordStatuses.has(textLower);
-                let status = isNew ? "new" : STATUS_MAP[context.wordStatuses.get(textLower)!];
+                const text = toString(node.children);
+                const textLower = text.toLowerCase();
+                const isWord = isWordLike(text);
+                const isNew = !context.wordStatuses.has(textLower);
+                const status = isNew ? "new" : STATUS_MAP[context.wordStatuses.get(textLower)!];
 
                 if (isWord && isNew) {
                     newWords.add(textLower);
@@ -166,10 +150,10 @@ function toHTMLString(node: AnyNode, context: ParseContext, newWords: Set<string
             }
             case "PhraseNode": {
                 const phraseNode = node as PhraseNode;
-                let childText = toString(phraseNode.children);
-                let text = toHTMLString(phraseNode.children as Content[], context, newWords);
-                let phrase = context.phrases.find((p) => p.text === childText.toLowerCase());
-                let status = phrase ? STATUS_MAP[phrase.status] : "new";
+                const childText = toString(phraseNode.children);
+                const text = toHTMLString(phraseNode.children as Content[], context, newWords);
+                const phrase = context.phrases.find((p) => p.text === childText.toLowerCase());
+                const status = phrase ? STATUS_MAP[phrase.status] : "new";
 
                 return `<span class="phrase ${status}">${text}</span>`;
             }
@@ -187,5 +171,60 @@ function toHTMLString(node: AnyNode, context: ParseContext, newWords: Set<string
     return "";
 }
 
-export { countWordStatuses, collectArticleWords, renderArticle, selectPositiveExpressions };
-export type { ArticleRenderContext, RenderArticleResult };
+export class ReadingArticleParser {
+    constructor(private readonly store: ArticleParserStore) {}
+
+    async parse(data: string): Promise<RenderArticleResult> {
+        const text = data.trim();
+        const ast = processor.parse(text) as Root;
+        const words = collectWordsFromAst(ast);
+
+        const wordsPhrases = await this.store.getStoredWords({
+            article: text.toLowerCase(),
+            words,
+        });
+
+        const wordStatuses = new Map<string, ExpressionStatus>();
+        wordsPhrases.words.forEach((word) => wordStatuses.set(word.text, word.status));
+
+        const phrases = [...wordsPhrases.phrases].sort((a, b) => a.offset - b.offset);
+        wrapPhrases(ast, phrases);
+
+        const newWords = new Set<string>();
+        const parseContext: ParseContext = {
+            phrases,
+            wordStatuses,
+        };
+
+        const htmlString = toHTMLString(ast, parseContext, newWords);
+        return {
+            html: unsafeMarkSafeHtml(htmlString),
+            newWords: [...newWords],
+        };
+    }
+
+    async countWords(text: string): Promise<[number, number, number]> {
+        const trimmed = text.trim();
+        if (!trimmed) {
+            return [0, 0, 0];
+        }
+        const ast = processor.parse(trimmed) as Root;
+        const words = collectWordsFromAst(ast);
+        const stored = await this.store.getStoredWords({ article: "", words });
+        return countWordStatuses(words, stored.words);
+    }
+
+    async getWordsPhrases(text: string): Promise<ExpressionInfoSimple[]> {
+        const trimmed = text.trim();
+        if (!trimmed) {
+            return [];
+        }
+        const ast = processor.parse(trimmed) as Root;
+        const words = collectWordsFromAst(ast);
+        const wordsPhrases = await this.store.getStoredWords({
+            article: trimmed.toLowerCase(),
+            words,
+        });
+        return this.store.getExpressionsSimple(selectPositiveExpressions(wordsPhrases));
+    }
+}

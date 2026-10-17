@@ -227,34 +227,10 @@ function onMouseOver(e: MouseEvent) {
     }
 }
 
-const articleText = view.articleText;
-
 // 计数
-let unknown = ref(0);
-let learn = ref(0);
-let ignore = ref(0);
-let countChange = ref(true);
-let refreshCount = () => {
-    countChange.value = !countChange.value;
-};
-
-if (plugin.settings.word_count) {
-    watch(
-        [countChange],
-        async () => {
-            [unknown.value, learn.value, ignore.value] =
-                await plugin.parser.countWords(articleText);
-        },
-        { immediate: true }
-    );
-
-    onMounted(() => {
-        addEventListener("obsidian-langr-refresh", refreshCount);
-    });
-    onUnmounted(() => {
-        removeEventListener("obsidian-langr-refresh", refreshCount);
-    });
-}
+const unknown = computed(() => sessionState.value.wordCounts?.unknown ?? 0);
+const learn = computed(() => sessionState.value.wordCounts?.learn ?? 0);
+const ignore = computed(() => sessionState.value.wordCounts?.ignore ?? 0);
 
 // 分页渲染文本
 

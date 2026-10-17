@@ -1,5 +1,5 @@
 import type { SafeHtml } from "@/utils/safeHtml";
-import type { RenderArticleResult } from "@/views/renderArticle";
+import type { RenderArticleResult } from "./articleParser";
 import {
     ReadingPageCompletionStoreError,
     type ReadingPageCompletionStoreErrorCode,
@@ -8,6 +8,12 @@ import {
 type ReadingSessionStatus = "initializing" | "rendering" | "ready" | "renderFailed" | "closed";
 
 type ReadingProgressStatus = "saved" | "unsaved";
+
+type ReadingSessionWordCounts = Readonly<{
+    unknown: number;
+    learn: number;
+    ignore: number;
+}>;
 
 type ReadingSessionSelection = Readonly<{
     page: number;
@@ -59,6 +65,7 @@ type ReadingSessionState = Readonly<{
     error: ReadingSessionError | null;
     completion: ReadingPageCompletionState;
     canFinishPage: boolean;
+    wordCounts: ReadingSessionWordCounts | null;
 }>;
 
 type ReadingSessionAction =
@@ -79,6 +86,8 @@ type ReadingSessionRenderer = Readonly<{
     render(text: string): Promise<RenderArticleResult>;
 }>;
 
+type ReadingSessionWordCounter = (text: string) => Promise<[number, number, number]>;
+
 type ReadingSessionIgnoreStore = Readonly<{
     postIgnoreWords(words: string[]): Promise<void>;
 }>;
@@ -88,6 +97,7 @@ type ReadingSessionDependencies = Readonly<{
     defaultPageSize: string;
     document: ReadingSessionDocument;
     renderer: ReadingSessionRenderer;
+    wordCounter?: ReadingSessionWordCounter;
     ignoreStore?: ReadingSessionIgnoreStore;
     onPageCompleted?(): Promise<void>;
 }>;
@@ -151,6 +161,7 @@ class ReadingSession {
     private readonly defaultPageSize: string;
     private readonly document: ReadingSessionDocument;
     private readonly renderer: ReadingSessionRenderer;
+    private readonly wordCounter?: ReadingSessionWordCounter;
     private readonly ignoreStore?: ReadingSessionIgnoreStore;
     private readonly onPageCompleted?: () => Promise<void>;
     private readonly listeners = new Set<ReadingSessionListener>();
@@ -158,6 +169,7 @@ class ReadingSession {
 
     private state: Omit<ReadingSessionState, "canFinishPage">;
     private requestId = 0;
+    private countVersion = 0;
     private navigationVersion = 0;
     private confirmedVersion = 0;
     private lastSavedPosition: string | null = null;
@@ -173,6 +185,7 @@ class ReadingSession {
         this.defaultPageSize = dependencies.defaultPageSize;
         this.document = dependencies.document;
         this.renderer = dependencies.renderer;
+        this.wordCounter = dependencies.wordCounter;
         this.ignoreStore = dependencies.ignoreStore;
         this.onPageCompleted = dependencies.onPageCompleted;
         this.state = {
@@ -183,6 +196,7 @@ class ReadingSession {
             progress: "saved",
             error: null,
             completion: { status: "idle" },
+            wordCounts: null,
         };
     }
 
@@ -199,6 +213,7 @@ class ReadingSession {
             canFinishPage: this.canFinishPage,
             desired: { ...this.state.desired },
             completion: { ...this.state.completion },
+            wordCounts: this.state.wordCounts ? { ...this.state.wordCounts } : null,
             confirmed: this.state.confirmed
                 ? {
                       ...this.state.confirmed,
@@ -240,6 +255,7 @@ class ReadingSession {
                 return this.renderDesired(desired, true);
             }
             case "refresh":
+                this.updateWordCounts();
                 return this.renderDesired(this.state.desired, false);
             case "retry":
                 if (this.state.status !== "renderFailed") {
@@ -352,6 +368,7 @@ class ReadingSession {
                 await this.renderDesired(this.state.desired, false);
             }
         }
+        this.updateWordCounts();
         this.completionTarget = null;
         this.state = {
             ...this.state,
@@ -392,6 +409,7 @@ class ReadingSession {
         );
         const positionWasClamped = totalLines > 0 && clampedPosition !== requestedPosition;
 
+        this.updateWordCounts();
         return this.renderDesired(desired, positionReadFailed || positionWasClamped);
     }
 
@@ -525,6 +543,30 @@ class ReadingSession {
         }
     }
 
+    private updateWordCounts(): void {
+        if (!this.wordCounter || this.articleLines.length === 0) {
+            return;
+        }
+        const text = this.articleLines.join("\n");
+        const version = ++this.countVersion;
+        void this.wordCounter(text).then(
+            (counts) => {
+                if (version === this.countVersion && this.state.status !== "closed") {
+                    this.state = {
+                        ...this.state,
+                        wordCounts: {
+                            unknown: counts[0],
+                            learn: counts[1],
+                            ignore: counts[2],
+                        },
+                    };
+                    this.notify();
+                }
+            },
+            () => undefined
+        );
+    }
+
     private notify(): void {
         const snapshot = this.snapshot();
         this.listeners.forEach((listener) => listener(snapshot));
@@ -537,4 +579,5 @@ export type {
     ReadingSessionCloseResult,
     ReadingSessionDependencies,
     ReadingSessionState,
+    ReadingSessionWordCounts,
 };

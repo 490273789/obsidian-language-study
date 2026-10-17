@@ -561,4 +561,37 @@ describe("Reading Session", () => {
             expect(harness.postIgnoreWords).not.toHaveBeenCalled();
         });
     });
+
+    describe("wordCounts management", () => {
+        it("computes wordCounts upon initialization and refresh", async () => {
+            const wordCounter = vi.fn(async (_text: string): Promise<[number, number, number]> => [
+                5, 2, 1,
+            ]);
+            const harness = makeHarness();
+            const session = new ReadingSession({
+                ...harness.dependencies,
+                wordCounter,
+            });
+
+            await session.initialize();
+
+            expect(wordCounter).toHaveBeenCalledTimes(1);
+            expect(wordCounter).toHaveBeenCalledWith(harness.dependencies.articleLines.join("\n"));
+            expect(session.snapshot().wordCounts).toEqual({
+                unknown: 5,
+                learn: 2,
+                ignore: 1,
+            });
+
+            wordCounter.mockResolvedValueOnce([4, 3, 1]);
+            await session.act({ type: "refresh" });
+
+            expect(wordCounter).toHaveBeenCalledTimes(2);
+            expect(session.snapshot().wordCounts).toEqual({
+                unknown: 4,
+                learn: 3,
+                ignore: 1,
+            });
+        });
+    });
 });

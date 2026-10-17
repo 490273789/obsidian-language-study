@@ -21,7 +21,7 @@ import { t } from "./lang/helper";
 import DbProvider from "./db/base";
 import { WebDb } from "./db/web_db";
 import { LocalDb } from "./db/local_db";
-import { TextParser } from "./views/parser";
+import { ReadingArticleParser } from "./reading/articleParser";
 import { FrontMatterManager } from "./utils/frontmatter";
 import type Server from "./api/server";
 import {
@@ -56,7 +56,7 @@ export default class LanguageLearner extends Plugin {
     vueApp: VueApp | null = null;
     declare db: DbProvider;
     server: Server | null = null;
-    declare parser: TextParser;
+    declare parser: ReadingArticleParser;
     declare textDatabasePublication: TextDatabasePublication<TFile>;
     declare learningRecordIntake: LearningRecordIntakeModule;
     markdownButtons: Record<string, HTMLElement | null> = {};
@@ -87,7 +87,7 @@ export default class LanguageLearner extends Plugin {
         await this.db.open();
 
         // 设置解析器
-        this.parser = new TextParser(this.db);
+        this.parser = new ReadingArticleParser(this.db);
         this.frontManager = new FrontMatterManager(this.app);
         this.textDatabasePublication = this.createTextDatabasePublication();
         this.learningRecordIntake = this.createLearningRecordIntake();
