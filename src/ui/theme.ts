@@ -8,9 +8,9 @@ import {
 } from "vue";
 import { darkTheme, type GlobalTheme, type GlobalThemeOverrides } from "naive-ui";
 
-const DEFAULT_PRIMARY_COLOR = "#4a6cf7";
-const DEFAULT_PRIMARY_COLOR_HOVER = "#3b5bdb";
-const DEFAULT_PRIMARY_COLOR_PRESSED = "#3350c4";
+const DEFAULT_PRIMARY_COLOR = "#00b8c4";
+const DEFAULT_PRIMARY_COLOR_HOVER = "#00a0ab";
+const DEFAULT_PRIMARY_COLOR_PRESSED = "#008b95";
 
 function useLangrNaiveTheme(isDark: () => boolean): ComputedRef<GlobalTheme | null> {
     return computed(() => (isDark() ? darkTheme : null));
@@ -18,7 +18,7 @@ function useLangrNaiveTheme(isDark: () => boolean): ComputedRef<GlobalTheme | nu
 
 const baseThemeOverrides = {
     common: {
-        borderRadius: "6px",
+        borderRadius: "4px",
         borderRadiusSmall: "4px",
         heightTiny: "24px",
         heightSmall: "28px",
@@ -26,8 +26,8 @@ const baseThemeOverrides = {
         fontSizeMedium: "13px",
     },
     Button: {
-        borderRadiusTiny: "6px",
-        borderRadiusSmall: "6px",
+        borderRadiusTiny: "4px",
+        borderRadiusSmall: "4px",
         heightTiny: "24px",
         heightSmall: "28px",
         paddingTiny: "0 8px",
@@ -56,18 +56,18 @@ const baseThemeOverrides = {
         feedbackHeightMedium: "20px",
     },
     Input: {
-        borderRadius: "6px",
-        borderRadiusSmall: "6px",
+        borderRadius: "4px",
+        borderRadiusSmall: "4px",
         fontSizeTiny: "12px",
         fontSizeSmall: "13px",
         paddingTiny: "0 8px",
         paddingSmall: "0 9px",
     },
     Pagination: {
-        itemBorderRadius: "6px",
+        itemBorderRadius: "4px",
     },
     Radio: {
-        buttonBorderRadius: "6px",
+        buttonBorderRadius: "4px",
         buttonHeightSmall: "26px",
         fontSizeMedium: "13px",
         fontSizeSmall: "13px",
@@ -75,13 +75,13 @@ const baseThemeOverrides = {
     Select: {
         peers: {
             InternalSelection: {
-                borderRadius: "6px",
+                borderRadius: "4px",
                 fontSizeSmall: "13px",
             },
         },
     },
     Tag: {
-        borderRadius: "6px",
+        borderRadius: "4px",
         fontSizeSmall: "12px",
         heightSmall: "22px",
         heightTiny: "20px",
@@ -93,6 +93,21 @@ function normalizeColorForNaive(value: string, fallback: string): string {
 
     if (/^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(color)) {
         return color;
+    }
+
+    // color-mix(in srgb, ...) resolves to CSS Color 4 syntax in Obsidian's browser.
+    // Naive UI's color utilities require legacy rgb/rgba values.
+    const srgbMatch = color.match(
+        /^color\(srgb\s+([+-]?[\d.eE]+)\s+([+-]?[\d.eE]+)\s+([+-]?[\d.eE]+)(?:\s*\/\s*([+-]?[\d.eE]+))?\s*\)$/i
+    );
+    if (srgbMatch) {
+        const channels = srgbMatch.slice(1, 4).map(Number);
+        const alpha = srgbMatch[4] === undefined ? 1 : Number(srgbMatch[4]);
+        if (channels.some((channel) => !Number.isFinite(channel)) || !Number.isFinite(alpha)) {
+            return fallback;
+        }
+        const rgb = channels.map((channel) => Math.round(Math.min(1, Math.max(0, channel)) * 255));
+        return `rgba(${rgb.join(", ")}, ${Math.min(1, Math.max(0, alpha))})`;
     }
 
     const rgbMatch = color.match(
@@ -158,8 +173,12 @@ function createLangrThemeOverrides(): GlobalThemeOverrides {
         DEFAULT_PRIMARY_COLOR_PRESSED
     );
     const surface = resolveCssColorVar("--langr-surface-inset", "#f4f4f5");
+    const control = resolveCssColorVar("--langr-surface-control", "#e9e9ec");
+    const popover = resolveCssColorVar("--langr-surface-popover", "#ffffff");
+    const onAccent = resolveCssColorVar("--langr-text-on-accent", "#ffffff");
+    const hover = resolveCssColorVar("--langr-surface-hover", "#ededf0");
     const surfaceRaised = resolveCssColorVar("--langr-surface-raised", "#ffffff");
-    const border = resolveCssColorVar("--langr-border-strong", "#d4d4d8");
+    const border = resolveCssColorVar("--langr-border", "#d4d4d8");
     const text = resolveCssColorVar("--text-normal", "#1f2328");
     const muted = resolveCssColorVar("--text-muted", "#6b7280");
 
@@ -175,13 +194,26 @@ function createLangrThemeOverrides(): GlobalThemeOverrides {
             textColorBase: text,
             textColor1: text,
             textColor2: muted,
+            bodyColor: surfaceRaised,
+            cardColor: surfaceRaised,
+            modalColor: popover,
+            popoverColor: popover,
+            tableColor: surfaceRaised,
+            inputColor: surface,
+            hoverColor: hover,
+            dividerColor: border,
         },
         Button: {
             ...baseThemeOverrides.Button,
-            color: surface,
-            colorHover: surfaceRaised,
-            colorFocus: surfaceRaised,
+            color: control,
+            colorHover: hover,
+            colorFocus: hover,
             colorPressed: surface,
+            textColor: text,
+            textColorPrimary: onAccent,
+            textColorHoverPrimary: onAccent,
+            textColorPressedPrimary: onAccent,
+            textColorFocusPrimary: onAccent,
             border: `1px solid ${border}`,
             borderHover: `1px solid ${primaryColorHover}`,
             borderFocus: `1px solid ${primaryColor}`,
@@ -193,7 +225,7 @@ function createLangrThemeOverrides(): GlobalThemeOverrides {
             ...baseThemeOverrides.DataTable,
             thColor: surface,
             tdColor: surfaceRaised,
-            tdColorHover: surface,
+            tdColorHover: hover,
             borderColor: border,
             thTextColor: muted,
             tdTextColor: text,

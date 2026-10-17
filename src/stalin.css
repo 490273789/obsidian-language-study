@@ -1,8 +1,9 @@
-:root {
-    --langr-radius-xs: 4px;
-    --langr-radius-sm: 6px;
-    --langr-radius-md: 8px;
-    --langr-radius-lg: 12px;
+:root,
+body {
+    --langr-radius-xs: 2px;
+    --langr-radius-sm: 4px;
+    --langr-radius-md: 6px;
+    --langr-radius-lg: 8px;
     --langr-space-1: 4px;
     --langr-space-2: 8px;
     --langr-space-3: 12px;
@@ -11,26 +12,51 @@
     --langr-font-ui: var(--font-interface);
     --langr-font-reading: var(--font-text);
 
-    --langr-accent: var(--interactive-accent, #4a6cf7);
-    --langr-accent-hover: var(--interactive-accent-hover, #3b5bdb);
+    --langr-accent: var(--interactive-accent, #00b8c4);
+    --langr-accent-hover: var(--interactive-accent-hover, #00a0ab);
     --langr-accent-hot: var(--langr-accent-hover);
     --langr-accent-hot-muted: color-mix(in srgb, var(--langr-accent) 9%, transparent);
     --langr-accent-warm: #c49a6c;
     --langr-accent-cool: #7fa3a8;
 
-    --langr-page: var(--background-primary);
+    --langr-page: var(--background-secondary);
     --langr-surface: var(--background-primary);
-    --langr-surface-muted: var(--background-secondary);
-    --langr-surface-raised: var(--background-primary);
-    --langr-surface-inset: var(--background-secondary);
-    --langr-surface-glass: color-mix(in srgb, var(--langr-surface-raised) 86%, transparent);
+    --langr-surface-muted: color-mix(
+        in srgb,
+        var(--background-secondary) 28%,
+        var(--background-primary) 66%,
+        var(--text-normal) 6%
+    );
+    --langr-surface-raised: color-mix(
+        in srgb,
+        var(--background-primary) 97%,
+        var(--text-normal) 3%
+    );
+    --langr-surface-inset: color-mix(
+        in srgb,
+        var(--background-primary) 85%,
+        var(--background-secondary) 15%
+    );
+    --langr-surface-control: color-mix(
+        in srgb,
+        var(--interactive-normal) 85%,
+        var(--text-normal) 15%
+    );
+    --langr-surface-popover: color-mix(
+        in srgb,
+        var(--background-primary) 82%,
+        var(--text-normal) 18%
+    );
+    --langr-surface-hover: var(--background-modifier-hover);
+    --langr-text-on-accent: var(--text-on-accent, #fff);
+    --langr-surface-glass: var(--langr-surface-muted);
 
     --langr-border-subtle: var(--background-modifier-border);
-    --langr-border: color-mix(in srgb, var(--background-modifier-border) 82%, var(--text-muted));
+    --langr-border: color-mix(in srgb, var(--background-modifier-border) 78%, var(--text-normal));
     --langr-border-strong: color-mix(
         in srgb,
-        var(--background-modifier-border) 66%,
-        var(--text-muted)
+        var(--background-modifier-border) 64%,
+        var(--text-normal)
     );
     --langr-border-hover: color-mix(
         in srgb,
@@ -46,16 +72,8 @@
     --langr-muted: var(--text-muted);
     --langr-faint: var(--text-faint);
 
-    --langr-hairline: color-mix(in srgb, white 10%, transparent);
-    --langr-sheen: color-mix(in srgb, white 5%, transparent);
-
-    --langr-glow-cyan: 0 0 0 3px color-mix(in srgb, var(--langr-accent) 14%, transparent);
-    --langr-glow-hot: 0 0 0 3px color-mix(in srgb, var(--langr-accent) 18%, transparent);
-    --langr-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 2px 8px rgba(0, 0, 0, 0.04);
-    --langr-shadow-strong:
-        0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.08),
-        0 24px 56px rgba(0, 0, 0, 0.05);
-    --langr-scanline: linear-gradient(transparent, transparent);
+    --langr-focus-ring: 0 0 0 2px color-mix(in srgb, var(--langr-accent) 22%, transparent);
+    --langr-shadow-popover: 0 4px 14px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
 
     --langr-status-new-bg: color-mix(in srgb, var(--langr-accent) 11%, transparent);
     --langr-status-new-fg: var(--langr-accent);
@@ -72,12 +90,7 @@
 }
 
 .theme-dark {
-    --langr-hairline: color-mix(in srgb, white 5%, transparent);
-    --langr-sheen: color-mix(in srgb, white 3%, transparent);
-    --langr-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.3);
-    --langr-shadow-strong:
-        0 1px 3px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.45),
-        0 24px 56px rgba(0, 0, 0, 0.35);
+    --langr-shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0, 0, 0, 0.1);
     --langr-status-new-fg: var(--langr-accent);
     --langr-status-learning-fg: #d9a55a;
     --langr-status-familiar-fg: #c2c86b;
@@ -92,9 +105,7 @@
     min-height: 0;
     color: var(--text-normal);
     font-family: var(--langr-font-ui);
-    background:
-        radial-gradient(120% 70% at 50% -12%, var(--langr-sheen), transparent 55%),
-        var(--langr-page);
+    background: var(--langr-page);
     isolation: isolate;
 }
 
@@ -104,22 +115,7 @@
     border: 1px solid var(--langr-border);
     border-radius: var(--langr-radius-md);
     background: var(--langr-surface-raised);
-    box-shadow: var(--langr-shadow);
-}
-
-.langr-card::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    border-radius: inherit;
-    background: linear-gradient(180deg, var(--langr-sheen), transparent 32%);
-    box-shadow: inset 0 1px 0 var(--langr-hairline);
-}
-
-.langr-card > * {
-    position: relative;
-    z-index: 1;
+    box-shadow: none;
 }
 
 .langr-card-muted {
@@ -128,9 +124,7 @@
     border: 1px solid var(--langr-border);
     border-radius: var(--langr-radius-md);
     background: var(--langr-surface-muted);
-    box-shadow:
-        inset 0 1px 0 var(--langr-hairline),
-        inset 0 1px 3px rgba(0, 0, 0, 0.04);
+    box-shadow: none;
 }
 
 .langr-toolbar {
@@ -163,22 +157,19 @@
     border: 1px solid var(--langr-border);
     border-radius: var(--langr-radius-sm);
     background: var(--langr-surface-glass);
-    box-shadow: inset 0 1px 0 var(--langr-hairline);
+    box-shadow: none;
     cursor: pointer;
     transition:
         color 140ms ease,
         border-color 140ms ease,
-        background-color 140ms ease,
-        box-shadow 140ms ease,
-        transform 140ms ease;
+        background-color 140ms ease;
 }
 
 .langr-icon-button:hover:not(:disabled) {
     color: var(--langr-accent);
     border-color: var(--langr-border-hover);
     background: color-mix(in srgb, var(--langr-accent) 8%, var(--langr-surface));
-    box-shadow: var(--langr-glow-cyan);
-    transform: translateY(-1px);
+    box-shadow: none;
 }
 
 .langr-icon-button:disabled {
@@ -198,7 +189,7 @@
     border: 1px dashed var(--langr-border);
     border-radius: var(--langr-radius-md);
     background: var(--langr-surface-muted);
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+    box-shadow: none;
 }
 
 .langr-status-chip {
@@ -211,7 +202,7 @@
     font-weight: 500;
     line-height: 1.2;
     border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
-    box-shadow: inset 0 1px 0 var(--langr-hairline);
+    box-shadow: none;
     white-space: nowrap;
 }
 
@@ -255,37 +246,37 @@
 }
 
 .langr-settings .setting-item {
-    margin: 8px 0;
-    padding: 12px;
-    border: 1px solid var(--langr-border);
-    border-radius: var(--langr-radius-md);
-    background: var(--langr-surface-raised);
-    box-shadow: inset 0 1px 0 var(--langr-hairline);
+    margin: 0;
+    padding: 12px 0;
+    border: 0;
+    border-top: 1px solid var(--langr-border-subtle);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
 }
 
 .langr-shell .n-input,
 .langr-shell .n-base-selection {
-    --n-border: 1px solid var(--langr-border-strong) !important;
+    --n-border: 1px solid var(--langr-border) !important;
     --n-border-hover: 1px solid var(--langr-border-hover) !important;
     --n-border-focus: 1px solid var(--langr-accent) !important;
     --n-color: var(--langr-surface-inset) !important;
     --n-color-focus: var(--langr-surface) !important;
     --n-text-color: var(--text-normal) !important;
     --n-placeholder-color: var(--langr-faint) !important;
-    --n-box-shadow-focus: var(--langr-glow-cyan) !important;
+    --n-box-shadow-focus: var(--langr-focus-ring) !important;
+    --n-box-shadow-active: var(--langr-focus-ring) !important;
 }
 
 .langr-shell .n-button {
-    --n-border: 1px solid var(--langr-border-strong) !important;
-    --n-border-hover: 1px solid var(--langr-border-hover) !important;
-    --n-border-focus: 1px solid var(--langr-accent) !important;
-    --n-box-shadow-focus: var(--langr-glow-cyan) !important;
+    --n-box-shadow-focus: var(--langr-focus-ring) !important;
     --n-ripple-color: var(--langr-accent) !important;
 }
 
 .langr-settings .setting-item-heading {
     margin-top: 20px;
-    border-color: transparent;
+    border-top: 0;
+    border-bottom: 1px solid var(--langr-border);
     background: transparent;
     box-shadow: none;
 }
@@ -293,6 +284,25 @@
 .langr-settings .setting-item-heading .setting-item-name {
     font-size: 15px;
     font-weight: 600;
+}
+
+.langr-shell button,
+.langr-settings button {
+    box-shadow: none;
+}
+
+.langr-shell button:focus-visible,
+.langr-settings :is(button, input, select, textarea):focus-visible {
+    outline: 2px solid var(--langr-accent);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .langr-shell *,
+    .langr-settings * {
+        transition: none !important;
+        animation: none !important;
+    }
 }
 
 /* 复习卡片中的发音 */

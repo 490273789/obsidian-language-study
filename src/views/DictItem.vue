@@ -123,7 +123,7 @@ watch(
     border: 1px solid var(--langr-border);
     border-radius: var(--langr-radius-md);
     background: var(--langr-surface-raised);
-    box-shadow: var(--langr-shadow);
+    box-shadow: none;
 
     header.dict-item-header {
         display: flex;
@@ -134,7 +134,7 @@ watch(
         gap: var(--langr-space-2);
         padding: var(--langr-space-2);
         border-bottom: 1px solid var(--langr-border-strong);
-        background: linear-gradient(180deg, var(--langr-sheen), transparent), v-bind(bgRGBA3);
+        background: v-bind(bgRGBA3);
         min-height: 34px;
         cursor: pointer;
 
@@ -194,10 +194,7 @@ watch(
         transition: max-height 1s cubic-bezier(0, 1, 0, 1);
         padding-left: var(--langr-space-3);
         padding-right: var(--langr-space-3);
-        background: var(--langr-scanline), var(--langr-surface-raised);
-        background-size:
-            100% 4px,
-            auto;
+        background: var(--langr-surface-raised);
 
         .fold-mask {
             position: absolute;

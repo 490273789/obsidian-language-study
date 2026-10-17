@@ -2,33 +2,33 @@
 
 ## Design Goal
 
-Language Learner should feel like a calm, focused reading tool: neutral layered surfaces, a single restrained accent, hairline borders, and soft shadows. Texture comes from subtle elevation, a top hairline highlight, and a soft ambient light rather than neon glow, grid textures, or scanning effects. Long-form reading stays the quietest surface in the UI.
+Language Learner follows the editorial UI direction of the sibling Study Studio project (`../obsidian-study-studio/src/core/styles/README.md`, `base.scss`, and `layout.scss`): a compact, calm workbench that inherits Obsidian's theme and accent. Establish hierarchy through solid surfaces, hairline borders, spacing, and typography. Ordinary panels and controls stay flat; only floating popups use a soft shadow. Long-form reading stays the quietest surface in the UI.
 
 ## Theme Tokens
 
-- Base surfaces use `--langr-page`, `--langr-surface`, `--langr-surface-raised`, `--langr-surface-inset`, and `--langr-surface-glass`. These derive from Obsidian background variables, with `--langr-surface-raised` lifted brighter and `--langr-surface-inset` recessed darker to establish elevation.
-- Accent is a single color: `--langr-accent` and `--langr-accent-hover` derive from Obsidian's `--interactive-accent`. `--langr-accent-hot` is kept as an alias for `--langr-accent-hover` so view files don't need to change. `--langr-accent-warm` and `--langr-accent-cool` are muted secondary hues used only for charts.
-- Borders use `--langr-border-subtle`, `--langr-border`, and `--langr-border-strong`, all neutral hairline tones. `--langr-border-neon` is a soft accent-tinted border reserved for active and focus states.
-- Light and texture are centralized in `--langr-hairline` (a 1px top highlight) and `--langr-sheen` (a soft ambient light). Use these instead of hand-coded white overlays.
-- Elevation is centralized in `--langr-shadow` and `--langr-shadow-strong`; `--langr-glow-*` is reduced to a single subtle accent ring. Do not hand-code colored glows in view files.
-- Density uses the existing `--langr-space-*` scale and 4-12px radii. Large pill radii are reserved for status chips and progress bars.
+- `--langr-page` is the secondary-background canvas. `--langr-surface` is the primary-background reading surface. `--langr-surface-muted` is a section surface and `--langr-surface-raised` is a card surface. Their mixes follow Study Studio's theme-derived surface hierarchy.
+- `--langr-surface-inset` is the input surface; `--langr-surface-control` is the button surface; `--langr-surface-popover` is reserved for floating content. `--langr-surface-glass` remains an opaque section-surface alias for existing consumers.
+- `--langr-accent` and `--langr-accent-hover` follow Obsidian's interactive accent. Cyan fallbacks match Study Studio's primary palette. `--langr-accent-hot` aliases the hover color. `--langr-text-on-accent` follows Obsidian's foreground for filled primary actions. Warm/cool chart hues and learning-status colors retain their semantic roles.
+- `--langr-border-subtle`, `--langr-border`, and `--langr-border-strong` provide neutral separators and outlines. Accent-tinted borders are reserved for interaction states.
+- `--langr-focus-ring` is a compact keyboard/input focus indicator. `--langr-shadow-popover` is the sole elevation token, with restrained light/dark variants. Do not apply it to panels, toolbars, cards, or ordinary controls.
+- Radii follow Study Studio's 2/4/6/8px scale. Keep the existing spacing scale so reading and tool layouts preserve their available space. Large pill radii are reserved for status chips and progress bars.
 
 ## Light And Dark
 
-The default root theme is the light variant. `.theme-dark` overrides only shadow depth and status chip foreground tones; accent and surfaces follow Obsidian automatically. View files must consume tokens only and should not branch on theme classes directly unless a component has a visual defect in one theme.
+Surfaces, text, accent, and borders derive from Obsidian automatically. `.theme-dark` adjusts only popup shadow depth and status foreground tones. Component styles consume tokens rather than fixed light/dark palettes.
 
 ## Components
 
-- `.langr-shell` owns panel background, typography, and base text color. It adds a single soft ambient light at the top; keep it subtle.
-- `.langr-card` is the primary framed panel. Its pseudo-elements may only add a subtle top highlight, never fixed color rails.
-- `.langr-card-muted` is for contained meters and secondary groups.
+- `.langr-shell` owns the solid canvas background, typography, and base text color.
+- `.langr-card` is a bordered, flat card. `.langr-card-muted` groups secondary content with a solid section surface. Neither adds sheen, inset depth, or decorative pseudo-elements.
 - `.langr-toolbar`, `.langr-toolbar-title`, `.langr-subtle`, `.langr-icon-button`, `.langr-state`, and `.langr-status-chip` are shared primitives.
-- Naive UI remains the control layer. The plugin theme overrides keep Naive controls aligned with the same tokens.
+- Naive UI remains the control layer. `src/ui/theme.ts` aligns primary foregrounds, input/control surfaces, tables, and popup colors with these tokens. Preserve typed primary/error/warning button borders rather than overriding them globally.
+- Settings use simple divided rows and section headings instead of a framed card for every option.
 
 ## Rules For New UI
 
-- Prefer semantic shared classes before adding component-local paint.
-- Keep reading content calmer than tool panels: reserve accent for hover, selection, status marks, and focus borders, not on every paragraph.
-- Avoid grid, scanline, and radial-glow backgrounds. Texture comes from elevation and hairlines.
-- Avoid inline colors. If a new color is needed, add a token in `src/stalin.css` first and document the role here.
-- Preserve Obsidian theme integration by deriving from Obsidian CSS variables where possible.
+- Prefer shared classes and tokens before adding component-local paint.
+- Reserve accent for actions, hover, selection, status marks, and focus. Preserve visible keyboard focus and semantic reading highlights.
+- Avoid decorative gradients, scanlines, glows, hover lifts, and stacked shadows. A dictionary content-fade gradient may remain where it communicates truncated content.
+- Add new colors as semantic tokens here first. Derive them from Obsidian variables where practical.
+- Respect reduced motion and preserve mobile layouts, touch targets, and theme contrast.

@@ -399,7 +399,7 @@ if (plugin.constants.platform === "mobile") {
         min-height: 0;
         overflow: hidden;
         border-color: var(--langr-border);
-        box-shadow: var(--langr-shadow-strong);
+        box-shadow: none;
     }
 
     .reading-header {
@@ -410,8 +410,7 @@ if (plugin.constants.platform === "mobile") {
         min-height: 48px;
         padding: var(--langr-space-3) var(--langr-space-4);
         border-bottom: 1px solid var(--langr-border-strong);
-        background:
-            linear-gradient(180deg, var(--langr-sheen), transparent), var(--langr-surface-glass);
+        background: var(--langr-surface-glass);
     }
 
     .reading-heading {
@@ -445,7 +444,7 @@ if (plugin.constants.platform === "mobile") {
         border: 1px solid var(--langr-border-strong);
         border-radius: var(--langr-radius-sm);
         background: var(--langr-surface-glass);
-        box-shadow: inset 0 1px 0 var(--langr-hairline);
+        box-shadow: none;
         cursor: pointer;
         transition:
             transform 120ms ease,
@@ -459,8 +458,7 @@ if (plugin.constants.platform === "mobile") {
         border-color: var(--langr-border-hover);
         color: var(--langr-accent);
         background: color-mix(in srgb, var(--langr-accent) 8%, var(--langr-surface));
-        box-shadow: var(--langr-glow-cyan);
-        transform: translateY(-1px);
+        box-shadow: none;
     }
 
     .reading-action:disabled {
@@ -471,14 +469,14 @@ if (plugin.constants.platform === "mobile") {
     }
 
     .finish-reading {
-        color: var(--background-primary);
+        color: var(--langr-text-on-accent);
         border-color: var(--langr-accent);
-        background: linear-gradient(90deg, var(--langr-accent), var(--langr-accent-hot));
+        background: var(--langr-accent);
     }
 
     .finish-reading:hover {
-        color: var(--background-primary);
-        background: linear-gradient(90deg, var(--langr-accent-hover), var(--langr-accent-hot));
+        color: var(--langr-text-on-accent);
+        background: var(--langr-accent-hover);
     }
 
     .reading-progress {
@@ -489,10 +487,7 @@ if (plugin.constants.platform === "mobile") {
         margin: var(--langr-space-3) var(--langr-space-4) 0;
         padding: var(--langr-space-2) var(--langr-space-3);
         border-color: var(--langr-border-strong);
-        background: var(--langr-scanline), var(--langr-surface-inset);
-        background-size:
-            100% 4px,
-            auto;
+        background: var(--langr-surface-inset);
     }
 
     .reading-progress-labels {
@@ -512,7 +507,7 @@ if (plugin.constants.platform === "mobile") {
         border: 1px solid var(--langr-border-strong);
         border-radius: var(--langr-radius-md);
         background: var(--langr-surface);
-        box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.04);
+        box-shadow: none;
         font-family: var(--langr-font-reading);
         touch-action: none;
 

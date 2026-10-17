@@ -580,7 +580,7 @@ useEvent(window, "obsidian-langr-search", (evt) => {
         padding: var(--langr-space-3);
         border-color: var(--langr-border);
         background: var(--langr-surface-raised);
-        box-shadow: var(--langr-shadow);
+        box-shadow: none;
     }
 
     .learn-section-header {
@@ -636,7 +636,7 @@ useEvent(window, "obsidian-langr-search", (evt) => {
 
         &.n-radio-button--checked {
             color: var(--langr-accent);
-            box-shadow: var(--langr-glow-cyan);
+            box-shadow: none;
         }
     }
 
@@ -654,9 +654,7 @@ useEvent(window, "obsidian-langr-search", (evt) => {
         border: 1px solid var(--langr-border-strong);
         border-radius: var(--langr-radius-sm);
         background: var(--langr-surface-inset);
-        box-shadow:
-            inset 0 1px 0 var(--langr-hairline),
-            inset 0 1px 3px rgba(0, 0, 0, 0.04);
+        box-shadow: none;
     }
 
     .n-dynamic-input .n-button-group {
@@ -690,9 +688,8 @@ useEvent(window, "obsidian-langr-search", (evt) => {
         padding: var(--langr-space-2);
         border: 1px solid var(--langr-border);
         border-radius: var(--langr-radius-md);
-        background:
-            linear-gradient(180deg, var(--langr-sheen), transparent), var(--langr-surface-glass);
-        box-shadow: var(--langr-shadow);
+        background: var(--langr-surface-glass);
+        box-shadow: none;
     }
 
     .submit-button {

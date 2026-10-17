@@ -75,9 +75,9 @@ defineExpose({
     z-index: 1000;
     overflow: hidden;
     border-color: var(--langr-border);
-    background-color: var(--langr-surface-raised);
+    background-color: var(--langr-surface-popover);
     touch-action: none;
-    box-shadow: var(--langr-shadow-strong);
+    box-shadow: var(--langr-shadow-popover);
 
     .pop-handle {
         display: flex;
@@ -86,8 +86,7 @@ defineExpose({
         padding: 0 var(--langr-space-2) 0 var(--langr-space-3);
         color: var(--langr-muted);
         border-bottom: 1px solid var(--langr-border-strong);
-        background:
-            linear-gradient(180deg, var(--langr-sheen), transparent), var(--langr-surface-inset);
+        background: var(--langr-surface-inset);
         cursor: move;
 
         &:active {

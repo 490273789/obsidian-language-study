@@ -242,9 +242,8 @@ let collumns = reactive<DataTableColumns<Row>>([
         gap: var(--langr-space-2);
         padding: var(--langr-space-3);
         border-color: var(--langr-border);
-        background:
-            linear-gradient(180deg, var(--langr-sheen), transparent), var(--langr-surface-glass);
-        box-shadow: var(--langr-shadow);
+        background: var(--langr-surface-glass);
+        box-shadow: none;
     }
 
     .data-filter-row {
@@ -272,7 +271,7 @@ let collumns = reactive<DataTableColumns<Row>>([
         border: 1px solid var(--langr-border-strong);
         border-radius: var(--langr-radius-sm);
         background: var(--langr-surface-inset);
-        box-shadow: inset 0 1px 0 var(--langr-hairline);
+        box-shadow: none;
     }
 
     .tag-list {
@@ -290,7 +289,7 @@ let collumns = reactive<DataTableColumns<Row>>([
         padding: var(--langr-space-2);
         border-color: var(--langr-border);
         background: var(--langr-surface-raised);
-        box-shadow: var(--langr-shadow-strong);
+        box-shadow: none;
     }
 
     .n-data-table-filter {

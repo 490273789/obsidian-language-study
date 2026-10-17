@@ -77,30 +77,22 @@ let styleC = computed(() => {
     line-height: 18px;
     border-radius: 999px;
     background: var(--langr-surface-inset);
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    box-shadow: none;
 
     .b1 {
         min-width: fit-content;
         padding: 0 6px;
         color: var(--langr-status-new-fg);
-        background: linear-gradient(
-            90deg,
-            var(--langr-status-new-bg),
-            color-mix(in srgb, var(--langr-status-new-fg) 14%, transparent)
-        );
-        box-shadow: inset -1px 0 0 color-mix(in srgb, var(--langr-border-strong) 70%, transparent);
+        background: var(--langr-status-new-bg);
+        border-right: 1px solid var(--langr-border-subtle);
     }
 
     .b2 {
         min-width: fit-content;
         padding: 0 6px;
         color: var(--langr-status-learning-fg);
-        background: linear-gradient(
-            90deg,
-            var(--langr-status-learning-bg),
-            color-mix(in srgb, var(--langr-status-learning-fg) 13%, transparent)
-        );
-        box-shadow: inset -1px 0 0 color-mix(in srgb, var(--langr-border-strong) 70%, transparent);
+        background: var(--langr-status-learning-bg);
+        border-right: 1px solid var(--langr-border-subtle);
     }
 
     .b3 {

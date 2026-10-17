@@ -242,14 +242,13 @@ onUnmounted(() => {
         overflow: hidden;
         min-height: 420px;
         border-color: var(--langr-border);
-        box-shadow: var(--langr-shadow-strong);
+        box-shadow: none;
     }
 
     .stat-header {
         padding: var(--langr-space-3) var(--langr-space-4);
         border-bottom: 1px solid var(--langr-border-strong);
-        background:
-            linear-gradient(180deg, var(--langr-sheen), transparent), var(--langr-surface-glass);
+        background: var(--langr-surface-glass);
     }
 
     .stat-title {

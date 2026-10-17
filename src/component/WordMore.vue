@@ -59,7 +59,7 @@ let notes = expressionInfo?.notes ?? [];
             border: 1px solid var(--langr-border-strong);
             border-radius: var(--langr-radius-sm);
             background: var(--langr-surface-inset);
-            box-shadow: inset 0 1px 0 var(--langr-hairline);
+            box-shadow: none;
         }
     }
 
@@ -71,7 +71,7 @@ let notes = expressionInfo?.notes ?? [];
             border: 1px solid var(--langr-border-strong);
             border-radius: var(--langr-radius-sm);
             background: var(--langr-surface-inset);
-            box-shadow: inset 0 1px 0 var(--langr-hairline);
+            box-shadow: none;
 
             p {
                 &:first-child {
