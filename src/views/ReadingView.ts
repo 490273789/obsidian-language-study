@@ -137,49 +137,6 @@ export class ReadingView extends TextFileView {
         void this.session?.act({ type: "refresh" });
     };
 
-    wrapSelect(elStart: HTMLElement, elEnd: HTMLElement) {
-        this.removeSelect();
-        if (
-            !elStart.matchParent(".stns") ||
-            !elEnd.matchParent(".stns") ||
-            elStart.parentElement !== elEnd.parentElement
-        ) {
-            return null;
-        }
-        let parent = elStart.parentNode;
-        if (!parent) {
-            return null;
-        }
-        let selectSpan = document.body.createSpan({ cls: "select" });
-        parent.insertBefore(selectSpan, elStart);
-        for (let el: Node | null = elStart; el && el !== elEnd;) {
-            const next: ChildNode | null = el.nextSibling;
-            selectSpan.appendChild(el);
-            el = next;
-        }
-        selectSpan.appendChild(elEnd);
-        return selectSpan;
-    }
-
-    removeSelect() {
-        //把span.select里面的东西拿出来
-        let selects = this.contentEl.querySelectorAll<HTMLElement>("span.select");
-        selects.forEach((el) => {
-            let parent = el.parentElement;
-            if (!parent) {
-                return;
-            }
-            let children: Node[] = [];
-            el.childNodes.forEach((child) => {
-                children.push(child);
-            });
-            for (let c of children) {
-                parent.insertBefore(c, el);
-            }
-            el.remove();
-        });
-    }
-
     initHeaderButtons() {
         this.addAction("book", t("Return to Markdown"), () => {
             this.backToMarkdown();

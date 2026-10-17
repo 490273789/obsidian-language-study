@@ -162,7 +162,7 @@ import CountBar from "./CountBar.vue";
 import { useView } from "@/ui/context";
 import { resolveLocalResourcePath } from "@/utils/platform";
 import { useLangrNaiveTheme, useLangrNaiveThemeOverrides } from "@/ui/theme";
-import { extractReadingSelection } from "@/reading/readingContext";
+import { ReadingSelectionCoordinator } from "@/reading/readingSelection";
 
 let view = useView<ReadingView>();
 let plugin = view.plugin as PluginType;
@@ -247,12 +247,14 @@ const pageSlot = Platform.isMobileApp ? 5 : undefined;
 const page = computed({
     get: () => sessionState.value.desired.page,
     set: (value: number) => {
+        selectionCoordinator.clear();
         void readingSession.act({ type: "navigate", page: value });
     },
 });
 const pageSize = computed({
     get: () => sessionState.value.desired.pageSize,
     set: (value: number) => {
+        selectionCoordinator.clear();
         void readingSession.act({ type: "resize", pageSize: value });
     },
 });
@@ -282,73 +284,51 @@ function retryRender() {
 
 // 添加无视单词（完成当页阅读）
 async function addIgnores() {
+    selectionCoordinator.clear();
     await readingSession.act({ type: "finishPage" });
 }
 
 let reading = ref<HTMLElement | null>(null);
-let prevEl: HTMLElement | null = null;
+const selectionCoordinator = new ReadingSelectionCoordinator({
+    getContainer: () => reading.value,
+    getDocumentOrigin: () => documentOrigin,
+    onSelect: ({ text, selection, point }) => {
+        void plugin.queryWord(text, selection ?? undefined, point);
+    },
+});
+
 if (plugin.constants.platform === "mobile") {
     useEvent(reading, "click", (e) => {
-        let target = e.target as HTMLElement;
-        if (target.hasClass("word") || target.hasClass("phrase")) {
+        const target = e.target as HTMLElement;
+        if (selectionCoordinator.isSelectable(target)) {
             e.preventDefault();
             e.stopPropagation();
-            if (prevEl) {
-                let selectSpan = view.wrapSelect(prevEl, target);
-                if (selectSpan) {
-                    const text = selectSpan.textContent ?? "";
-                    const selectionContext = extractReadingSelection(
-                        selectSpan,
-                        text,
-                        documentOrigin
-                    );
-                    plugin.queryWord(text, selectionContext ?? undefined, {
-                        x: e.pageX,
-                        y: e.pageY,
-                    });
-                }
-                prevEl = null;
-            } else {
-                prevEl = target;
-            }
-        } else {
-            view.removeSelect();
-            prevEl = null;
         }
+        selectionCoordinator.handleMobileClick(target, {
+            x: e.pageX,
+            y: e.pageY,
+        });
     });
 } else {
     useEvent(reading, "pointerdown", (e) => {
-        let target = e.target as HTMLElement;
-        if (target.hasClass("word") || target.hasClass("phrase") || target.hasClass("select")) {
-            prevEl = target;
-        }
+        selectionCoordinator.handlePointerDown(e.target as HTMLElement);
     });
     useEvent(reading, "pointerup", (e) => {
-        let target = e.target as HTMLElement;
-        if (target.hasClass("word") || target.hasClass("phrase") || target.hasClass("select")) {
+        const target = e.target as HTMLElement;
+        if (selectionCoordinator.isSelectable(target)) {
             e.preventDefault();
             e.stopPropagation();
-            if (prevEl) {
-                let selectSpan = view.wrapSelect(prevEl, target);
-                if (selectSpan) {
-                    const text = selectSpan.textContent ?? "";
-                    const selectionContext = extractReadingSelection(
-                        selectSpan,
-                        text,
-                        documentOrigin
-                    );
-                    plugin.queryWord(text, selectionContext ?? undefined, {
-                        x: e.pageX,
-                        y: e.pageY,
-                    });
-                }
-                prevEl = null;
-            }
-        } else {
-            view.removeSelect();
         }
+        selectionCoordinator.handlePointerUp(target, {
+            x: e.pageX,
+            y: e.pageY,
+        });
     });
 }
+
+onUnmounted(() => {
+    selectionCoordinator.clear();
+});
 </script>
 
 <style lang="scss">
