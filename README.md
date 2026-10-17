@@ -4,6 +4,13 @@ Language Learner 是一个面向语言学习的 Obsidian 插件，提供阅读�
 
 ## Development
 
+开发工具链统一使用 Vite Plus，构建、测试、lint 和格式化配置集中在 `vite.config.mts`。
+需要 Node.js `^22.18.0 || ^24.11.0 || >=26.0.0` 和 `pnpm@11.5.2`。
+
+`pnpm dev` 使用 `vp build --watch` 持续生成 Obsidian 插件产物；Vue 类型检查继续使用 `vue-tsc`。
+TypeScript 固定为 6.0.3，以兼容当前 `vue-tsc` 3.3.13；升级 Vite Plus 时需同步更新
+`package.json` 和 `pnpm-workspace.yaml` 中的核心包别名及配套 Vitest 版本。
+
 ```bash
 pnpm install
 pnpm dev

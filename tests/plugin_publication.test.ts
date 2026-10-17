@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { App, PluginManifest, WorkspaceLeaf } from "obsidian";
 import type { ReadingDocument } from "@/reading/readingDocument";
 import { DEFAULT_SETTINGS } from "@/settings";

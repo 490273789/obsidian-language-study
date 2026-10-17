@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 import { ReadingArticleParser } from "@/reading/articleParser";
 import type { ArticleWords, WordsPhrase } from "@/db/interface";

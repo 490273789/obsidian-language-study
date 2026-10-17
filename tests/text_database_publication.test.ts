@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 import { TextDatabasePublication } from "@/textDatabase/publication";
 import type { TextDatabasePublicationSettings } from "@/textDatabase/publication";

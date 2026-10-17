@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 import { ReadingDocument, divideReadingSections } from "@/reading/readingDocument";
 import type { ExpressionInfoSimple } from "@/db/interface";

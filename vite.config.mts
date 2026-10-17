@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import vue from "@vitejs/plugin-vue";
-import { defineConfig } from "vite";
+import { defineConfig } from "vite-plus";
 
 const rootDir = fileURLToPath(new URL(".", import.meta.url));
 const outDir = resolve(rootDir, ".vite-output");
@@ -44,6 +44,62 @@ export default defineConfig(({ mode }) => ({
             "@dict": resolve(rootDir, "src/dictionary"),
             "@comp": resolve(rootDir, "src/component"),
         },
+    },
+    test: {
+        environment: "happy-dom",
+        include: ["tests/**/*.test.ts"],
+        setupFiles: ["tests/setup.ts"],
+        alias: {
+            obsidian: resolve(rootDir, "tests/mocks/obsidian.ts"),
+        },
+    },
+    lint: {
+        env: {
+            browser: true,
+            es2022: true,
+            node: true,
+        },
+        globals: {
+            app: "readonly",
+        },
+        ignorePatterns: [
+            "node_modules/**",
+            ".vite-output/**",
+            "main.js",
+            "styles.css",
+            "pdf/**",
+            "*.map",
+        ],
+        plugins: ["import", "vue"],
+        rules: {
+            "no-empty-function": "off",
+            "no-prototype-builtins": "off",
+            "no-unused-vars": [
+                "error",
+                {
+                    args: "none",
+                    caughtErrors: "none",
+                },
+            ],
+        },
+    },
+    fmt: {
+        bracketSpacing: true,
+        ignorePatterns: [
+            "node_modules/**",
+            ".vite-output/**",
+            "main.js",
+            "styles.css",
+            "pdf/**",
+            "*.map",
+        ],
+        printWidth: 100,
+        semi: true,
+        singleQuote: false,
+        sortPackageJson: false,
+        tabWidth: 4,
+        trailingComma: "es5",
+        useTabs: false,
     },
     build: {
         lib: {

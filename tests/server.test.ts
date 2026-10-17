@@ -2,7 +2,7 @@
 
 import type { AddressInfo } from "node:net";
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import Server from "@/api/server";
 import type { ExpressionInfo } from "@/db/interface";

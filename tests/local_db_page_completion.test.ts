@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vite-plus/test";
 
 import { LocalDb } from "@/db/local_db";
 import type { ExpressionStatus, ExpressionType } from "@/db/interface";
